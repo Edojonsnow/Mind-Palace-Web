@@ -6,6 +6,7 @@ import {
   Check,
   CircleAlert,
   MessageCircleQuestion,
+  LogOut,
   RefreshCw,
   Save,
   Search,
@@ -22,8 +23,7 @@ import {
   updateSettings,
   UserSettings,
 } from "@/lib/api";
-
-const TOKEN_STORAGE_KEY = "mind-palace-web-token";
+import { authClient, getJWTToken } from "@/lib/auth-client";
 
 function splitTags(value: string): string[] {
   return value
@@ -43,13 +43,20 @@ function formatDate(value: string): string {
 
 type LoadState = "idle" | "loading" | "ready" | "error";
 
+async function getApiToken(): Promise<string | null> {
+  return getJWTToken();
+}
+
 export function MindPalaceShell() {
-  const [token, setToken] = useState(() =>
-    typeof window === "undefined" ? "" : (window.localStorage.getItem(TOKEN_STORAGE_KEY) ?? ""),
-  );
-  const [draftToken, setDraftToken] = useState(() =>
-    typeof window === "undefined" ? "" : (window.localStorage.getItem(TOKEN_STORAGE_KEY) ?? ""),
-  );
+  const session = authClient.useSession();
+  const [authMode, setAuthMode] = useState<"sign-in" | "sign-up" | "confirm">("sign-in");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authName, setAuthName] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [authMessage, setAuthMessage] = useState("");
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [isResendingCode, setIsResendingCode] = useState(false);
   const [thoughts, setThoughts] = useState<Thought[]>([]);
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("idle");
@@ -60,6 +67,7 @@ export function MindPalaceShell() {
   const [thoughtType, setThoughtType] = useState("thought");
   const [useWithAsk, setUseWithAsk] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const isAuthenticated = Boolean(session.data?.user) && authMode === "sign-in";
 
   const aiEnabledThoughts = useMemo(
     () => thoughts.filter((thought) => thought.use_with_ask_my_mind),
@@ -67,7 +75,8 @@ export function MindPalaceShell() {
   );
 
   const refresh = useCallback(
-    async (nextToken = token) => {
+    async () => {
+      const nextToken = await getApiToken();
       if (!nextToken) {
         setLoadState("idle");
         return;
@@ -90,26 +99,110 @@ export function MindPalaceShell() {
         setMessage(error instanceof Error ? error.message : "Unable to load Mind Palace.");
       }
     },
-    [token],
+    [],
   );
 
-  function saveToken() {
-    const nextToken = draftToken.trim();
-    window.localStorage.setItem(TOKEN_STORAGE_KEY, nextToken);
-    setToken(nextToken);
-    if (!nextToken) {
-      setThoughts([]);
-      setSettings(null);
-      setLoadState("idle");
-      setMessage("");
-      return;
+  async function handleAuth(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsAuthenticating(true);
+    setAuthMessage("");
+
+    try {
+      if (authMode === "confirm") {
+        const result = await authClient.emailOtp.verifyEmail({
+          email: authEmail,
+          otp: verificationCode,
+        });
+
+        if (result.error) {
+          setAuthMessage(result.error.message ?? "That confirmation code is not valid.");
+          return;
+        }
+
+        setVerificationCode("");
+        setAuthMode("sign-in");
+        setAuthMessage("Email confirmed.");
+        void refresh();
+        return;
+      }
+
+      const result =
+        authMode === "sign-in"
+          ? await authClient.signIn.email({ email: authEmail, password: authPassword })
+          : await authClient.signUp.email({
+              email: authEmail,
+              password: authPassword,
+              name: authName,
+            });
+
+      if (result.error) {
+        setAuthMessage(result.error.message ?? "Unable to authenticate.");
+        return;
+      }
+
+      if (authMode === "sign-up") {
+        const verificationResult = await authClient.emailOtp.sendVerificationOtp({
+          email: authEmail,
+          type: "email-verification",
+        });
+
+        if (verificationResult.error) {
+          setAuthMessage(
+            verificationResult.error.message ?? "Unable to send the confirmation code.",
+          );
+          return;
+        }
+
+        setAuthMode("confirm");
+        setAuthMessage(`We sent a confirmation code to ${authEmail}.`);
+        return;
+      }
+
+      setAuthPassword("");
+      setAuthMessage(authMode === "sign-in" ? "Signed in." : "Account created.");
+      void refresh();
+    } catch (error) {
+      setAuthMessage(error instanceof Error ? error.message : "Unable to authenticate.");
+    } finally {
+      setIsAuthenticating(false);
     }
-    void refresh(nextToken);
+  }
+
+  async function handleSignOut() {
+    await authClient.signOut();
+    setThoughts([]);
+    setSettings(null);
+    setLoadState("idle");
+    setMessage("");
+  }
+
+  async function handleResendVerificationCode() {
+    setIsResendingCode(true);
+    setAuthMessage("");
+
+    try {
+      const result = await authClient.emailOtp.sendVerificationOtp({
+        email: authEmail,
+        type: "email-verification",
+      });
+
+      if (result.error) {
+        setAuthMessage(result.error.message ?? "Unable to resend the confirmation code.");
+        return;
+      }
+
+      setAuthMessage(`A new confirmation code was sent to ${authEmail}.`);
+    } catch (error) {
+      setAuthMessage(error instanceof Error ? error.message : "Unable to resend the confirmation code.");
+    } finally {
+      setIsResendingCode(false);
+    }
   }
 
   async function handleCreateThought(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const token = await getApiToken();
     if (!token || !body.trim()) {
       return;
     }
@@ -139,6 +232,7 @@ export function MindPalaceShell() {
   }
 
   async function handleDefaultAskToggle(nextValue: boolean) {
+    const token = await getApiToken();
     if (!token) {
       return;
     }
@@ -168,49 +262,126 @@ export function MindPalaceShell() {
             </h1>
           </div>
           <div className="flex items-center gap-2">
-            {aiEnabledThoughts.length > 0 ? (
+            {isAuthenticated && aiEnabledThoughts.length > 0 ? (
               <button className="inline-flex h-10 items-center gap-2 rounded-md bg-[#17212b] px-4 text-sm font-medium text-white">
                 <MessageCircleQuestion size={18} aria-hidden="true" />
                 Ask my mind
               </button>
             ) : null}
-            <button
+            {isAuthenticated ? <button
               className="inline-flex h-10 items-center gap-2 rounded-md border border-[#c9bca9] bg-white px-4 text-sm font-medium text-[#17212b]"
               onClick={() => document.getElementById("save-thought")?.scrollIntoView()}
             >
               <Save size={18} aria-hidden="true" />
               Save a thought
-            </button>
+            </button> : null}
+            {isAuthenticated ? <button
+              className="inline-flex h-10 items-center gap-2 rounded-md border border-[#c9bca9] bg-white px-3 text-sm font-medium text-[#17212b]"
+              onClick={() => void handleSignOut()}
+              title="Sign out"
+            >
+              <LogOut size={17} aria-hidden="true" />
+              <span className="sr-only">Sign out</span>
+            </button> : null}
           </div>
         </header>
 
         <section className="grid flex-1 gap-6 py-6 lg:grid-cols-[280px_minmax(0,1fr)]">
           <aside className="flex flex-col gap-4">
-            <section className="rounded-lg border border-[#d9d2c6] bg-white p-4">
+            {!isAuthenticated ? <section className="rounded-lg border border-[#d9d2c6] bg-white p-4">
               <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#17212b]">
                 <Settings size={17} aria-hidden="true" />
-                Auth boundary
+                {authMode === "sign-in"
+                  ? "Sign in"
+                  : authMode === "sign-up"
+                    ? "Create account"
+                    : "Confirm email"}
               </div>
-              <label className="block text-sm text-[#5f6b76]" htmlFor="token">
-                Access token
-              </label>
-              <textarea
-                id="token"
-                className="mt-2 min-h-24 w-full resize-none rounded-md border border-[#c9bca9] bg-[#fbfaf8] p-3 text-sm outline-none focus:border-[#2f6f73]"
-                value={draftToken}
-                onChange={(event) => setDraftToken(event.target.value)}
-                spellCheck={false}
-              />
-              <button
-                className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-[#2f6f73] px-4 text-sm font-medium text-white"
-                onClick={saveToken}
+              <form className="space-y-3" onSubmit={handleAuth}>
+                {authMode === "confirm" ? <>
+                  <p className="text-sm leading-5 text-[#5f6b76]">
+                    Enter the six-digit code sent to {authEmail}.
+                  </p>
+                  <input
+                    className="h-11 w-full rounded-md border border-[#c9bca9] bg-[#fbfaf8] px-3 text-center text-lg tracking-[0.25em] outline-none focus:border-[#2f6f73]"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    placeholder="000000"
+                    value={verificationCode}
+                    onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                    minLength={6}
+                    maxLength={6}
+                    required
+                  />
+                </> : authMode === "sign-up" ? <input
+                  className="h-10 w-full rounded-md border border-[#c9bca9] bg-[#fbfaf8] px-3 text-sm outline-none focus:border-[#2f6f73]"
+                  placeholder="Name"
+                  value={authName}
+                  onChange={(event) => setAuthName(event.target.value)}
+                  required
+                /> : null}
+                {authMode !== "confirm" ? <input
+                  className="h-10 w-full rounded-md border border-[#c9bca9] bg-[#fbfaf8] px-3 text-sm outline-none focus:border-[#2f6f73]"
+                  type="email"
+                  placeholder="Email"
+                  value={authEmail}
+                  onChange={(event) => setAuthEmail(event.target.value)}
+                  required
+                /> : null}
+                {authMode !== "confirm" ? <input
+                  className="h-10 w-full rounded-md border border-[#c9bca9] bg-[#fbfaf8] px-3 text-sm outline-none focus:border-[#2f6f73]"
+                  type="password"
+                  placeholder="Password"
+                  value={authPassword}
+                  onChange={(event) => setAuthPassword(event.target.value)}
+                  minLength={8}
+                  required
+                /> : null}
+                <button
+                  className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-[#2f6f73] px-4 text-sm font-medium text-white disabled:opacity-50"
+                  disabled={isAuthenticating}
+                >
+                  <Check size={17} aria-hidden="true" />
+                  {isAuthenticating
+                    ? "Working..."
+                    : authMode === "confirm"
+                      ? "Confirm email"
+                      : authMode === "sign-in"
+                        ? "Sign in"
+                        : "Create account"}
+                </button>
+              </form>
+              {authMessage ? <p className="mt-3 text-xs text-[#5f6b76]">{authMessage}</p> : null}
+              {authMode === "confirm" ? <button
+                type="button"
+                className="mt-3 text-left text-xs text-[#2f6f73] underline disabled:opacity-50"
+                onClick={() => void handleResendVerificationCode()}
+                disabled={isResendingCode}
               >
-                <Check size={17} aria-hidden="true" />
-                Use token
-              </button>
-            </section>
+                {isResendingCode ? "Sending..." : "Resend confirmation code"}
+              </button> : null}
+              {authMode === "confirm" ? <button
+                type="button"
+                className="mt-3 text-left text-xs text-[#2f6f73] underline"
+                onClick={() => {
+                  setAuthMode("sign-up");
+                  setVerificationCode("");
+                  setAuthMessage("");
+                }}
+              >
+                Use a different email
+              </button> : <button
+                className="mt-3 text-left text-xs text-[#2f6f73] underline"
+                onClick={() => {
+                  setAuthMode(authMode === "sign-in" ? "sign-up" : "sign-in");
+                  setAuthMessage("");
+                }}
+              >
+                {authMode === "sign-in" ? "Need an account? Sign up" : "Already have an account? Sign in"}
+              </button>}
+            </section> : null}
 
-            <section className="rounded-lg border border-[#d9d2c6] bg-white p-4">
+            {isAuthenticated ? <section className="rounded-lg border border-[#d9d2c6] bg-white p-4">
               <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#17212b]">
                 <Sparkles size={17} aria-hidden="true" />
                 Ask default
@@ -221,11 +392,11 @@ export function MindPalaceShell() {
                   className="h-5 w-5 accent-[#2f6f73]"
                   type="checkbox"
                   checked={settings?.default_use_with_ask_my_mind ?? false}
-                  disabled={!token || loadState !== "ready"}
+                  disabled={!isAuthenticated || loadState !== "ready"}
                   onChange={(event) => void handleDefaultAskToggle(event.target.checked)}
                 />
               </label>
-            </section>
+            </section> : null}
 
             <nav className="rounded-lg border border-[#d9d2c6] bg-white p-2">
               <a className="flex h-10 items-center gap-2 rounded-md bg-[#f2ede5] px-3 text-sm font-medium">
@@ -250,7 +421,7 @@ export function MindPalaceShell() {
                 <button
                   className="inline-flex h-9 items-center gap-2 rounded-md border border-[#c9bca9] px-3 text-sm text-[#44515f]"
                   onClick={() => void refresh()}
-                  disabled={!token || loadState === "loading"}
+                  disabled={!isAuthenticated || loadState === "loading"}
                 >
                   <RefreshCw size={16} aria-hidden="true" />
                   Refresh
@@ -265,7 +436,11 @@ export function MindPalaceShell() {
               ) : null}
 
               <div className="divide-y divide-[#eee7dc]">
-                {thoughts.length === 0 ? (
+                {!isAuthenticated || session.isPending ? (
+                  <div className="px-5 py-10 text-sm text-[#5f6b76]">
+                    Sign in to begin building your mind.
+                  </div>
+                ) : thoughts.length === 0 ? (
                   <div className="px-5 py-10 text-sm text-[#5f6b76]">
                     No thoughts saved yet.
                   </div>
@@ -372,7 +547,7 @@ export function MindPalaceShell() {
                 <button
                   className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[#17212b] px-4 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-[#9aa3aa]"
                   type="submit"
-                  disabled={!token || !body.trim() || isSaving}
+                  disabled={!isAuthenticated || !body.trim() || isSaving}
                 >
                   <Save size={18} aria-hidden="true" />
                   {isSaving ? "Saving" : "Save thought"}
