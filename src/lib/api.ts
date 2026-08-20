@@ -13,10 +13,45 @@ export type Thought = {
   manual_tags: string[];
   storage_scope: string;
   use_with_ask_my_mind: boolean;
+  ai_processing_status: "not_requested" | "pending" | "processing" | "ready" | "failed";
   is_archived: boolean;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+};
+
+export type AskSource = {
+  citation_label: string;
+  chunk_id: string;
+  thought_id: string;
+  title: string | null;
+  snippet: string;
+  source_type: string;
+  source_title: string | null;
+  source_author: string | null;
+  created_at: string;
+  similarity_score: number;
+  is_cited: boolean;
+};
+
+export type AskResponse = {
+  conversation_id: string;
+  answer: string;
+  sources: AskSource[];
+  created_at: string;
+};
+
+export type AskMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  citations: AskSource[];
+  created_at: string;
+};
+
+export type AskConversation = {
+  conversation_id: string;
+  messages: AskMessage[];
 };
 
 export type UserSettings = {
@@ -101,4 +136,21 @@ export function updateSettings(
     method: "PATCH",
     body: JSON.stringify(input),
   });
+}
+
+export function askMyMind(
+  token: string,
+  input: { question: string; conversation_id?: string },
+): Promise<AskResponse> {
+  return request<AskResponse>("/ask", token, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function getAskConversation(
+  token: string,
+  conversationId: string,
+): Promise<AskConversation> {
+  return request<AskConversation>(`/ask/${conversationId}`, token);
 }

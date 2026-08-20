@@ -12,10 +12,15 @@ import {
   Search,
   Settings,
   Sparkles,
+  Send,
+  X,
 } from "lucide-react";
 import { FormEvent, useCallback, useMemo, useState } from "react";
 
 import {
+  AskMessage,
+  AskSource,
+  askMyMind,
   createThought,
   getSettings,
   listThoughts,
@@ -67,6 +72,13 @@ export function MindPalaceShell() {
   const [thoughtType, setThoughtType] = useState("thought");
   const [useWithAsk, setUseWithAsk] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [question, setQuestion] = useState("");
+  const [chatMessages, setChatMessages] = useState<AskMessage[]>([]);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [latestSources, setLatestSources] = useState<AskSource[]>([]);
+  const [isAsking, setIsAsking] = useState(false);
+  const [askMessage, setAskMessage] = useState("");
   const isAuthenticated = Boolean(session.data?.user) && authMode === "sign-in";
 
   const aiEnabledThoughts = useMemo(
@@ -251,6 +263,54 @@ export function MindPalaceShell() {
     }
   }
 
+  async function handleAsk(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmedQuestion = question.trim();
+    if (!trimmedQuestion || isAsking) {
+      return;
+    }
+
+    const token = await getApiToken();
+    if (!token) {
+      setAskMessage("Your session has expired. Sign in again to continue.");
+      return;
+    }
+
+    const userMessage: AskMessage = {
+      id: `local-user-${Date.now()}`,
+      role: "user",
+      content: trimmedQuestion,
+      citations: [],
+      created_at: new Date().toISOString(),
+    };
+
+    setChatMessages((current) => [...current, userMessage]);
+    setQuestion("");
+    setAskMessage("");
+    setIsAsking(true);
+
+    try {
+      const response = await askMyMind(token, {
+        question: trimmedQuestion,
+        ...(conversationId ? { conversation_id: conversationId } : {}),
+      });
+      const assistantMessage: AskMessage = {
+        id: `local-assistant-${response.created_at}`,
+        role: "assistant",
+        content: response.answer,
+        citations: response.sources,
+        created_at: response.created_at,
+      };
+      setConversationId(response.conversation_id);
+      setLatestSources(response.sources);
+      setChatMessages((current) => [...current, assistantMessage]);
+    } catch (error) {
+      setAskMessage(error instanceof Error ? error.message : "Unable to ask your mind.");
+    } finally {
+      setIsAsking(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-[#f7f4ef] text-[#1f2933]">
       <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-4 sm:px-6 lg:px-8">
@@ -263,7 +323,14 @@ export function MindPalaceShell() {
           </div>
           <div className="flex items-center gap-2">
             {isAuthenticated && aiEnabledThoughts.length > 0 ? (
-              <button className="inline-flex h-10 items-center gap-2 rounded-md bg-[#17212b] px-4 text-sm font-medium text-white">
+              <button
+                className="inline-flex h-10 items-center gap-2 rounded-md bg-[#17212b] px-4 text-sm font-medium text-white"
+                type="button"
+                onClick={() => {
+                  setIsChatOpen(true);
+                  setAskMessage("");
+                }}
+              >
                 <MessageCircleQuestion size={18} aria-hidden="true" />
                 Ask my mind
               </button>
@@ -285,6 +352,129 @@ export function MindPalaceShell() {
             </button> : null}
           </div>
         </header>
+
+        {isChatOpen && isAuthenticated ? (
+          <section
+            id="ask-my-mind"
+            className="mt-6 overflow-hidden rounded-lg border border-[#c9bca9] bg-white shadow-sm"
+          >
+            <div className="flex items-center justify-between border-b border-[#e5ded2] px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-md bg-[#eef5f4] text-[#2f6f73]">
+                  <MessageCircleQuestion size={19} aria-hidden="true" />
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-[#17212b]">Ask my mind</h2>
+                  <p className="text-xs text-[#79838c]">
+                    Answers use only thoughts you have allowed AI to analyze.
+                  </p>
+                </div>
+              </div>
+              <button
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#d9d2c6] text-[#44515f] hover:bg-[#f7f4ef]"
+                type="button"
+                aria-label="Close Ask My Mind"
+                title="Close Ask My Mind"
+                onClick={() => setIsChatOpen(false)}
+              >
+                <X size={17} aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="grid min-h-[260px] lg:grid-cols-[minmax(0,1fr)_300px]">
+              <div className="flex min-h-[260px] flex-col border-b border-[#e5ded2] lg:border-b-0 lg:border-r">
+                <div className="flex-1 space-y-3 overflow-y-auto px-5 py-5">
+                  {chatMessages.length === 0 ? (
+                    <div className="flex min-h-36 items-center justify-center text-center text-sm text-[#79838c]">
+                      Ask a question about your saved thoughts.
+                    </div>
+                  ) : (
+                    chatMessages.map((chatMessage) => (
+                      <div
+                        key={chatMessage.id}
+                        className={`flex ${chatMessage.role === "user" ? "justify-end" : "justify-start"}`}
+                      >
+                        <div
+                          className={`max-w-[85%] whitespace-pre-wrap rounded-lg px-4 py-3 text-sm leading-6 ${
+                            chatMessage.role === "user"
+                              ? "bg-[#17212b] text-white"
+                              : "border border-[#e5ded2] bg-[#fbfaf8] text-[#344250]"
+                          }`}
+                        >
+                          {chatMessage.content}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  {isAsking ? (
+                    <div className="text-sm text-[#79838c]">Thinking...</div>
+                  ) : null}
+                </div>
+
+                {askMessage ? (
+                  <div className="mx-5 mb-3 flex items-center gap-2 rounded-md border border-[#d8c7a4] bg-[#fff8e8] px-3 py-2 text-sm text-[#6c5521]">
+                    <CircleAlert size={16} aria-hidden="true" />
+                    {askMessage}
+                  </div>
+                ) : null}
+
+                <form className="flex gap-2 border-t border-[#e5ded2] p-4" onSubmit={handleAsk}>
+                  <textarea
+                    className="min-h-11 flex-1 resize-none rounded-md border border-[#c9bca9] bg-[#fbfaf8] px-3 py-2 text-sm leading-5 outline-none focus:border-[#2f6f73]"
+                    placeholder="What would you like to remember?"
+                    value={question}
+                    onChange={(event) => setQuestion(event.target.value)}
+                    rows={2}
+                    maxLength={5000}
+                    disabled={isAsking}
+                  />
+                  <button
+                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center self-end rounded-md bg-[#2f6f73] text-white disabled:cursor-not-allowed disabled:bg-[#9aa3aa]"
+                    type="submit"
+                    aria-label="Send question"
+                    title="Send question"
+                    disabled={!question.trim() || isAsking}
+                  >
+                    <Send size={17} aria-hidden="true" />
+                  </button>
+                </form>
+              </div>
+
+              <aside className="bg-[#fbfaf8] px-5 py-5">
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-[#17212b]">Sources</h3>
+                  <span className="text-xs text-[#79838c]">{latestSources.length}</span>
+                </div>
+                {latestSources.length === 0 ? (
+                  <p className="text-sm leading-5 text-[#79838c]">
+                    Sources will appear here after you ask a question.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {latestSources.map((source) => (
+                      <article key={source.chunk_id} className="border-l-2 border-[#2f6f73] pl-3">
+                        <div className="mb-1 flex items-center gap-2">
+                          <span className="text-xs font-semibold text-[#2f6f73]">
+                            {source.citation_label}
+                          </span>
+                          {source.is_cited ? (
+                            <span className="text-[11px] text-[#79838c]">Used in answer</span>
+                          ) : null}
+                        </div>
+                        <p className="text-xs font-medium text-[#344250]">
+                          {source.title ?? source.source_title ?? "Untitled thought"}
+                        </p>
+                        <p className="mt-1 line-clamp-4 text-xs leading-5 text-[#5f6b76]">
+                          {source.snippet}
+                        </p>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </aside>
+            </div>
+          </section>
+        ) : null}
 
         <section className="grid flex-1 gap-6 py-6 lg:grid-cols-[280px_minmax(0,1fr)]">
           <aside className="flex flex-col gap-4">
