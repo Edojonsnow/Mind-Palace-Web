@@ -28,3 +28,9 @@ Project rules:
 - Do not implement local-only storage until the mobile phase.
 - Do not log thought bodies, chat messages, prompts, API tokens, or AI responses.
 - Keep backend calls in `src/lib/api.ts` or a nearby API boundary.
+
+## Commit Messages
+
+- Use an imperative subject that clearly names the change.
+- Include a short body explaining the main implementation details, user-facing impact, and verification when relevant.
+- Avoid one-line-only commit messages for implementation work.

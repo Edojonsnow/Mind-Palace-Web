@@ -20,6 +20,27 @@ export type Thought = {
   deleted_at: string | null;
 };
 
+export type ThoughtListOptions = {
+  q?: string;
+  thought_type?: string;
+  source_type?: string;
+  tag?: string;
+  book?: string;
+  is_archived?: boolean;
+  created_from?: string;
+  created_to?: string;
+  page?: number;
+  page_size?: number;
+};
+
+export type ThoughtListResponse = {
+  items: Thought[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
 export type AskSource = {
   citation_label: string;
   chunk_id: string;
@@ -85,7 +106,11 @@ class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, token: string, options: RequestInit = {}): Promise<T> {
+async function requestWithResponse<T>(
+  path: string,
+  token: string,
+  options: RequestInit = {},
+): Promise<{ data: T; response: Response }> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
@@ -107,14 +132,37 @@ async function request<T>(path: string, token: string, options: RequestInit = {}
   }
 
   if (response.status === 204) {
-    return undefined as T;
+    return { data: undefined as T, response };
   }
 
-  return (await response.json()) as T;
+  return { data: (await response.json()) as T, response };
 }
 
-export function listThoughts(token: string): Promise<Thought[]> {
-  return request<Thought[]>("/thoughts", token);
+async function request<T>(path: string, token: string, options: RequestInit = {}): Promise<T> {
+  const { data } = await requestWithResponse<T>(path, token, options);
+  return data;
+}
+
+export async function listThoughts(
+  token: string,
+  options: ThoughtListOptions = {},
+): Promise<ThoughtListResponse> {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(options)) {
+    if (value !== undefined && value !== "") {
+      params.set(key, String(value));
+    }
+  }
+  const path = params.size > 0 ? `/thoughts?${params.toString()}` : "/thoughts";
+  const { data, response } = await requestWithResponse<Thought[]>(path, token);
+
+  return {
+    items: data,
+    total: Number(response.headers.get("X-Total-Count") ?? data.length),
+    page: Number(response.headers.get("X-Page") ?? options.page ?? 1),
+    pageSize: Number(response.headers.get("X-Page-Size") ?? options.page_size ?? data.length),
+    totalPages: Number(response.headers.get("X-Total-Pages") ?? 1),
+  };
 }
 
 export function createThought(token: string, input: CreateThoughtInput): Promise<Thought> {

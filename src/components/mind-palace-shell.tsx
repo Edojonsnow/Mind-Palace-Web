@@ -5,6 +5,9 @@ import {
   Brain,
   Check,
   CircleAlert,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
   MessageCircleQuestion,
   LogOut,
   RefreshCw,
@@ -15,7 +18,7 @@ import {
   Send,
   X,
 } from "lucide-react";
-import { FormEvent, useCallback, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   AskMessage,
@@ -25,6 +28,7 @@ import {
   getSettings,
   listThoughts,
   Thought,
+  ThoughtListOptions,
   updateSettings,
   UserSettings,
 } from "@/lib/api";
@@ -47,6 +51,40 @@ function formatDate(value: string): string {
 }
 
 type LoadState = "idle" | "loading" | "ready" | "error";
+type ArchiveFilter = "all" | "active" | "archived";
+
+type RecallFilters = {
+  q: string;
+  thought_type: string;
+  source_type: string;
+  tag: string;
+  book: string;
+  archive: ArchiveFilter;
+};
+
+const DEFAULT_RECALL_FILTERS: RecallFilters = {
+  q: "",
+  thought_type: "",
+  source_type: "",
+  tag: "",
+  book: "",
+  archive: "all",
+};
+
+const RECALL_PAGE_SIZE = 20;
+
+function recallQuery(filters: RecallFilters, page: number): ThoughtListOptions {
+  return {
+    q: filters.q.trim() || undefined,
+    thought_type: filters.thought_type || undefined,
+    source_type: filters.source_type || undefined,
+    tag: filters.tag.trim() || undefined,
+    book: filters.book.trim() || undefined,
+    is_archived: filters.archive === "all" ? undefined : filters.archive === "archived",
+    page,
+    page_size: RECALL_PAGE_SIZE,
+  };
+}
 
 async function getApiToken(): Promise<string | null> {
   return getJWTToken();
@@ -63,6 +101,12 @@ export function MindPalaceShell() {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isResendingCode, setIsResendingCode] = useState(false);
   const [thoughts, setThoughts] = useState<Thought[]>([]);
+  const [recallFilters, setRecallFilters] = useState<RecallFilters>(DEFAULT_RECALL_FILTERS);
+  const [recallDraftFilters, setRecallDraftFilters] =
+    useState<RecallFilters>(DEFAULT_RECALL_FILTERS);
+  const [recallPage, setRecallPage] = useState(1);
+  const [recallTotal, setRecallTotal] = useState(0);
+  const [recallTotalPages, setRecallTotalPages] = useState(0);
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("idle");
   const [message, setMessage] = useState("");
@@ -79,15 +123,27 @@ export function MindPalaceShell() {
   const [latestSources, setLatestSources] = useState<AskSource[]>([]);
   const [isAsking, setIsAsking] = useState(false);
   const [askMessage, setAskMessage] = useState("");
+  const sessionUserId = session.data?.user?.id;
+  const refreshSequence = useRef(0);
   const isAuthenticated = Boolean(session.data?.user) && authMode === "sign-in";
 
   const aiEnabledThoughts = useMemo(
     () => thoughts.filter((thought) => thought.use_with_ask_my_mind),
     [thoughts],
   );
+  const hasRecallFilters = useMemo(
+    () => Object.values(recallDraftFilters).some((value) => value !== "" && value !== "all"),
+    [recallDraftFilters],
+  );
 
   const refresh = useCallback(
-    async () => {
+    async (
+      pageOverride: number,
+      filtersOverride: RecallFilters,
+      includeSettings = false,
+    ) => {
+      const requestSequence = refreshSequence.current + 1;
+      refreshSequence.current = requestSequence;
       const nextToken = await getApiToken();
       if (!nextToken) {
         setLoadState("idle");
@@ -99,20 +155,42 @@ export function MindPalaceShell() {
 
       try {
         const [nextThoughts, nextSettings] = await Promise.all([
-          listThoughts(nextToken),
-          getSettings(nextToken),
+          listThoughts(nextToken, recallQuery(filtersOverride, pageOverride)),
+          includeSettings ? getSettings(nextToken) : Promise.resolve(null),
         ]);
-        setThoughts(nextThoughts);
-        setSettings(nextSettings);
-        setUseWithAsk(nextSettings.default_use_with_ask_my_mind);
+        if (requestSequence !== refreshSequence.current) {
+          return;
+        }
+        setThoughts(nextThoughts.items);
+        setRecallPage(nextThoughts.page);
+        setRecallTotal(nextThoughts.total);
+        setRecallTotalPages(nextThoughts.totalPages);
+        if (nextSettings) {
+          setSettings(nextSettings);
+          setUseWithAsk(nextSettings.default_use_with_ask_my_mind);
+        }
         setLoadState("ready");
       } catch (error) {
+        if (requestSequence !== refreshSequence.current) {
+          return;
+        }
         setLoadState("error");
         setMessage(error instanceof Error ? error.message : "Unable to load Mind Palace.");
       }
     },
     [],
   );
+
+  useEffect(() => {
+    if (session.isPending || !sessionUserId || authMode !== "sign-in") {
+      return;
+    }
+    const refreshId = window.setTimeout(
+      () => void refresh(1, DEFAULT_RECALL_FILTERS, true),
+      0,
+    );
+    return () => window.clearTimeout(refreshId);
+  }, [authMode, refresh, session.isPending, sessionUserId]);
 
   async function handleAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -134,7 +212,6 @@ export function MindPalaceShell() {
         setVerificationCode("");
         setAuthMode("sign-in");
         setAuthMessage("Email confirmed.");
-        void refresh();
         return;
       }
 
@@ -172,7 +249,6 @@ export function MindPalaceShell() {
 
       setAuthPassword("");
       setAuthMessage(authMode === "sign-in" ? "Signed in." : "Account created.");
-      void refresh();
     } catch (error) {
       setAuthMessage(error instanceof Error ? error.message : "Unable to authenticate.");
     } finally {
@@ -183,6 +259,9 @@ export function MindPalaceShell() {
   async function handleSignOut() {
     await authClient.signOut();
     setThoughts([]);
+    setRecallPage(1);
+    setRecallTotal(0);
+    setRecallTotalPages(0);
     setSettings(null);
     setLoadState("idle");
     setMessage("");
@@ -223,14 +302,14 @@ export function MindPalaceShell() {
     setMessage("");
 
     try {
-      const thought = await createThought(token, {
+      await createThought(token, {
         title: title.trim() || undefined,
         body: body.trim(),
         thought_type: thoughtType,
         manual_tags: splitTags(manualTags),
         use_with_ask_my_mind: useWithAsk,
       });
-      setThoughts((current) => [thought, ...current]);
+      await refresh(recallPage, recallFilters);
       setBody("");
       setTitle("");
       setManualTags("");
@@ -241,6 +320,28 @@ export function MindPalaceShell() {
     } finally {
       setIsSaving(false);
     }
+  }
+
+  function handleRecallSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setRecallFilters(recallDraftFilters);
+    setRecallPage(1);
+    void refresh(1, recallDraftFilters);
+  }
+
+  function handleRecallReset() {
+    setRecallDraftFilters(DEFAULT_RECALL_FILTERS);
+    setRecallFilters(DEFAULT_RECALL_FILTERS);
+    setRecallPage(1);
+    void refresh(1, DEFAULT_RECALL_FILTERS);
+  }
+
+  function handleRecallPageChange(nextPage: number) {
+    if (nextPage < 1 || nextPage > recallTotalPages || loadState === "loading") {
+      return;
+    }
+    setRecallPage(nextPage);
+    void refresh(nextPage, recallFilters);
   }
 
   async function handleDefaultAskToggle(nextValue: boolean) {
@@ -478,7 +579,12 @@ export function MindPalaceShell() {
 
         <section className="grid flex-1 gap-6 py-6 lg:grid-cols-[280px_minmax(0,1fr)]">
           <aside className="flex flex-col gap-4">
-            {!isAuthenticated ? <section className="rounded-lg border border-[#d9d2c6] bg-white p-4">
+            {session.isPending ? <section className="rounded-lg border border-[#d9d2c6] bg-white p-4">
+              <div className="flex items-center gap-2 text-sm text-[#5f6b76]">
+                <RefreshCw className="animate-spin" size={17} aria-hidden="true" />
+                Restoring your session...
+              </div>
+            </section> : !isAuthenticated ? <section className="rounded-lg border border-[#d9d2c6] bg-white p-4">
               <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#17212b]">
                 <Settings size={17} aria-hidden="true" />
                 {authMode === "sign-in"
@@ -610,7 +716,7 @@ export function MindPalaceShell() {
                 <h2 className="text-base font-semibold text-[#17212b]">Thoughts</h2>
                 <button
                   className="inline-flex h-9 items-center gap-2 rounded-md border border-[#c9bca9] px-3 text-sm text-[#44515f]"
-                  onClick={() => void refresh()}
+                  onClick={() => void refresh(recallPage, recallFilters)}
                   disabled={!isAuthenticated || loadState === "loading"}
                 >
                   <RefreshCw size={16} aria-hidden="true" />
@@ -625,14 +731,173 @@ export function MindPalaceShell() {
                 </div>
               ) : null}
 
+              {isAuthenticated ? (
+                <form
+                  className="grid gap-3 border-b border-[#e5ded2] px-5 py-4"
+                  onSubmit={handleRecallSubmit}
+                >
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <label className="grid min-w-0 gap-1 text-xs text-[#79838c]">
+                      <span>Search</span>
+                      <div className="relative">
+                        <Search
+                          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#79838c]"
+                          size={16}
+                          aria-hidden="true"
+                        />
+                        <input
+                          className="h-10 w-full min-w-0 rounded-md border border-[#c9bca9] bg-[#fbfaf8] pl-9 pr-3 text-sm outline-none focus:border-[#2f6f73]"
+                          placeholder="Search thoughts"
+                        value={recallDraftFilters.q}
+                        onChange={(event) =>
+                            setRecallDraftFilters((current) => ({
+                              ...current,
+                              q: event.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                    </label>
+                    <label className="grid min-w-0 gap-1 text-xs text-[#79838c]">
+                      <span>Type</span>
+                      <select
+                        className="h-10 w-full min-w-0 rounded-md border border-[#c9bca9] bg-[#fbfaf8] px-3 text-sm text-[#344250] outline-none focus:border-[#2f6f73]"
+                        value={recallDraftFilters.thought_type}
+                        onChange={(event) =>
+                          setRecallDraftFilters((current) => ({
+                            ...current,
+                            thought_type: event.target.value,
+                          }))
+                        }
+                      >
+                        <option value="">All types</option>
+                        <option value="thought">Thought</option>
+                        <option value="journal">Journal</option>
+                        <option value="quote">Quote</option>
+                        <option value="book_excerpt">Book excerpt</option>
+                      </select>
+                    </label>
+                    <label className="grid min-w-0 gap-1 text-xs text-[#79838c]">
+                      <span>Source</span>
+                      <select
+                        className="h-10 w-full min-w-0 rounded-md border border-[#c9bca9] bg-[#fbfaf8] px-3 text-sm text-[#344250] outline-none focus:border-[#2f6f73]"
+                        value={recallDraftFilters.source_type}
+                        onChange={(event) =>
+                          setRecallDraftFilters((current) => ({
+                            ...current,
+                            source_type: event.target.value,
+                          }))
+                        }
+                      >
+                        <option value="">All sources</option>
+                        <option value="manual">Manual</option>
+                        <option value="book">Book</option>
+                        <option value="article">Article</option>
+                        <option value="website">Website</option>
+                        <option value="audio">Audio</option>
+                        <option value="import">Import</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <label className="grid min-w-0 gap-1 text-xs text-[#79838c]">
+                      <span>Tag</span>
+                      <input
+                        className="h-10 w-full min-w-0 rounded-md border border-[#c9bca9] bg-[#fbfaf8] px-3 text-sm text-[#344250] outline-none focus:border-[#2f6f73]"
+                        placeholder="e.g. work"
+                        value={recallDraftFilters.tag}
+                        onChange={(event) =>
+                          setRecallDraftFilters((current) => ({
+                            ...current,
+                            tag: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+                    <label className="grid min-w-0 gap-1 text-xs text-[#79838c]">
+                      <span>Book or author</span>
+                      <input
+                        className="h-10 w-full min-w-0 rounded-md border border-[#c9bca9] bg-[#fbfaf8] px-3 text-sm text-[#344250] outline-none focus:border-[#2f6f73]"
+                        placeholder="e.g. James Clear"
+                        value={recallDraftFilters.book}
+                        onChange={(event) =>
+                          setRecallDraftFilters((current) => ({
+                            ...current,
+                            book: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+                    <label className="grid min-w-0 gap-1 text-xs text-[#79838c]">
+                      <span>Archive</span>
+                      <select
+                        className="h-10 w-full min-w-0 rounded-md border border-[#c9bca9] bg-[#fbfaf8] px-3 text-sm text-[#344250] outline-none focus:border-[#2f6f73]"
+                        value={recallDraftFilters.archive}
+                        onChange={(event) =>
+                          setRecallDraftFilters((current) => ({
+                            ...current,
+                            archive: event.target.value as ArchiveFilter,
+                          }))
+                        }
+                      >
+                        <option value="all">All thoughts</option>
+                        <option value="active">Active only</option>
+                        <option value="archived">Archived only</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[#2f6f73] px-4 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+                      type="submit"
+                      disabled={loadState === "loading"}
+                    >
+                      <Search size={16} aria-hidden="true" />
+                      Search
+                    </button>
+                    <button
+                      className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#c9bca9] px-4 text-sm text-[#44515f] disabled:cursor-not-allowed disabled:opacity-50"
+                      type="submit"
+                      disabled={loadState === "loading"}
+                    >
+                      <Filter size={16} aria-hidden="true" />
+                      Filter
+                    </button>
+                    <button
+                      className="h-10 rounded-md border border-[#c9bca9] px-4 text-sm text-[#44515f] disabled:cursor-not-allowed disabled:opacity-50"
+                      type="button"
+                      onClick={handleRecallReset}
+                      disabled={!hasRecallFilters || loadState === "loading"}
+                    >
+                      Reset
+                    </button>
+                  </div>
+                </form>
+              ) : null}
+
               <div className="divide-y divide-[#eee7dc]">
-                {!isAuthenticated || session.isPending ? (
+                {session.isPending ? (
+                  <div className="px-5 py-10 text-sm text-[#5f6b76]">
+                    Restoring your session...
+                  </div>
+                ) : !isAuthenticated ? (
                   <div className="px-5 py-10 text-sm text-[#5f6b76]">
                     Sign in to begin building your mind.
                   </div>
+                ) : loadState === "loading" ? (
+                  <div className="flex items-center justify-center gap-2 px-5 py-10 text-sm text-[#5f6b76]">
+                    <RefreshCw className="animate-spin" size={17} aria-hidden="true" />
+                    Loading thoughts...
+                  </div>
+                ) : recallTotal === 0 ? (
+                  <div className="px-5 py-10 text-sm text-[#5f6b76]">
+                    {hasRecallFilters ? "No thoughts match these filters." : "No thoughts saved yet."}
+                  </div>
                 ) : thoughts.length === 0 ? (
                   <div className="px-5 py-10 text-sm text-[#5f6b76]">
-                    No thoughts saved yet.
+                    No thoughts on this page.
                   </div>
                 ) : (
                   thoughts.map((thought) => (
@@ -674,6 +939,41 @@ export function MindPalaceShell() {
                   ))
                 )}
               </div>
+
+              {isAuthenticated && recallTotal > 0 ? (
+                <div className="flex flex-col gap-3 border-t border-[#e5ded2] px-5 py-3 text-xs text-[#79838c] sm:flex-row sm:items-center sm:justify-between">
+                  <span>
+                    {recallTotal} {recallTotal === 1 ? "thought" : "thoughts"}
+                  </span>
+                  {recallTotalPages > 1 ? (
+                    <div className="flex items-center gap-2">
+                      <button
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#c9bca9] text-[#44515f] disabled:cursor-not-allowed disabled:opacity-40"
+                        type="button"
+                        aria-label="Previous page"
+                        title="Previous page"
+                        onClick={() => handleRecallPageChange(recallPage - 1)}
+                        disabled={recallPage === 1 || loadState === "loading"}
+                      >
+                        <ChevronLeft size={16} aria-hidden="true" />
+                      </button>
+                      <span>
+                        Page {recallPage} of {recallTotalPages}
+                      </span>
+                      <button
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#c9bca9] text-[#44515f] disabled:cursor-not-allowed disabled:opacity-40"
+                        type="button"
+                        aria-label="Next page"
+                        title="Next page"
+                        onClick={() => handleRecallPageChange(recallPage + 1)}
+                        disabled={recallPage === recallTotalPages || loadState === "loading"}
+                      >
+                        <ChevronRight size={16} aria-hidden="true" />
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </section>
 
             <section
