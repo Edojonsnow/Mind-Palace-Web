@@ -193,14 +193,11 @@ export function MindPalaceShell() {
   const [askMessage, setAskMessage] = useState("");
   const sessionUserId = session.data?.user?.id;
   const refreshSequence = useRef(0);
+  const askSubmissionLock = useRef(false);
   const isAuthenticated = Boolean(session.data?.user) && authMode === "sign-in";
 
-  const aiEnabledThoughts = useMemo(
-    () => thoughts.filter((thought) => thought.use_with_ask_my_mind),
-    [thoughts],
-  );
-  const hasAskableThoughts =
-    aiEnabledThoughts.length > 0 || (rememberOverview?.thoughts_analyzed ?? 0) > 0;
+  const hasSavedThoughts = recallTotal > 0 || thoughts.length > 0;
+  const showAskAction = loadState !== "ready" || hasSavedThoughts;
   const hasRecallFilters = useMemo(
     () => Object.values(recallDraftFilters).some((value) => value !== "" && value !== "all"),
     [recallDraftFilters],
@@ -662,12 +659,17 @@ export function MindPalaceShell() {
   async function handleAsk(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmedQuestion = question.trim();
-    if (!trimmedQuestion || isAsking) {
+    if (!trimmedQuestion || isAsking || askSubmissionLock.current) {
       return;
     }
 
+    askSubmissionLock.current = true;
+    setIsAsking(true);
+
     const token = await getApiToken();
     if (!token) {
+      askSubmissionLock.current = false;
+      setIsAsking(false);
       setAskMessage("Your session has expired. Sign in again to continue.");
       return;
     }
@@ -683,7 +685,6 @@ export function MindPalaceShell() {
     setChatMessages((current) => [...current, userMessage]);
     setQuestion("");
     setAskMessage("");
-    setIsAsking(true);
 
     try {
       const response = await askMyMind(token, {
@@ -703,6 +704,7 @@ export function MindPalaceShell() {
     } catch (error) {
       setAskMessage(error instanceof Error ? error.message : "Unable to ask your mind.");
     } finally {
+      askSubmissionLock.current = false;
       setIsAsking(false);
     }
   }
@@ -799,7 +801,6 @@ export function MindPalaceShell() {
                         detail: "Answers grounded in you",
                         placement: "right-0 top-[8%]",
                         action: () => setWorkspaceMode("ask"),
-                        disabled: !hasAskableThoughts,
                       },
                       {
                         number: "03",
@@ -816,7 +817,7 @@ export function MindPalaceShell() {
                         action: revealRememberedMind,
                       },
                     ]
-                      .filter((action) => action.number !== "02" || hasAskableThoughts)
+                      .filter((action) => action.number !== "02" || showAskAction)
                       .map((action, index) => (
                       <button
                         key={action.number}
@@ -824,7 +825,6 @@ export function MindPalaceShell() {
                         style={{ animationDelay: `${index * 70}ms` }}
                         type="button"
                         onClick={action.action}
-                        disabled={action.disabled}
                       >
                         <span className="flex items-center justify-between text-[10px] font-semibold tracking-[0.18em] text-[#9196a0]">
                           {action.number}
@@ -910,7 +910,7 @@ export function MindPalaceShell() {
                   </div>
                 </div>
               ) : workspaceMode === "ask" ? (
-                <div className="mind-workspace-enter w-full max-w-5xl">
+                <div className="w-full max-w-5xl">
                   <div className="mb-8 max-w-2xl">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#35a79f]">[ Ask my mind / 02 ]</p>
                     <h1 className="mt-4 font-display text-5xl font-medium tracking-[-0.055em] text-[#202329] sm:text-6xl">A conversation grounded in you.</h1>
@@ -1025,12 +1025,8 @@ export function MindPalaceShell() {
                     className="mind-node-enter group rounded-2xl border border-[#dde2ee] bg-white p-4 text-left shadow-[0_10px_30px_rgba(38,58,103,0.06)] hover:-translate-y-1 hover:border-[#35b8b0] hover:shadow-[0_16px_36px_rgba(38,58,103,0.12)] disabled:cursor-not-allowed disabled:opacity-50 sm:col-start-3 sm:row-start-1"
                     style={{ animationDelay: "70ms" }}
                     type="button"
-                    disabled={aiEnabledThoughts.length === 0}
-                    onClick={() => {
-                      setIsChatOpen(true);
-                      setAskMessage("");
-                      scrollToWorkspace("ask-my-mind");
-                    }}
+                    disabled={!hasSavedThoughts}
+                    onClick={() => setWorkspaceMode("ask")}
                   >
                     <span className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-[#e7f7f5] text-[#24796f]"><MessageCircleQuestion size={18} /></span>
                     <span className="font-display block text-sm font-semibold text-[#172033]">Ask my mind</span>
