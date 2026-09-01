@@ -82,6 +82,22 @@ export type UserSettings = {
   mobile_offline_cache_enabled: boolean;
 };
 
+export type RememberItem = {
+  label: string;
+  count: number;
+};
+
+export type RememberCategory = {
+  key: "themes" | "emotions" | "people" | "books";
+  label: string;
+  items: RememberItem[];
+};
+
+export type RememberOverview = {
+  thoughts_analyzed: number;
+  categories: RememberCategory[];
+};
+
 export type ExportRequest = {
   id: string;
   status: "pending" | "processing" | "completed" | "failed" | "expired";
@@ -193,6 +209,10 @@ export function createThought(token: string, input: CreateThoughtInput): Promise
 
 export function getSettings(token: string): Promise<UserSettings> {
   return request<UserSettings>("/settings", token);
+}
+
+export function getRememberOverview(token: string): Promise<RememberOverview> {
+  return request<RememberOverview>("/remember", token);
 }
 
 export function updateSettings(
