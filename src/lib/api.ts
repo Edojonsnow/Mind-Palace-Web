@@ -18,6 +18,7 @@ export type Thought = {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  purge_at: string | null;
 };
 
 export type ThoughtListOptions = {
@@ -79,6 +80,24 @@ export type UserSettings = {
   default_use_with_ask_my_mind: boolean;
   store_chat_history: boolean;
   mobile_offline_cache_enabled: boolean;
+};
+
+export type ExportRequest = {
+  id: string;
+  status: "pending" | "processing" | "completed" | "failed" | "expired";
+  error_message: string | null;
+  created_at: string;
+  completed_at: string | null;
+  expires_at: string;
+};
+
+export type AccountDeletionRequest = {
+  id: string;
+  status: "pending" | "cancelled" | "completed" | "failed";
+  requested_at: string;
+  purge_at: string;
+  completed_at: string | null;
+  error_message: string | null;
 };
 
 export type CreateThoughtInput = {
@@ -201,4 +220,55 @@ export function getAskConversation(
   conversationId: string,
 ): Promise<AskConversation> {
   return request<AskConversation>(`/ask/${conversationId}`, token);
+}
+
+export function listDeletedThoughts(token: string): Promise<Thought[]> {
+  return request<Thought[]>('/thoughts/deleted', token);
+}
+
+export function restoreThought(token: string, thoughtId: string): Promise<Thought> {
+  return request<Thought>(`/thoughts/${thoughtId}/restore`, token, { method: "POST" });
+}
+
+export function createExportRequest(token: string): Promise<ExportRequest> {
+  return request<ExportRequest>('/exports', token, { method: "POST" });
+}
+
+export function getExportRequest(token: string, exportId: string): Promise<ExportRequest> {
+  return request<ExportRequest>(`/exports/${exportId}`, token);
+}
+
+export async function downloadExport(token: string, exportId: string): Promise<Blob> {
+  const response = await fetch(`${API_BASE_URL}/exports/${exportId}/download`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    let message = `Request failed with status ${response.status}`;
+    try {
+      const body = (await response.json()) as { detail?: string };
+      message = body.detail ?? message;
+    } catch {
+      // Keep the fallback message when the API returns a non-JSON error.
+    }
+    throw new ApiError(message, response.status);
+  }
+
+  return response.blob();
+}
+
+export function getAccountDeletionRequest(
+  token: string,
+): Promise<AccountDeletionRequest | null> {
+  return request<AccountDeletionRequest | null>('/account/deletion', token);
+}
+
+export function requestAccountDeletion(token: string): Promise<AccountDeletionRequest> {
+  return request<AccountDeletionRequest>('/account/deletion', token, { method: "POST" });
+}
+
+export function cancelAccountDeletion(token: string): Promise<void> {
+  return request<void>('/account/deletion', token, { method: "DELETE" });
 }

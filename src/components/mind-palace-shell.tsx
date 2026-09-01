@@ -7,6 +7,7 @@ import {
   CircleAlert,
   ChevronLeft,
   ChevronRight,
+  Download,
   Filter,
   MessageCircleQuestion,
   LogOut,
@@ -14,8 +15,10 @@ import {
   Save,
   Search,
   Settings,
+  ShieldCheck,
   Sparkles,
   Send,
+  Undo2,
   X,
 } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -24,11 +27,21 @@ import {
   AskMessage,
   AskSource,
   askMyMind,
+  AccountDeletionRequest,
+  cancelAccountDeletion,
   createThought,
   getSettings,
+  createExportRequest,
+  downloadExport,
+  ExportRequest,
+  getAccountDeletionRequest,
+  getExportRequest,
+  listDeletedThoughts,
   listThoughts,
   Thought,
   ThoughtListOptions,
+  requestAccountDeletion,
+  restoreThought,
   updateSettings,
   UserSettings,
 } from "@/lib/api";
@@ -48,6 +61,14 @@ function formatDate(value: string): string {
     hour: "numeric",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function formatStatus(value: string): string {
+  return value.replaceAll("_", " ");
+}
+
+function isExportExpired(exportRequest: ExportRequest): boolean {
+  return exportRequest.status === "expired" || new Date(exportRequest.expires_at) <= new Date();
 }
 
 type LoadState = "idle" | "loading" | "ready" | "error";
@@ -108,6 +129,17 @@ export function MindPalaceShell() {
   const [recallTotal, setRecallTotal] = useState(0);
   const [recallTotalPages, setRecallTotalPages] = useState(0);
   const [settings, setSettings] = useState<UserSettings | null>(null);
+  const [deletedThoughts, setDeletedThoughts] = useState<Thought[]>([]);
+  const [exportRequest, setExportRequest] = useState<ExportRequest | null>(null);
+  const [accountDeletion, setAccountDeletion] = useState<AccountDeletionRequest | null>(null);
+  const [isTrustControlsOpen, setIsTrustControlsOpen] = useState(false);
+  const [lifecycleState, setLifecycleState] = useState<LoadState>("idle");
+  const [lifecycleMessage, setLifecycleMessage] = useState("");
+  const [restoringThoughtId, setRestoringThoughtId] = useState<string | null>(null);
+  const [isCreatingExport, setIsCreatingExport] = useState(false);
+  const [isDownloadingExport, setIsDownloadingExport] = useState(false);
+  const [isRequestingDeletion, setIsRequestingDeletion] = useState(false);
+  const [isCancellingDeletion, setIsCancellingDeletion] = useState(false);
   const [loadState, setLoadState] = useState<LoadState>("idle");
   const [message, setMessage] = useState("");
   const [body, setBody] = useState("");
@@ -181,16 +213,72 @@ export function MindPalaceShell() {
     [],
   );
 
+  const loadTrustControls = useCallback(async () => {
+    const token = await getApiToken();
+    if (!token) {
+      setLifecycleState("idle");
+      return;
+    }
+
+    setLifecycleState("loading");
+    setLifecycleMessage("");
+    try {
+      const [nextDeletedThoughts, nextAccountDeletion] = await Promise.all([
+        listDeletedThoughts(token),
+        getAccountDeletionRequest(token),
+      ]);
+      setDeletedThoughts(nextDeletedThoughts);
+      setAccountDeletion(nextAccountDeletion);
+      setLifecycleState("ready");
+    } catch (error) {
+      setLifecycleState("error");
+      setLifecycleMessage(
+        error instanceof Error ? error.message : "Unable to load data controls.",
+      );
+    }
+  }, []);
+
+  const refreshExportStatus = useCallback(async (exportId: string) => {
+    const token = await getApiToken();
+    if (!token) {
+      return;
+    }
+
+    try {
+      setExportRequest(await getExportRequest(token, exportId));
+    } catch (error) {
+      setLifecycleMessage(
+        error instanceof Error ? error.message : "Unable to refresh export status.",
+      );
+    }
+  }, []);
+
   useEffect(() => {
     if (session.isPending || !sessionUserId || authMode !== "sign-in") {
       return;
     }
-    const refreshId = window.setTimeout(
-      () => void refresh(1, DEFAULT_RECALL_FILTERS, true),
-      0,
-    );
+    const refreshId = window.setTimeout(() => {
+      void refresh(1, DEFAULT_RECALL_FILTERS, true);
+      void loadTrustControls();
+    }, 0);
     return () => window.clearTimeout(refreshId);
-  }, [authMode, refresh, session.isPending, sessionUserId]);
+  }, [authMode, loadTrustControls, refresh, session.isPending, sessionUserId]);
+
+  useEffect(() => {
+    if (
+      !isAuthenticated ||
+      !exportRequest ||
+      !["pending", "processing"].includes(exportRequest.status)
+    ) {
+      return;
+    }
+
+    const pollId = window.setInterval(
+      () => void refreshExportStatus(exportRequest.id),
+      2000,
+    );
+    return () => window.clearInterval(pollId);
+  }, [exportRequest, isAuthenticated, refreshExportStatus]);
 
   async function handleAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -263,8 +351,133 @@ export function MindPalaceShell() {
     setRecallTotal(0);
     setRecallTotalPages(0);
     setSettings(null);
+    setDeletedThoughts([]);
+    setExportRequest(null);
+    setAccountDeletion(null);
+    setLifecycleState("idle");
+    setLifecycleMessage("");
     setLoadState("idle");
     setMessage("");
+  }
+
+  async function handleRestoreThought(thoughtId: string) {
+    const token = await getApiToken();
+    if (!token || restoringThoughtId) {
+      return;
+    }
+
+    setRestoringThoughtId(thoughtId);
+    setLifecycleMessage("");
+    try {
+      await restoreThought(token, thoughtId);
+      setDeletedThoughts((current) => current.filter((thought) => thought.id !== thoughtId));
+      await refresh(recallPage, recallFilters);
+      setLifecycleMessage("Thought restored.");
+    } catch (error) {
+      setLifecycleMessage(error instanceof Error ? error.message : "Unable to restore thought.");
+    } finally {
+      setRestoringThoughtId(null);
+    }
+  }
+
+  async function handleCreateExport() {
+    const token = await getApiToken();
+    if (!token || isCreatingExport) {
+      return;
+    }
+
+    setIsCreatingExport(true);
+    setLifecycleMessage("");
+    try {
+      setExportRequest(await createExportRequest(token));
+      setLifecycleMessage("Export requested. This may take a moment.");
+    } catch (error) {
+      setLifecycleMessage(error instanceof Error ? error.message : "Unable to create export.");
+    } finally {
+      setIsCreatingExport(false);
+    }
+  }
+
+  async function handleDownloadExport() {
+    if (!exportRequest || isExportExpired(exportRequest) || isDownloadingExport) {
+      return;
+    }
+
+    const token = await getApiToken();
+    if (!token) {
+      return;
+    }
+
+    setIsDownloadingExport(true);
+    setLifecycleMessage("");
+    try {
+      const blob = await downloadExport(token, exportRequest.id);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "mind-palace-export.json";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      setLifecycleMessage("Export downloaded.");
+    } catch (error) {
+      setLifecycleMessage(error instanceof Error ? error.message : "Unable to download export.");
+    } finally {
+      setIsDownloadingExport(false);
+    }
+  }
+
+  async function handleRequestAccountDeletion() {
+    if (isRequestingDeletion || accountDeletion?.status === "pending") {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Request account deletion? Your data will be permanently removed after the recovery window.",
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    const token = await getApiToken();
+    if (!token) {
+      return;
+    }
+
+    setIsRequestingDeletion(true);
+    setLifecycleMessage("");
+    try {
+      setAccountDeletion(await requestAccountDeletion(token));
+      setLifecycleMessage("Account deletion requested. You can cancel it during the recovery window.");
+    } catch (error) {
+      setLifecycleMessage(
+        error instanceof Error ? error.message : "Unable to request account deletion.",
+      );
+    } finally {
+      setIsRequestingDeletion(false);
+    }
+  }
+
+  async function handleCancelAccountDeletion() {
+    const token = await getApiToken();
+    if (!token || isCancellingDeletion) {
+      return;
+    }
+
+    setIsCancellingDeletion(true);
+    setLifecycleMessage("");
+    try {
+      await cancelAccountDeletion(token);
+      setAccountDeletion(null);
+      setLifecycleMessage("Account deletion cancelled.");
+    } catch (error) {
+      setLifecycleMessage(
+        error instanceof Error ? error.message : "Unable to cancel account deletion.",
+      );
+    } finally {
+      setIsCancellingDeletion(false);
+    }
   }
 
   async function handleResendVerificationCode() {
@@ -692,6 +905,161 @@ export function MindPalaceShell() {
                   onChange={(event) => void handleDefaultAskToggle(event.target.checked)}
                 />
               </label>
+            </section> : null}
+
+            {isAuthenticated ? <section className="rounded-lg border border-[#d9d2c6] bg-white">
+              <button
+                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-[#17212b]"
+                type="button"
+                aria-expanded={isTrustControlsOpen}
+                onClick={() => setIsTrustControlsOpen((current) => !current)}
+              >
+                <span className="flex items-center gap-2">
+                  <ShieldCheck size={17} aria-hidden="true" />
+                  Data &amp; privacy
+                </span>
+                <ChevronRight
+                  className={isTrustControlsOpen ? "rotate-90 transition-transform" : "transition-transform"}
+                  size={16}
+                  aria-hidden="true"
+                />
+              </button>
+
+              {isTrustControlsOpen ? <div className="space-y-5 border-t border-[#e5ded2] p-4">
+                {lifecycleState === "loading" ? (
+                  <div className="flex items-center gap-2 text-xs text-[#5f6b76]">
+                    <RefreshCw className="animate-spin" size={15} aria-hidden="true" />
+                    Loading data controls...
+                  </div>
+                ) : lifecycleState === "error" ? (
+                  <div className="flex items-start gap-2 text-xs text-[#8a3f2d]">
+                    <CircleAlert className="mt-0.5 shrink-0" size={15} aria-hidden="true" />
+                    <span>{lifecycleMessage || "Unable to load data controls."}</span>
+                  </div>
+                ) : null}
+
+                <div>
+                  <h3 className="text-sm font-semibold text-[#17212b]">Deleted thoughts</h3>
+                  <p className="mt-1 text-xs leading-5 text-[#79838c]">
+                    Restore a thought before its recovery window ends.
+                  </p>
+                  {deletedThoughts.length === 0 ? (
+                    <p className="mt-3 text-xs text-[#5f6b76]">No thoughts are waiting to be restored.</p>
+                  ) : (
+                    <div className="mt-3 space-y-2">
+                      {deletedThoughts.map((thought) => (
+                        <div key={thought.id} className="rounded-md border border-[#e5ded2] bg-[#fbfaf8] p-3">
+                          <p className="line-clamp-2 text-xs leading-5 text-[#344250]">
+                            {thought.title || thought.body}
+                          </p>
+                          {thought.purge_at ? (
+                            <p className="mt-2 text-[11px] text-[#79838c]">
+                              Purges {formatDate(thought.purge_at)}
+                            </p>
+                          ) : null}
+                          <button
+                            className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-md border border-[#c9bca9] px-2.5 text-xs font-medium text-[#2f6f73] disabled:cursor-not-allowed disabled:opacity-50"
+                            type="button"
+                            onClick={() => void handleRestoreThought(thought.id)}
+                            disabled={restoringThoughtId !== null}
+                          >
+                            <Undo2 size={14} aria-hidden="true" />
+                            {restoringThoughtId === thought.id ? "Restoring..." : "Restore"}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t border-[#e5ded2] pt-4">
+                  <h3 className="text-sm font-semibold text-[#17212b]">Export your data</h3>
+                  <p className="mt-1 text-xs leading-5 text-[#79838c]">
+                    Download your thoughts, settings, and saved chat history as JSON.
+                  </p>
+                  {exportRequest ? (
+                    <div className="mt-3 rounded-md border border-[#e5ded2] bg-[#fbfaf8] p-3">
+                      <p className="text-xs capitalize text-[#5f6b76]">
+                        Status: {formatStatus(exportRequest.status)}
+                      </p>
+                      {exportRequest.status === "failed" ? (
+                        <p className="mt-1 text-xs text-[#8a3f2d]">
+                          {exportRequest.error_message || "Export generation failed."}
+                        </p>
+                      ) : null}
+                      {exportRequest.status === "completed" && !isExportExpired(exportRequest) ? (
+                        <>
+                          <p className="mt-1 text-xs text-[#79838c]">
+                            Available until {formatDate(exportRequest.expires_at)}.
+                          </p>
+                          <button
+                            className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-md bg-[#2f6f73] px-2.5 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+                            type="button"
+                            onClick={() => void handleDownloadExport()}
+                            disabled={isDownloadingExport}
+                          >
+                            <Download size={14} aria-hidden="true" />
+                            {isDownloadingExport ? "Downloading..." : "Download JSON"}
+                          </button>
+                        </>
+                      ) : null}
+                      {isExportExpired(exportRequest) ? (
+                        <p className="mt-1 text-xs text-[#8a3f2d]">
+                          This export has expired. Request a new one.
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  <button
+                    className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-md border border-[#c9bca9] px-2.5 text-xs font-medium text-[#2f6f73] disabled:cursor-not-allowed disabled:opacity-50"
+                    type="button"
+                    onClick={() => void handleCreateExport()}
+                    disabled={isCreatingExport || exportRequest?.status === "pending" || exportRequest?.status === "processing"}
+                  >
+                    <Download size={14} aria-hidden="true" />
+                    {isCreatingExport ? "Requesting..." : "Request export"}
+                  </button>
+                </div>
+
+                <div className="border-t border-[#e5ded2] pt-4">
+                  <h3 className="text-sm font-semibold text-[#17212b]">Delete account</h3>
+                  {accountDeletion?.status === "pending" ? (
+                    <>
+                      <p className="mt-1 text-xs leading-5 text-[#8a3f2d]">
+                        Your account is scheduled for permanent deletion on {formatDate(accountDeletion.purge_at)}.
+                      </p>
+                      <button
+                        className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-md border border-[#c9bca9] px-2.5 text-xs font-medium text-[#8a3f2d] disabled:cursor-not-allowed disabled:opacity-50"
+                        type="button"
+                        onClick={() => void handleCancelAccountDeletion()}
+                        disabled={isCancellingDeletion}
+                      >
+                        <Undo2 size={14} aria-hidden="true" />
+                        {isCancellingDeletion ? "Cancelling..." : "Cancel deletion"}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <p className="mt-1 text-xs leading-5 text-[#79838c]">
+                        Your data is removed after the recovery window. This cannot be undone after that point.
+                      </p>
+                      <button
+                        className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-md border border-[#c9bca9] px-2.5 text-xs font-medium text-[#8a3f2d] disabled:cursor-not-allowed disabled:opacity-50"
+                        type="button"
+                        onClick={() => void handleRequestAccountDeletion()}
+                        disabled={isRequestingDeletion}
+                      >
+                        <ShieldCheck size={14} aria-hidden="true" />
+                        {isRequestingDeletion ? "Requesting..." : "Request account deletion"}
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {lifecycleMessage && lifecycleState !== "error" ? (
+                  <p className="text-xs text-[#2f6f73]">{lifecycleMessage}</p>
+                ) : null}
+              </div> : null}
             </section> : null}
 
             <nav className="rounded-lg border border-[#d9d2c6] bg-white p-2">
