@@ -22,7 +22,15 @@ import {
   UsersRound,
   X,
 } from "lucide-react";
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import {
   AskMessage,
@@ -121,8 +129,17 @@ async function getApiToken(): Promise<string | null> {
   return getJWTToken();
 }
 
+function subscribeToHydration(): () => void {
+  return () => {};
+}
+
 export function MindPalaceShell() {
   const session = authClient.useSession();
+  const hasMounted = useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false,
+  );
   const [authMode, setAuthMode] = useState<"sign-in" | "sign-up" | "confirm">("sign-in");
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
@@ -182,6 +199,8 @@ export function MindPalaceShell() {
     () => thoughts.filter((thought) => thought.use_with_ask_my_mind),
     [thoughts],
   );
+  const hasAskableThoughts =
+    aiEnabledThoughts.length > 0 || (rememberOverview?.thoughts_analyzed ?? 0) > 0;
   const hasRecallFilters = useMemo(
     () => Object.values(recallDraftFilters).some((value) => value !== "" && value !== "all"),
     [recallDraftFilters],
@@ -688,6 +707,16 @@ export function MindPalaceShell() {
     }
   }
 
+  if (!hasMounted) {
+    return (
+      <main className="flex min-h-dvh items-center justify-center bg-[#f6f8fc] px-4 text-[#172033]">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7d828b]">
+          Restoring your private space…
+        </p>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-[#f6f8fc] text-[#172033]">
       <div className="flex min-h-screen w-full flex-col">
@@ -770,7 +799,7 @@ export function MindPalaceShell() {
                         detail: "Answers grounded in you",
                         placement: "right-0 top-[8%]",
                         action: () => setWorkspaceMode("ask"),
-                        disabled: aiEnabledThoughts.length === 0,
+                        disabled: !hasAskableThoughts,
                       },
                       {
                         number: "03",
@@ -787,11 +816,11 @@ export function MindPalaceShell() {
                         action: revealRememberedMind,
                       },
                     ]
-                      .filter((action) => action.number !== "02" || aiEnabledThoughts.length > 0)
+                      .filter((action) => action.number !== "02" || hasAskableThoughts)
                       .map((action, index) => (
                       <button
                         key={action.number}
-                        className={`mind-action-card absolute ${action.placement} w-[43%] rounded-[18px] border border-black/[0.08] bg-white/80 p-3 text-left shadow-[0_18px_55px_rgba(30,34,45,0.08)] backdrop-blur-xl hover:-translate-y-1 hover:border-black/20 hover:bg-white disabled:cursor-not-allowed disabled:opacity-35 sm:rounded-[22px] sm:p-5`}
+                        className={`mind-action-card absolute ${action.placement} w-[43%] rounded-[18px] border border-black/[0.08] bg-white/80 p-3 text-left shadow-[0_18px_55px_rgba(30,34,45,0.08)] backdrop-blur-xl disabled:cursor-not-allowed disabled:opacity-35 sm:rounded-[22px] sm:p-5`}
                         style={{ animationDelay: `${index * 70}ms` }}
                         type="button"
                         onClick={action.action}
