@@ -1,9 +1,11 @@
 "use client";
 
 import {
+  Archive,
   BookOpenText,
   BookMarked,
   Brain,
+  Check,
   CircleAlert,
   ChevronLeft,
   ChevronRight,
@@ -12,6 +14,7 @@ import {
   Heart,
   MessageCircleQuestion,
   LogOut,
+  Pencil,
   RefreshCw,
   Save,
   Search,
@@ -21,6 +24,7 @@ import {
   Undo2,
   UsersRound,
   X,
+  Trash2,
 } from "lucide-react";
 import {
   FormEvent,
@@ -39,6 +43,7 @@ import {
   AccountDeletionRequest,
   cancelAccountDeletion,
   createThought,
+  deleteThought,
   getSettings,
   getRememberOverview,
   createExportRequest,
@@ -54,6 +59,7 @@ import {
   requestAccountDeletion,
   restoreThought,
   updateSettings,
+  updateThought,
   UserSettings,
   RememberOverview,
 } from "@/lib/api";
@@ -212,6 +218,14 @@ export function MindPalaceShell() {
   const [thoughtType, setThoughtType] = useState("thought");
   const [useWithAsk, setUseWithAsk] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [editingThoughtId, setEditingThoughtId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editBody, setEditBody] = useState("");
+  const [editThoughtType, setEditThoughtType] = useState("thought");
+  const [editManualTags, setEditManualTags] = useState("");
+  const [editUseWithAsk, setEditUseWithAsk] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [deletingThoughtId, setDeletingThoughtId] = useState<string | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [question, setQuestion] = useState("");
   const [chatMessages, setChatMessages] = useState<AskMessage[]>([]);
@@ -642,6 +656,119 @@ export function MindPalaceShell() {
     }
   }
 
+  function startEditingThought(thought: Thought) {
+    setEditingThoughtId(thought.id);
+    setEditTitle(thought.title ?? "");
+    setEditBody(thought.body);
+    setEditThoughtType(thought.thought_type);
+    setEditManualTags(thought.manual_tags.join(", "));
+    setEditUseWithAsk(thought.use_with_ask_my_mind);
+    setMessage("");
+  }
+
+  function editThoughtFromSearch(thought: Thought) {
+    startEditingThought(thought);
+  }
+
+  function cancelEditingThought() {
+    setEditingThoughtId(null);
+    setEditTitle("");
+    setEditBody("");
+    setEditManualTags("");
+    setEditThoughtType("thought");
+    setEditUseWithAsk(false);
+  }
+
+  async function handleUpdateThought(event: FormEvent<HTMLFormElement>, thoughtId: string) {
+    event.preventDefault();
+    if (isUpdating || !editBody.trim()) {
+      return;
+    }
+
+    const token = await getApiToken();
+    if (!token) {
+      return;
+    }
+
+    setIsUpdating(true);
+    setMessage("");
+    try {
+      const updatedThought = await updateThought(token, thoughtId, {
+        title: editTitle.trim() || null,
+        body: editBody.trim(),
+        thought_type: editThoughtType,
+        manual_tags: splitTags(editManualTags),
+        use_with_ask_my_mind: editUseWithAsk,
+      });
+      await refresh(recallPage, recallFilters);
+      void loadRemember();
+      cancelEditingThought();
+      setMessage(
+        updatedThought.ai_processing_status === "pending"
+          ? "Thought updated. Organization is processing."
+          : "Thought updated.",
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to update thought.");
+    } finally {
+      setIsUpdating(false);
+    }
+  }
+
+  async function handleArchiveThought(thought: Thought) {
+    if (isUpdating || deletingThoughtId) {
+      return;
+    }
+
+    const token = await getApiToken();
+    if (!token) {
+      return;
+    }
+
+    setIsUpdating(true);
+    setMessage("");
+    try {
+      await updateThought(token, thought.id, { is_archived: !thought.is_archived });
+      await refresh(recallPage, recallFilters);
+      setMessage(thought.is_archived ? "Thought restored." : "Thought archived.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to update thought.");
+    } finally {
+      setIsUpdating(false);
+    }
+  }
+
+  async function handleDeleteThought(thought: Thought) {
+    if (deletingThoughtId || isUpdating) {
+      return;
+    }
+
+    if (!window.confirm("Delete this thought? You can restore it during the recovery window.")) {
+      return;
+    }
+
+    const token = await getApiToken();
+    if (!token) {
+      return;
+    }
+
+    setDeletingThoughtId(thought.id);
+    setMessage("");
+    try {
+      await deleteThought(token, thought.id);
+      if (editingThoughtId === thought.id) {
+        cancelEditingThought();
+      }
+      await refresh(recallPage, recallFilters);
+      void loadRemember();
+      setMessage("Thought moved to the recovery window.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to delete thought.");
+    } finally {
+      setDeletingThoughtId(null);
+    }
+  }
+
   function handleRecallSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setRecallFilters(recallDraftFilters);
@@ -942,27 +1069,114 @@ export function MindPalaceShell() {
                             <span className="pt-0.5 text-[10px] font-semibold tracking-[0.12em] text-[#a1a5ae]">{String(index + 1).padStart(2, "0")}</span>
                             <div>
                               <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.1em] text-[#8b909a]"><span>{thought.thought_type}</span><span>·</span><span>{formatDate(thought.created_at)}</span>{thought.use_with_ask_my_mind && (thought.ai_processing_status === "pending" || thought.ai_processing_status === "processing") ? <><span>·</span><span className="text-[#9a7b3f]">Organizing...</span></> : null}</div>
-                              <h2 className="mt-1 font-display text-base font-semibold text-[#24272d]">{thought.title || "Untitled thought"}</h2>
-                              <p className="mt-1 line-clamp-2 text-sm leading-6 text-[#666b75]">{thought.body}</p>
-                              {generatedMetadataLabels(thought).length > 0 ? (
-                                <div className="mt-2 flex flex-wrap gap-1.5">
-                                  {generatedMetadataLabels(thought).map((label) => (
-                                    <span key={label} className="rounded-full bg-[#eef0fa] px-2 py-1 text-[10px] text-[#68738a]">
-                                      {label}
-                                    </span>
-                                  ))}
-                                </div>
-                              ) : null}
-                              {thought.ai_processing_status === "failed" && thought.use_with_ask_my_mind ? (
-                                <button
-                                  className="mt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#b15b4d] disabled:opacity-50"
-                                  type="button"
-                                  onClick={() => void handleOrganizeThought(thought.id)}
-                                  disabled={organizingThoughtId !== null}
-                                >
-                                  {organizingThoughtId === thought.id ? "Retrying organization..." : "Retry organization"}
-                                </button>
-                              ) : null}
+                              {editingThoughtId === thought.id ? (
+                                <form className="mt-3 grid gap-3" onSubmit={(event) => void handleUpdateThought(event, thought.id)}>
+                                  <label className="grid gap-1 text-xs text-[#68738a]">
+                                    Title
+                                    <input
+                                      className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]"
+                                      value={editTitle}
+                                      onChange={(event) => setEditTitle(event.target.value)}
+                                    />
+                                  </label>
+                                  <label className="grid gap-1 text-xs text-[#68738a]">
+                                    Thought
+                                    <textarea
+                                      className="min-h-28 resize-y rounded-xl border border-[#dde2ee] bg-[#f6f8fc] p-3 text-sm leading-6 text-[#172033] outline-none focus:border-[#263a67]"
+                                      value={editBody}
+                                      onChange={(event) => setEditBody(event.target.value)}
+                                      required
+                                    />
+                                  </label>
+                                  <div className="grid gap-3 sm:grid-cols-2">
+                                    <label className="grid gap-1 text-xs text-[#68738a]">
+                                      Type
+                                      <select
+                                        className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]"
+                                        value={editThoughtType}
+                                        onChange={(event) => setEditThoughtType(event.target.value)}
+                                      >
+                                        <option value="thought">Thought</option>
+                                        <option value="journal">Journal</option>
+                                        <option value="quote">Quote</option>
+                                        <option value="book_excerpt">Book excerpt</option>
+                                      </select>
+                                    </label>
+                                    <label className="grid gap-1 text-xs text-[#68738a]">
+                                      Manual tags
+                                      <input
+                                        className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]"
+                                        placeholder="e.g. work, ideas"
+                                        value={editManualTags}
+                                        onChange={(event) => setEditManualTags(event.target.value)}
+                                      />
+                                    </label>
+                                  </div>
+                                  <label className="flex items-center gap-2 text-xs text-[#68738a]">
+                                    <input
+                                      type="checkbox"
+                                      checked={editUseWithAsk}
+                                      onChange={(event) => setEditUseWithAsk(event.target.checked)}
+                                    />
+                                    Use with Ask My Mind
+                                  </label>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <button
+                                      className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#263a67] px-3 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+                                      type="submit"
+                                      disabled={isUpdating || !editBody.trim()}
+                                    >
+                                      <Check size={15} aria-hidden="true" />
+                                      {isUpdating ? "Saving..." : "Save changes"}
+                                    </button>
+                                    <button
+                                      className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#dde2ee] px-3 text-xs text-[#263a67] disabled:cursor-not-allowed disabled:opacity-50"
+                                      type="button"
+                                      onClick={cancelEditingThought}
+                                      disabled={isUpdating}
+                                    >
+                                      <X size={15} aria-hidden="true" />
+                                      Cancel
+                                    </button>
+                                  </div>
+                                </form>
+                              ) : (
+                                <>
+                                  <div className="mt-1 flex items-start justify-between gap-3">
+                                    <h2 className="font-display text-base font-semibold text-[#24272d]">{thought.title || "Untitled thought"}</h2>
+                                    <button
+                                      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[#263a67] hover:bg-[#eef0fa] disabled:cursor-not-allowed disabled:opacity-40"
+                                      type="button"
+                                      aria-label="Edit thought"
+                                      title="Edit thought"
+                                      onClick={() => editThoughtFromSearch(thought)}
+                                      disabled={isUpdating || deletingThoughtId !== null}
+                                    >
+                                      <Pencil size={15} aria-hidden="true" />
+                                    </button>
+                                  </div>
+                                  <p className="mt-1 line-clamp-2 text-sm leading-6 text-[#666b75]">{thought.body}</p>
+                                  {generatedMetadataLabels(thought).length > 0 ? (
+                                    <div className="mt-2 flex flex-wrap gap-1.5">
+                                      {generatedMetadataLabels(thought).map((label) => (
+                                        <span key={label} className="rounded-full bg-[#eef0fa] px-2 py-1 text-[10px] text-[#68738a]">
+                                          {label}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  ) : null}
+                                  {thought.ai_processing_status === "failed" && thought.use_with_ask_my_mind ? (
+                                    <button
+                                      className="mt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#b15b4d] disabled:opacity-50"
+                                      type="button"
+                                      onClick={() => void handleOrganizeThought(thought.id)}
+                                      disabled={organizingThoughtId !== null}
+                                    >
+                                      {organizingThoughtId === thought.id ? "Retrying organization..." : "Retry organization"}
+                                    </button>
+                                  ) : null}
+                                </>
+                              )}
                             </div>
                           </article>
                         ))}
@@ -1884,66 +2098,178 @@ export function MindPalaceShell() {
                 ) : (
                   thoughts.map((thought) => (
                     <article key={thought.id} className="px-5 py-4">
-                      <div className="mb-2 flex flex-wrap items-center gap-2">
-                        <span className="rounded bg-[#eef0fa] px-2 py-1 text-xs font-medium text-[#263a67]">
-                          {thought.thought_type}
-                        </span>
-                        {thought.use_with_ask_my_mind ? (
-                          <span className="rounded bg-[#eef0fa] px-2 py-1 text-xs font-medium text-[#6f7fd8]">
-                            Ask enabled
+                      <div className="mb-3 flex items-start justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded bg-[#eef0fa] px-2 py-1 text-xs font-medium text-[#263a67]">
+                            {thought.thought_type}
                           </span>
-                        ) : null}
-                        {thought.use_with_ask_my_mind && (thought.ai_processing_status === "pending" || thought.ai_processing_status === "processing") ? (
-                          <span className="rounded bg-[#f5f1e8] px-2 py-1 text-xs font-medium text-[#9a7b3f]">
-                            Organizing...
+                          {thought.use_with_ask_my_mind ? (
+                            <span className="rounded bg-[#eef0fa] px-2 py-1 text-xs font-medium text-[#6f7fd8]">
+                              Ask enabled
+                            </span>
+                          ) : null}
+                          {thought.use_with_ask_my_mind && (thought.ai_processing_status === "pending" || thought.ai_processing_status === "processing") ? (
+                            <span className="rounded bg-[#f5f1e8] px-2 py-1 text-xs font-medium text-[#9a7b3f]">
+                              Organizing...
+                            </span>
+                          ) : null}
+                          <span className="text-xs text-[#68738a]">
+                            {formatDate(thought.created_at)}
                           </span>
-                        ) : null}
-                        <span className="text-xs text-[#68738a]">
-                          {formatDate(thought.created_at)}
-                        </span>
+                        </div>
+                        {editingThoughtId === thought.id ? null : (
+                          <div className="flex shrink-0 items-center gap-1">
+                            <button
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#dde2ee] text-[#263a67] disabled:cursor-not-allowed disabled:opacity-40"
+                              type="button"
+                              aria-label={thought.is_archived ? "Unarchive thought" : "Archive thought"}
+                              title={thought.is_archived ? "Unarchive thought" : "Archive thought"}
+                              onClick={() => void handleArchiveThought(thought)}
+                              disabled={isUpdating || deletingThoughtId !== null}
+                            >
+                              <Archive size={15} aria-hidden="true" />
+                            </button>
+                            <button
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#f0d5d0] text-[#b15b4d] disabled:cursor-not-allowed disabled:opacity-40"
+                              type="button"
+                              aria-label="Delete thought"
+                              title="Delete thought"
+                              onClick={() => void handleDeleteThought(thought)}
+                              disabled={isUpdating || deletingThoughtId !== null}
+                            >
+                              <Trash2 size={15} aria-hidden="true" />
+                            </button>
+                          </div>
+                        )}
                       </div>
-                      {thought.title ? (
-                        <h3 className="mb-1 text-sm font-semibold text-[#172033]">
-                          {thought.title}
-                        </h3>
-                      ) : null}
-                      <p className="whitespace-pre-wrap text-sm leading-6 text-[#172033]">
-                        {thought.body}
-                      </p>
-                      {generatedMetadataLabels(thought).length > 0 ? (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {generatedMetadataLabels(thought).map((label) => (
-                            <span
-                              key={label}
-                              className="rounded border border-[#dde2ee] bg-[#f8f8fc] px-2 py-1 text-xs text-[#68738a]"
+
+                      {editingThoughtId === thought.id ? (
+                        <form className="grid gap-3" onSubmit={(event) => void handleUpdateThought(event, thought.id)}>
+                          <label className="grid gap-1 text-xs text-[#68738a]">
+                            Title
+                            <input
+                              className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]"
+                              value={editTitle}
+                              onChange={(event) => setEditTitle(event.target.value)}
+                            />
+                          </label>
+                          <label className="grid gap-1 text-xs text-[#68738a]">
+                            Thought
+                            <textarea
+                              className="min-h-32 resize-y rounded-xl border border-[#dde2ee] bg-[#f6f8fc] p-3 text-sm leading-6 text-[#172033] outline-none focus:border-[#263a67]"
+                              value={editBody}
+                              onChange={(event) => setEditBody(event.target.value)}
+                              required
+                            />
+                          </label>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <label className="grid gap-1 text-xs text-[#68738a]">
+                              Type
+                              <select
+                                className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]"
+                                value={editThoughtType}
+                                onChange={(event) => setEditThoughtType(event.target.value)}
+                              >
+                                <option value="thought">Thought</option>
+                                <option value="journal">Journal</option>
+                                <option value="quote">Quote</option>
+                                <option value="book_excerpt">Book excerpt</option>
+                              </select>
+                            </label>
+                            <label className="grid gap-1 text-xs text-[#68738a]">
+                              Manual tags
+                              <input
+                                className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]"
+                                placeholder="e.g. work, ideas"
+                                value={editManualTags}
+                                onChange={(event) => setEditManualTags(event.target.value)}
+                              />
+                            </label>
+                          </div>
+                          <label className="flex items-center gap-2 text-xs text-[#68738a]">
+                            <input
+                              type="checkbox"
+                              checked={editUseWithAsk}
+                              onChange={(event) => setEditUseWithAsk(event.target.checked)}
+                            />
+                            Use with Ask My Mind
+                          </label>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <button
+                              className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#263a67] px-3 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+                              type="submit"
+                              disabled={isUpdating || !editBody.trim()}
                             >
-                              {label}
-                            </span>
-                          ))}
-                        </div>
-                      ) : null}
-                      {thought.ai_processing_status === "failed" && thought.use_with_ask_my_mind ? (
-                        <button
-                          className="mt-3 text-xs font-semibold text-[#b15b4d] disabled:opacity-50"
-                          type="button"
-                          onClick={() => void handleOrganizeThought(thought.id)}
-                          disabled={organizingThoughtId !== null}
-                        >
-                          {organizingThoughtId === thought.id ? "Retrying organization..." : "Retry organization"}
-                        </button>
-                      ) : null}
-                      {thought.manual_tags.length > 0 ? (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {thought.manual_tags.map((tag) => (
-                            <span
-                              key={tag}
-                              className="rounded border border-[#dde2ee] px-2 py-1 text-xs text-[#68738a]"
+                              <Check size={15} aria-hidden="true" />
+                              {isUpdating ? "Saving..." : "Save changes"}
+                            </button>
+                            <button
+                              className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#dde2ee] px-3 text-xs text-[#263a67] disabled:cursor-not-allowed disabled:opacity-50"
+                              type="button"
+                              onClick={cancelEditingThought}
+                              disabled={isUpdating}
                             >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      ) : null}
+                              <X size={15} aria-hidden="true" />
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <>
+                          <div className="mb-1 flex items-start justify-between gap-3">
+                            <h3 className="text-sm font-semibold text-[#172033]">
+                              {thought.title || "Untitled thought"}
+                            </h3>
+                            <button
+                              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[#263a67] hover:bg-[#eef0fa] disabled:cursor-not-allowed disabled:opacity-40"
+                              type="button"
+                              aria-label="Edit thought"
+                              title="Edit thought"
+                              onClick={() => startEditingThought(thought)}
+                              disabled={isUpdating || deletingThoughtId !== null}
+                            >
+                              <Pencil size={15} aria-hidden="true" />
+                            </button>
+                          </div>
+                          <p className="whitespace-pre-wrap text-sm leading-6 text-[#172033]">
+                            {thought.body}
+                          </p>
+                          {generatedMetadataLabels(thought).length > 0 ? (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {generatedMetadataLabels(thought).map((label) => (
+                                <span
+                                  key={label}
+                                  className="rounded border border-[#dde2ee] bg-[#f8f8fc] px-2 py-1 text-xs text-[#68738a]"
+                                >
+                                  {label}
+                                </span>
+                              ))}
+                            </div>
+                          ) : null}
+                          {thought.ai_processing_status === "failed" && thought.use_with_ask_my_mind ? (
+                            <button
+                              className="mt-3 text-xs font-semibold text-[#b15b4d] disabled:opacity-50"
+                              type="button"
+                              onClick={() => void handleOrganizeThought(thought.id)}
+                              disabled={organizingThoughtId !== null}
+                            >
+                              {organizingThoughtId === thought.id ? "Retrying organization..." : "Retry organization"}
+                            </button>
+                          ) : null}
+                          {thought.manual_tags.length > 0 ? (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {thought.manual_tags.map((tag) => (
+                                <span
+                                  key={tag}
+                                  className="rounded border border-[#dde2ee] px-2 py-1 text-xs text-[#68738a]"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          ) : null}
+                        </>
+                      )}
                     </article>
                   ))
                 )}

@@ -149,6 +149,22 @@ export type CreateThoughtInput = {
   use_with_ask_my_mind?: boolean;
 };
 
+export type UpdateThoughtInput = {
+  title?: string | null;
+  body?: string;
+  thought_type?: string;
+  source_type?: string;
+  source_title?: string | null;
+  source_author?: string | null;
+  source_url?: string | null;
+  book_title?: string | null;
+  book_author?: string | null;
+  page_reference?: string | null;
+  manual_tags?: string[];
+  use_with_ask_my_mind?: boolean;
+  is_archived?: boolean;
+};
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
 
 class ApiError extends Error {
@@ -224,6 +240,21 @@ export function createThought(token: string, input: CreateThoughtInput): Promise
     method: "POST",
     body: JSON.stringify(input),
   });
+}
+
+export function updateThought(
+  token: string,
+  thoughtId: string,
+  input: UpdateThoughtInput,
+): Promise<Thought> {
+  return request<Thought>(`/thoughts/${thoughtId}`, token, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteThought(token: string, thoughtId: string): Promise<void> {
+  await request<void>(`/thoughts/${thoughtId}`, token, { method: "DELETE" });
 }
 
 export function getSettings(token: string): Promise<UserSettings> {
