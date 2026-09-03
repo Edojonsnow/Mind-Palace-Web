@@ -19,6 +19,21 @@ export type Thought = {
   updated_at: string;
   deleted_at: string | null;
   purge_at: string | null;
+  ai_metadata: ThoughtMetadata | null;
+};
+
+export type ThoughtMetadata = {
+  summary: string | null;
+  themes: string[];
+  emotions: string[];
+  people: string[];
+  places: string[];
+  books: string[];
+  key_questions: string[];
+  action_items: string[];
+  deterministic_metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
 };
 
 export type ThoughtListOptions = {
@@ -27,6 +42,10 @@ export type ThoughtListOptions = {
   source_type?: string;
   tag?: string;
   book?: string;
+  theme?: string;
+  emotion?: string;
+  person?: string;
+  place?: string;
   is_archived?: boolean;
   created_from?: string;
   created_to?: string;
@@ -213,6 +232,12 @@ export function getSettings(token: string): Promise<UserSettings> {
 
 export function getRememberOverview(token: string): Promise<RememberOverview> {
   return request<RememberOverview>("/remember", token);
+}
+
+export function organizeThought(token: string, thoughtId: string): Promise<Thought> {
+  return request<Thought>(`/thoughts/${thoughtId}/organize`, token, {
+    method: "POST",
+  });
 }
 
 export function updateSettings(

@@ -48,6 +48,7 @@ import {
   getExportRequest,
   listDeletedThoughts,
   listThoughts,
+  organizeThought,
   Thought,
   ThoughtListOptions,
   requestAccountDeletion,
@@ -78,6 +79,20 @@ function formatStatus(value: string): string {
   return value.replaceAll("_", " ");
 }
 
+function generatedMetadataLabels(thought: Thought): string[] {
+  if (!thought.ai_metadata) {
+    return [];
+  }
+
+  return [
+    ...thought.ai_metadata.themes.map((value) => `Theme: ${value}`),
+    ...thought.ai_metadata.emotions.map((value) => `Emotion: ${value}`),
+    ...thought.ai_metadata.people.map((value) => `Person: ${value}`),
+    ...thought.ai_metadata.places.map((value) => `Place: ${value}`),
+    ...thought.ai_metadata.books.map((value) => `Book: ${value}`),
+  ].slice(0, 8);
+}
+
 function isExportExpired(exportRequest: ExportRequest): boolean {
   return exportRequest.status === "expired" || new Date(exportRequest.expires_at) <= new Date();
 }
@@ -92,6 +107,10 @@ type RecallFilters = {
   source_type: string;
   tag: string;
   book: string;
+  theme: string;
+  emotion: string;
+  person: string;
+  place: string;
   archive: ArchiveFilter;
 };
 
@@ -101,6 +120,10 @@ const DEFAULT_RECALL_FILTERS: RecallFilters = {
   source_type: "",
   tag: "",
   book: "",
+  theme: "",
+  emotion: "",
+  person: "",
+  place: "",
   archive: "all",
 };
 
@@ -119,6 +142,10 @@ function recallQuery(filters: RecallFilters, page: number): ThoughtListOptions {
     source_type: filters.source_type || undefined,
     tag: filters.tag.trim() || undefined,
     book: filters.book.trim() || undefined,
+    theme: filters.theme.trim() || undefined,
+    emotion: filters.emotion.trim() || undefined,
+    person: filters.person.trim() || undefined,
+    place: filters.place.trim() || undefined,
     is_archived: filters.archive === "all" ? undefined : filters.archive === "archived",
     page,
     page_size: RECALL_PAGE_SIZE,
@@ -176,6 +203,7 @@ export function MindPalaceShell() {
   const [isDownloadingExport, setIsDownloadingExport] = useState(false);
   const [isRequestingDeletion, setIsRequestingDeletion] = useState(false);
   const [isCancellingDeletion, setIsCancellingDeletion] = useState(false);
+  const [organizingThoughtId, setOrganizingThoughtId] = useState<string | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("idle");
   const [message, setMessage] = useState("");
   const [body, setBody] = useState("");
@@ -656,6 +684,26 @@ export function MindPalaceShell() {
     }
   }
 
+  async function handleOrganizeThought(thoughtId: string) {
+    const token = await getApiToken();
+    if (!token || organizingThoughtId) {
+      return;
+    }
+
+    setOrganizingThoughtId(thoughtId);
+    setMessage("");
+    try {
+      await organizeThought(token, thoughtId);
+      await refresh(recallPage, recallFilters);
+      void loadRemember();
+      setMessage("Organization restarted.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to organize thought.");
+    } finally {
+      setOrganizingThoughtId(null);
+    }
+  }
+
   async function handleAsk(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmedQuestion = question.trim();
@@ -893,9 +941,28 @@ export function MindPalaceShell() {
                           <article key={thought.id} className="grid grid-cols-[32px_1fr] gap-3 border-b border-black/[0.06] py-4 last:border-0">
                             <span className="pt-0.5 text-[10px] font-semibold tracking-[0.12em] text-[#a1a5ae]">{String(index + 1).padStart(2, "0")}</span>
                             <div>
-                              <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.1em] text-[#8b909a]"><span>{thought.thought_type}</span><span>·</span><span>{formatDate(thought.created_at)}</span></div>
+                              <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.1em] text-[#8b909a]"><span>{thought.thought_type}</span><span>·</span><span>{formatDate(thought.created_at)}</span>{thought.use_with_ask_my_mind && (thought.ai_processing_status === "pending" || thought.ai_processing_status === "processing") ? <><span>·</span><span className="text-[#9a7b3f]">Organizing...</span></> : null}</div>
                               <h2 className="mt-1 font-display text-base font-semibold text-[#24272d]">{thought.title || "Untitled thought"}</h2>
                               <p className="mt-1 line-clamp-2 text-sm leading-6 text-[#666b75]">{thought.body}</p>
+                              {generatedMetadataLabels(thought).length > 0 ? (
+                                <div className="mt-2 flex flex-wrap gap-1.5">
+                                  {generatedMetadataLabels(thought).map((label) => (
+                                    <span key={label} className="rounded-full bg-[#eef0fa] px-2 py-1 text-[10px] text-[#68738a]">
+                                      {label}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : null}
+                              {thought.ai_processing_status === "failed" && thought.use_with_ask_my_mind ? (
+                                <button
+                                  className="mt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#b15b4d] disabled:opacity-50"
+                                  type="button"
+                                  onClick={() => void handleOrganizeThought(thought.id)}
+                                  disabled={organizingThoughtId !== null}
+                                >
+                                  {organizingThoughtId === thought.id ? "Retrying organization..." : "Retry organization"}
+                                </button>
+                              ) : null}
                             </div>
                           </article>
                         ))}
@@ -1826,6 +1893,11 @@ export function MindPalaceShell() {
                             Ask enabled
                           </span>
                         ) : null}
+                        {thought.use_with_ask_my_mind && (thought.ai_processing_status === "pending" || thought.ai_processing_status === "processing") ? (
+                          <span className="rounded bg-[#f5f1e8] px-2 py-1 text-xs font-medium text-[#9a7b3f]">
+                            Organizing...
+                          </span>
+                        ) : null}
                         <span className="text-xs text-[#68738a]">
                           {formatDate(thought.created_at)}
                         </span>
@@ -1838,6 +1910,28 @@ export function MindPalaceShell() {
                       <p className="whitespace-pre-wrap text-sm leading-6 text-[#172033]">
                         {thought.body}
                       </p>
+                      {generatedMetadataLabels(thought).length > 0 ? (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {generatedMetadataLabels(thought).map((label) => (
+                            <span
+                              key={label}
+                              className="rounded border border-[#dde2ee] bg-[#f8f8fc] px-2 py-1 text-xs text-[#68738a]"
+                            >
+                              {label}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                      {thought.ai_processing_status === "failed" && thought.use_with_ask_my_mind ? (
+                        <button
+                          className="mt-3 text-xs font-semibold text-[#b15b4d] disabled:opacity-50"
+                          type="button"
+                          onClick={() => void handleOrganizeThought(thought.id)}
+                          disabled={organizingThoughtId !== null}
+                        >
+                          {organizingThoughtId === thought.id ? "Retrying organization..." : "Retry organization"}
+                        </button>
+                      ) : null}
                       {thought.manual_tags.length > 0 ? (
                         <div className="mt-3 flex flex-wrap gap-2">
                           {thought.manual_tags.map((tag) => (
