@@ -95,8 +95,50 @@ function generatedMetadataLabels(thought: Thought): string[] {
     ...thought.ai_metadata.emotions.map((value) => `Emotion: ${value}`),
     ...thought.ai_metadata.people.map((value) => `Person: ${value}`),
     ...thought.ai_metadata.places.map((value) => `Place: ${value}`),
-    ...thought.ai_metadata.books.map((value) => `Book: ${value}`),
-  ].slice(0, 8);
+  ];
+}
+
+function CompactLabelList({
+  labels,
+  variant,
+  maxVisible = 5,
+}: {
+  labels: string[];
+  variant: "ai" | "manual";
+  maxVisible?: number;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  if (labels.length === 0) {
+    return null;
+  }
+
+  const visibleLabels = isExpanded ? labels : labels.slice(0, maxVisible);
+  const hiddenCount = labels.length - visibleLabels.length;
+  const labelClassName =
+    variant === "ai"
+      ? "rounded-full bg-[#eef0fa] px-2 py-1 text-[10px] text-[#68738a]"
+      : "rounded-full border border-[#dde2ee] px-2 py-1 text-[10px] text-[#68738a]";
+
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+      {visibleLabels.map((label) => (
+        <span key={label} className={labelClassName}>
+          {label}
+        </span>
+      ))}
+      {labels.length > maxVisible ? (
+        <button
+          className="px-1 text-[10px] font-semibold text-[#5367c7] hover:text-[#263a67]"
+          type="button"
+          aria-expanded={isExpanded}
+          onClick={() => setIsExpanded((current) => !current)}
+        >
+          {isExpanded ? "Show fewer" : `+${hiddenCount} more`}
+        </button>
+      ) : null}
+    </div>
+  );
 }
 
 function isExportExpired(exportRequest: ExportRequest): boolean {
@@ -1156,15 +1198,8 @@ export function MindPalaceShell() {
                                     </button>
                                   </div>
                                   <p className="mt-1 line-clamp-2 text-sm leading-6 text-[#666b75]">{thought.body}</p>
-                                  {generatedMetadataLabels(thought).length > 0 ? (
-                                    <div className="mt-2 flex flex-wrap gap-1.5">
-                                      {generatedMetadataLabels(thought).map((label) => (
-                                        <span key={label} className="rounded-full bg-[#eef0fa] px-2 py-1 text-[10px] text-[#68738a]">
-                                          {label}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  ) : null}
+                                  <CompactLabelList labels={generatedMetadataLabels(thought)} variant="ai" />
+                                  <CompactLabelList labels={thought.manual_tags} variant="manual" maxVisible={4} />
                                   {thought.ai_processing_status === "failed" && thought.use_with_ask_my_mind ? (
                                     <button
                                       className="mt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#b15b4d] disabled:opacity-50"
@@ -2234,18 +2269,7 @@ export function MindPalaceShell() {
                           <p className="whitespace-pre-wrap text-sm leading-6 text-[#172033]">
                             {thought.body}
                           </p>
-                          {generatedMetadataLabels(thought).length > 0 ? (
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              {generatedMetadataLabels(thought).map((label) => (
-                                <span
-                                  key={label}
-                                  className="rounded border border-[#dde2ee] bg-[#f8f8fc] px-2 py-1 text-xs text-[#68738a]"
-                                >
-                                  {label}
-                                </span>
-                              ))}
-                            </div>
-                          ) : null}
+                          <CompactLabelList labels={generatedMetadataLabels(thought)} variant="ai" />
                           {thought.ai_processing_status === "failed" && thought.use_with_ask_my_mind ? (
                             <button
                               className="mt-3 text-xs font-semibold text-[#b15b4d] disabled:opacity-50"
@@ -2256,18 +2280,7 @@ export function MindPalaceShell() {
                               {organizingThoughtId === thought.id ? "Retrying organization..." : "Retry organization"}
                             </button>
                           ) : null}
-                          {thought.manual_tags.length > 0 ? (
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              {thought.manual_tags.map((tag) => (
-                                <span
-                                  key={tag}
-                                  className="rounded border border-[#dde2ee] px-2 py-1 text-xs text-[#68738a]"
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          ) : null}
+                          <CompactLabelList labels={thought.manual_tags} variant="manual" maxVisible={6} />
                         </>
                       )}
                     </article>
