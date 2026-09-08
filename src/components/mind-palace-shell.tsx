@@ -85,27 +85,41 @@ function formatStatus(value: string): string {
   return value.replaceAll("_", " ");
 }
 
-function generatedMetadataLabels(thought: Thought): string[] {
+type LabelFilterKey = "theme" | "emotion" | "person" | "place" | "tag";
+
+type ThoughtLabel = {
+  label: string;
+  value: string;
+  filterKey: LabelFilterKey;
+};
+
+function generatedMetadataLabels(thought: Thought): ThoughtLabel[] {
   if (!thought.ai_metadata) {
     return [];
   }
 
   return [
-    ...thought.ai_metadata.themes.map((value) => `Theme: ${value}`),
-    ...thought.ai_metadata.emotions.map((value) => `Emotion: ${value}`),
-    ...thought.ai_metadata.people.map((value) => `Person: ${value}`),
-    ...thought.ai_metadata.places.map((value) => `Place: ${value}`),
+    ...thought.ai_metadata.themes.map((value) => ({ label: `Theme: ${value}`, value, filterKey: "theme" as const })),
+    ...thought.ai_metadata.emotions.map((value) => ({ label: `Emotion: ${value}`, value, filterKey: "emotion" as const })),
+    ...thought.ai_metadata.people.map((value) => ({ label: `Person: ${value}`, value, filterKey: "person" as const })),
+    ...thought.ai_metadata.places.map((value) => ({ label: `Place: ${value}`, value, filterKey: "place" as const })),
   ];
+}
+
+function manualThoughtLabels(thought: Thought): ThoughtLabel[] {
+  return thought.manual_tags.map((value) => ({ label: value, value, filterKey: "tag" }));
 }
 
 function CompactLabelList({
   labels,
   variant,
   maxVisible = 5,
+  onLabelClick,
 }: {
-  labels: string[];
+  labels: ThoughtLabel[];
   variant: "ai" | "manual";
   maxVisible?: number;
+  onLabelClick?: (label: ThoughtLabel) => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -123,9 +137,21 @@ function CompactLabelList({
   return (
     <div className="mt-2 flex flex-wrap items-center gap-1.5">
       {visibleLabels.map((label) => (
-        <span key={label} className={labelClassName}>
-          {label}
-        </span>
+        onLabelClick ? (
+          <button
+            key={`${label.filterKey}:${label.value}`}
+            className={`${labelClassName} cursor-pointer hover:border-[#6f7fd8] hover:text-[#263a67]`}
+            type="button"
+            title={`Filter by ${label.label}`}
+            onClick={() => onLabelClick(label)}
+          >
+            {label.label}
+          </button>
+        ) : (
+          <span key={`${label.filterKey}:${label.value}`} className={labelClassName}>
+            {label.label}
+          </span>
+        )
       ))}
       {labels.length > maxVisible ? (
         <button
@@ -198,6 +224,21 @@ function recallQuery(filters: RecallFilters, page: number): ThoughtListOptions {
     page,
     page_size: RECALL_PAGE_SIZE,
   };
+}
+
+function activeRecallFilterLabels(filters: RecallFilters): string[] {
+  return [
+    filters.q.trim() ? `Search: ${filters.q.trim()}` : "",
+    filters.thought_type ? `Type: ${formatStatus(filters.thought_type)}` : "",
+    filters.source_type ? `Source: ${formatStatus(filters.source_type)}` : "",
+    filters.tag.trim() ? `Tag: ${filters.tag.trim()}` : "",
+    filters.book.trim() ? `Book: ${filters.book.trim()}` : "",
+    filters.theme.trim() ? `Theme: ${filters.theme.trim()}` : "",
+    filters.emotion.trim() ? `Emotion: ${filters.emotion.trim()}` : "",
+    filters.person.trim() ? `Person: ${filters.person.trim()}` : "",
+    filters.place.trim() ? `Place: ${filters.place.trim()}` : "",
+    filters.archive !== "all" ? `Archive: ${filters.archive}` : "",
+  ].filter((label): label is string => Boolean(label));
 }
 
 async function getApiToken(): Promise<string | null> {
@@ -818,6 +859,18 @@ export function MindPalaceShell() {
     void refresh(1, recallDraftFilters);
   }
 
+  function handleLabelClick(label: ThoughtLabel) {
+    const nextFilters = {
+      ...DEFAULT_RECALL_FILTERS,
+      [label.filterKey]: label.value,
+    };
+    setRecallDraftFilters(nextFilters);
+    setRecallFilters(nextFilters);
+    setRecallPage(1);
+    setWorkspaceMode("search");
+    void refresh(1, nextFilters);
+  }
+
   function handleRecallReset() {
     setRecallDraftFilters(DEFAULT_RECALL_FILTERS);
     setRecallFilters(DEFAULT_RECALL_FILTERS);
@@ -1100,6 +1153,16 @@ export function MindPalaceShell() {
                           <button className="h-11 px-3 text-xs font-semibold text-[#777c86] hover:text-black disabled:opacity-35" type="button" disabled={!hasRecallFilters} onClick={handleRecallReset}>Clear filters</button>
                         </div>
                       </form>
+                      {activeRecallFilterLabels(recallFilters).length > 0 ? (
+                        <div className="mt-4 flex flex-wrap items-center gap-1.5 text-[10px] text-[#777c86]">
+                          <span className="mr-1 font-semibold uppercase tracking-[0.12em]">Active filters</span>
+                          {activeRecallFilterLabels(recallFilters).map((label) => (
+                            <span key={label} className="rounded-full bg-[#f3f3f0] px-2 py-1 text-[#68738a]">
+                              {label}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
 
                       <div className="mt-7 max-h-[36vh] overflow-y-auto border-t border-black/[0.07] pr-1">
                         {loadState === "loading" ? (
@@ -1198,8 +1261,8 @@ export function MindPalaceShell() {
                                     </button>
                                   </div>
                                   <p className="mt-1 line-clamp-2 text-sm leading-6 text-[#666b75]">{thought.body}</p>
-                                  <CompactLabelList labels={generatedMetadataLabels(thought)} variant="ai" />
-                                  <CompactLabelList labels={thought.manual_tags} variant="manual" maxVisible={4} />
+                                  <CompactLabelList labels={generatedMetadataLabels(thought)} variant="ai" onLabelClick={handleLabelClick} />
+                                  <CompactLabelList labels={manualThoughtLabels(thought)} variant="manual" maxVisible={4} onLabelClick={handleLabelClick} />
                                   {thought.ai_processing_status === "failed" && thought.use_with_ask_my_mind ? (
                                     <button
                                       className="mt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#b15b4d] disabled:opacity-50"
@@ -2269,7 +2332,7 @@ export function MindPalaceShell() {
                           <p className="whitespace-pre-wrap text-sm leading-6 text-[#172033]">
                             {thought.body}
                           </p>
-                          <CompactLabelList labels={generatedMetadataLabels(thought)} variant="ai" />
+                          <CompactLabelList labels={generatedMetadataLabels(thought)} variant="ai" onLabelClick={handleLabelClick} />
                           {thought.ai_processing_status === "failed" && thought.use_with_ask_my_mind ? (
                             <button
                               className="mt-3 text-xs font-semibold text-[#b15b4d] disabled:opacity-50"
@@ -2280,7 +2343,7 @@ export function MindPalaceShell() {
                               {organizingThoughtId === thought.id ? "Retrying organization..." : "Retry organization"}
                             </button>
                           ) : null}
-                          <CompactLabelList labels={thought.manual_tags} variant="manual" maxVisible={6} />
+                          <CompactLabelList labels={manualThoughtLabels(thought)} variant="manual" maxVisible={6} onLabelClick={handleLabelClick} />
                         </>
                       )}
                     </article>
