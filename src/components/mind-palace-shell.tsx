@@ -85,13 +85,78 @@ function formatStatus(value: string): string {
   return value.replaceAll("_", " ");
 }
 
-type LabelFilterKey = "theme" | "emotion" | "person" | "place" | "tag";
+type LabelFilterKey = "theme" | "emotion" | "person" | "place" | "tag" | "book";
 
 type ThoughtLabel = {
   label: string;
   value: string;
   filterKey: LabelFilterKey;
 };
+
+type RememberCategoryData = RememberOverview["categories"][number];
+
+function RememberCategoryDetail({
+  category,
+  onBack,
+  onItemClick,
+}: {
+  category: RememberCategoryData;
+  onBack: () => void;
+  onItemClick: (categoryKey: RememberCategoryData["key"], value: string) => void;
+}) {
+  const CategoryIcon =
+    category.key === "themes"
+      ? Sparkles
+      : category.key === "emotions"
+        ? Heart
+        : category.key === "people"
+          ? UsersRound
+          : BookMarked;
+
+  return (
+    <div className="col-span-full rounded-[26px] border border-black/[0.08] bg-white/80 p-6 shadow-[0_20px_60px_rgba(31,35,45,0.07)] backdrop-blur-xl sm:p-8">
+      <button
+        className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#777c86] hover:text-[#263a67]"
+        type="button"
+        onClick={onBack}
+      >
+        <ChevronLeft size={14} aria-hidden="true" />
+        All categories
+      </button>
+      <div className="mt-6 flex items-center gap-3">
+        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#eef0fa] text-[#6f7fd8]">
+          <CategoryIcon size={21} aria-hidden="true" />
+        </span>
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9a9ea7]">
+            Category view
+          </p>
+          <h2 className="mt-1 font-display text-3xl font-semibold tracking-[-0.04em] text-[#24272d]">
+            {category.label}
+          </h2>
+        </div>
+      </div>
+      {category.items.length === 0 ? (
+        <p className="mt-8 text-sm text-[#8b909a]">Still taking shape</p>
+      ) : (
+        <div className="mt-8 flex flex-wrap items-center gap-3">
+          {category.items.map((item, index) => (
+            <button
+              key={item.label}
+              className="remember-bubble-enter rounded-full border border-[#d9deef] bg-[#f7f8fd] px-4 py-3 text-sm text-[#4f5d7c] shadow-[0_8px_20px_rgba(38,58,103,0.05)] hover:-translate-y-1 hover:border-[#6f7fd8] hover:bg-white hover:text-[#263a67] hover:shadow-[0_14px_28px_rgba(38,58,103,0.12)] active:translate-y-0"
+              style={{ animationDelay: `${index * 45}ms` }}
+              type="button"
+              onClick={() => onItemClick(category.key, item.label)}
+            >
+              {item.label}
+              <sup className="ml-1 text-[#969ba4]">{item.count}</sup>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function generatedMetadataLabels(thought: Thought): ThoughtLabel[] {
   if (!thought.ai_metadata) {
@@ -274,6 +339,8 @@ export function MindPalaceShell() {
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [rememberOverview, setRememberOverview] = useState<RememberOverview | null>(null);
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("hub");
+  const [selectedRememberCategory, setSelectedRememberCategory] =
+    useState<RememberCategoryData["key"] | null>(null);
   const [isCaptureOpen, setIsCaptureOpen] = useState(false);
   const mindMode =
     workspaceMode === "remember"
@@ -564,15 +631,20 @@ export function MindPalaceShell() {
       return;
     }
     if (workspaceMode === "remember") {
+      setSelectedRememberCategory(null);
       setWorkspaceMode("hub");
       return;
     }
 
+    setSelectedRememberCategory(null);
     setWorkspaceMode("organizing");
     window.setTimeout(() => setWorkspaceMode("remember"), 520);
   }
 
   function setMindMode(value: "actions" | "organizing" | "categories") {
+    if (value !== "categories") {
+      setSelectedRememberCategory(null);
+    }
     setWorkspaceMode(
       value === "categories" ? "remember" : value === "organizing" ? "organizing" : "hub",
     );
@@ -871,6 +943,29 @@ export function MindPalaceShell() {
     void refresh(1, nextFilters);
   }
 
+  function handleRememberCategoryItemClick(
+    categoryKey: RememberCategoryData["key"],
+    value: string,
+  ) {
+    const filterKeyByCategory: Record<RememberCategoryData["key"], LabelFilterKey> = {
+      themes: "theme",
+      emotions: "emotion",
+      people: "person",
+      books: "book",
+    };
+    const labelByCategory: Record<RememberCategoryData["key"], string> = {
+      themes: "Theme",
+      emotions: "Emotion",
+      people: "Person",
+      books: "Book",
+    };
+    handleLabelClick({
+      label: `${labelByCategory[categoryKey]}: ${value}`,
+      value,
+      filterKey: filterKeyByCategory[categoryKey],
+    });
+  }
+
   function handleRecallReset() {
     setRecallDraftFilters(DEFAULT_RECALL_FILTERS);
     setRecallFilters(DEFAULT_RECALL_FILTERS);
@@ -1024,7 +1119,10 @@ export function MindPalaceShell() {
               <button
                 className="absolute left-4 top-4 z-30 h-10 rounded-full border border-black/10 bg-white/75 px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#31343b] backdrop-blur-xl hover:bg-white sm:left-7 sm:top-6"
                 type="button"
-                onClick={() => setWorkspaceMode("hub")}
+                onClick={() => {
+                  setSelectedRememberCategory(null);
+                  setWorkspaceMode("hub");
+                }}
               >
                 ← Return to my mind
               </button>
@@ -1327,7 +1425,41 @@ export function MindPalaceShell() {
                       <h1 className="mt-5 font-display text-5xl font-medium leading-[0.98] tracking-[-0.055em] text-[#202329] sm:text-7xl">Patterns, without the filing.</h1>
                       <p className="mt-6 max-w-sm text-sm leading-6 text-[#747983]">{rememberOverview?.thoughts_analyzed ?? 0} AI-enabled thoughts have contributed to this view.</p>
                     </header>
-                    <div className="grid gap-3 sm:grid-cols-2">{(rememberOverview?.categories ?? EMPTY_REMEMBER_CATEGORIES).map((category, index) => <article key={category.key} className="rounded-[26px] border border-black/[0.08] bg-white/80 p-6 shadow-[0_20px_60px_rgba(31,35,45,0.07)] backdrop-blur-xl"><span className="text-[10px] font-semibold tracking-[0.18em] text-[#9a9ea7]">{String(index + 1).padStart(2, "0")}</span><h2 className="mt-7 font-display text-2xl font-semibold tracking-[-0.035em] text-[#24272d]">{category.label}</h2><div className="mt-5 flex flex-wrap gap-2">{category.items.length === 0 ? <span className="text-sm text-[#8b909a]">Still taking shape</span> : category.items.map((item) => <span key={item.label} className="rounded-full border border-black/[0.08] bg-[#f3f3f0] px-3 py-2 text-xs text-[#5f646d]">{item.label} <sup className="text-[#969ba4]">{item.count}</sup></span>)}</div></article>)}</div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {selectedRememberCategory ? (
+                        <RememberCategoryDetail
+                          category={
+                            (rememberOverview?.categories ?? EMPTY_REMEMBER_CATEGORIES).find(
+                              (category) => category.key === selectedRememberCategory,
+                            ) ?? EMPTY_REMEMBER_CATEGORIES[0]
+                          }
+                          onBack={() => setSelectedRememberCategory(null)}
+                          onItemClick={handleRememberCategoryItemClick}
+                        />
+                      ) : (
+                        (rememberOverview?.categories ?? EMPTY_REMEMBER_CATEGORIES).map((category, index) => (
+                          <button
+                            key={category.key}
+                            className="remember-category-card rounded-[26px] border border-black/[0.08] bg-white/80 p-6 text-left shadow-[0_20px_60px_rgba(31,35,45,0.07)] backdrop-blur-xl hover:-translate-y-1 hover:border-[#cfd6ec] hover:bg-white hover:shadow-[0_28px_70px_rgba(31,35,45,0.12)] active:translate-y-0"
+                            type="button"
+                            aria-label={`Open ${category.label}`}
+                            onClick={() => setSelectedRememberCategory(category.key)}
+                          >
+                            <span className="text-[10px] font-semibold tracking-[0.18em] text-[#9a9ea7]">
+                              {String(index + 1).padStart(2, "0")}
+                            </span>
+                            <h2 className="mt-7 font-display text-2xl font-semibold tracking-[-0.035em] text-[#24272d]">
+                              {category.label}
+                            </h2>
+                            <p className="mt-5 text-sm text-[#8b909a]">
+                              {category.items.length > 0
+                                ? `${category.items.length} ${category.label.toLowerCase()} identified`
+                                : "Still taking shape"}
+                            </p>
+                          </button>
+                        ))
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
