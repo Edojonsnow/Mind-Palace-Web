@@ -7,6 +7,7 @@ export type Thought = {
   source_title: string | null;
   source_author: string | null;
   source_url: string | null;
+  book_id: string | null;
   book_title: string | null;
   book_author: string | null;
   page_reference: string | null;
@@ -117,6 +118,15 @@ export type RememberOverview = {
   categories: RememberCategory[];
 };
 
+export type Book = {
+  id: string;
+  title: string;
+  author: string;
+  created_at: string;
+  updated_at: string;
+  thought_count: number;
+};
+
 export type ExportRequest = {
   id: string;
   status: "pending" | "processing" | "completed" | "failed" | "expired";
@@ -142,6 +152,7 @@ export type CreateThoughtInput = {
   source_type?: string;
   source_title?: string;
   source_author?: string;
+  book_id?: string;
   book_title?: string;
   book_author?: string;
   page_reference?: string;
@@ -157,6 +168,7 @@ export type UpdateThoughtInput = {
   source_title?: string | null;
   source_author?: string | null;
   source_url?: string | null;
+  book_id?: string | null;
   book_title?: string | null;
   book_author?: string | null;
   page_reference?: string | null;
@@ -237,6 +249,18 @@ export async function listThoughts(
 
 export function createThought(token: string, input: CreateThoughtInput): Promise<Thought> {
   return request<Thought>("/thoughts", token, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function listBooks(token: string, query?: string): Promise<Book[]> {
+  const path = query?.trim() ? `/books?q=${encodeURIComponent(query.trim())}` : "/books";
+  return request<Book[]>(path, token);
+}
+
+export function createBook(token: string, input: { title: string; author: string }): Promise<Book> {
+  return request<Book>("/books", token, {
     method: "POST",
     body: JSON.stringify(input),
   });

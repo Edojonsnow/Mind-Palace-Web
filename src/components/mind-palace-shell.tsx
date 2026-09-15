@@ -41,7 +41,9 @@ import {
   AskSource,
   askMyMind,
   AccountDeletionRequest,
+  Book,
   cancelAccountDeletion,
+  createBook,
   createThought,
   deleteThought,
   getSettings,
@@ -52,6 +54,7 @@ import {
   getAccountDeletionRequest,
   getExportRequest,
   listDeletedThoughts,
+  listBooks,
   listThoughts,
   organizeThought,
   Thought,
@@ -337,6 +340,7 @@ export function MindPalaceShell() {
   const [recallTotal, setRecallTotal] = useState(0);
   const [recallTotalPages, setRecallTotalPages] = useState(0);
   const [settings, setSettings] = useState<UserSettings | null>(null);
+  const [books, setBooks] = useState<Book[]>([]);
   const [rememberOverview, setRememberOverview] = useState<RememberOverview | null>(null);
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("hub");
   const [selectedRememberCategory, setSelectedRememberCategory] =
@@ -366,12 +370,18 @@ export function MindPalaceShell() {
   const [title, setTitle] = useState("");
   const [manualTags, setManualTags] = useState("");
   const [thoughtType, setThoughtType] = useState("thought");
+  const [selectedBookId, setSelectedBookId] = useState("");
+  const [newBookTitle, setNewBookTitle] = useState("");
+  const [newBookAuthor, setNewBookAuthor] = useState("");
   const [useWithAsk, setUseWithAsk] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editingThoughtId, setEditingThoughtId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editBody, setEditBody] = useState("");
   const [editThoughtType, setEditThoughtType] = useState("thought");
+  const [editBookId, setEditBookId] = useState("");
+  const [editBookTitle, setEditBookTitle] = useState("");
+  const [editBookAuthor, setEditBookAuthor] = useState("");
   const [editManualTags, setEditManualTags] = useState("");
   const [editUseWithAsk, setEditUseWithAsk] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -454,6 +464,20 @@ export function MindPalaceShell() {
     }
   }, []);
 
+  const loadBooks = useCallback(async () => {
+    const token = await getApiToken();
+    if (!token) {
+      setBooks([]);
+      return;
+    }
+
+    try {
+      setBooks(await listBooks(token));
+    } catch {
+      setBooks([]);
+    }
+  }, []);
+
   const loadTrustControls = useCallback(async () => {
     const token = await getApiToken();
     if (!token) {
@@ -502,9 +526,10 @@ export function MindPalaceShell() {
       void refresh(1, DEFAULT_RECALL_FILTERS, true);
       void loadTrustControls();
       void loadRemember();
+      void loadBooks();
     }, 0);
     return () => window.clearTimeout(refreshId);
-  }, [authMode, loadRemember, loadTrustControls, refresh, session.isPending, sessionUserId]);
+  }, [authMode, loadBooks, loadRemember, loadTrustControls, refresh, session.isPending, sessionUserId]);
 
   useEffect(() => {
     if (
@@ -593,6 +618,7 @@ export function MindPalaceShell() {
     setRecallTotal(0);
     setRecallTotalPages(0);
     setSettings(null);
+    setBooks([]);
     setRememberOverview(null);
     setWorkspaceMode("hub");
     setIsCaptureOpen(false);
@@ -789,10 +815,22 @@ export function MindPalaceShell() {
     setMessage("");
 
     try {
+      let bookId = selectedBookId && selectedBookId !== "__new__" ? selectedBookId : undefined;
+      if (thoughtType === "book_excerpt" && selectedBookId === "__new__") {
+        const book = await createBook(token, {
+          title: newBookTitle.trim(),
+          author: newBookAuthor.trim(),
+        });
+        bookId = book.id;
+        setBooks((current) => [...current.filter((item) => item.id !== book.id), book]);
+      }
       await createThought(token, {
         title: title.trim() || undefined,
         body: body.trim(),
         thought_type: thoughtType,
+        book_id: thoughtType === "book_excerpt" ? bookId : undefined,
+        book_title: thoughtType === "book_excerpt" && selectedBookId === "__new__" ? newBookTitle.trim() : undefined,
+        book_author: thoughtType === "book_excerpt" && selectedBookId === "__new__" ? newBookAuthor.trim() : undefined,
         manual_tags: splitTags(manualTags),
         use_with_ask_my_mind: useWithAsk,
       });
@@ -801,6 +839,9 @@ export function MindPalaceShell() {
       setBody("");
       setTitle("");
       setManualTags("");
+      setSelectedBookId("");
+      setNewBookTitle("");
+      setNewBookAuthor("");
       setUseWithAsk(settings?.default_use_with_ask_my_mind ?? false);
       setMessage("Thought saved.");
       setIsCaptureOpen(false);
@@ -816,6 +857,9 @@ export function MindPalaceShell() {
     setEditTitle(thought.title ?? "");
     setEditBody(thought.body);
     setEditThoughtType(thought.thought_type);
+    setEditBookId(thought.book_id ?? (thought.book_title || thought.book_author ? "__new__" : ""));
+    setEditBookTitle(thought.book_title ?? "");
+    setEditBookAuthor(thought.book_author ?? "");
     setEditManualTags(thought.manual_tags.join(", "));
     setEditUseWithAsk(thought.use_with_ask_my_mind);
     setMessage("");
@@ -831,6 +875,9 @@ export function MindPalaceShell() {
     setEditBody("");
     setEditManualTags("");
     setEditThoughtType("thought");
+    setEditBookId("");
+    setEditBookTitle("");
+    setEditBookAuthor("");
     setEditUseWithAsk(false);
   }
 
@@ -852,6 +899,9 @@ export function MindPalaceShell() {
         title: editTitle.trim() || null,
         body: editBody.trim(),
         thought_type: editThoughtType,
+        book_id: editThoughtType === "book_excerpt" && editBookId !== "__new__" ? editBookId || null : null,
+        book_title: editThoughtType === "book_excerpt" && editBookId === "__new__" ? editBookTitle.trim() : null,
+        book_author: editThoughtType === "book_excerpt" && editBookId === "__new__" ? editBookAuthor.trim() : null,
         manual_tags: splitTags(editManualTags),
         use_with_ask_my_mind: editUseWithAsk,
       });
@@ -1297,7 +1347,7 @@ export function MindPalaceShell() {
                                       <select
                                         className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]"
                                         value={editThoughtType}
-                                        onChange={(event) => setEditThoughtType(event.target.value)}
+                                        onChange={(event) => { setEditThoughtType(event.target.value); if (event.target.value !== "book_excerpt") setEditBookId(""); }}
                                       >
                                         <option value="thought">Thought</option>
                                         <option value="journal">Journal</option>
@@ -1315,6 +1365,12 @@ export function MindPalaceShell() {
                                       />
                                     </label>
                                   </div>
+                                  {editThoughtType === "book_excerpt" ? (
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                      <label className="grid gap-1 text-xs text-[#68738a]">Book<select className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]" value={editBookId} onChange={(event) => setEditBookId(event.target.value)} required><option value="">Select a saved book</option>{books.map((book) => <option key={book.id} value={book.id}>{book.title} · {book.author}</option>)}<option value="__new__">+ Add a new book</option></select></label>
+                                      {editBookId === "__new__" ? <div className="grid gap-3 sm:grid-cols-2"><label className="grid gap-1 text-xs text-[#68738a]">Book title<input className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]" value={editBookTitle} onChange={(event) => setEditBookTitle(event.target.value)} required /></label><label className="grid gap-1 text-xs text-[#68738a]">Author<input className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]" value={editBookAuthor} onChange={(event) => setEditBookAuthor(event.target.value)} required /></label></div> : null}
+                                    </div>
+                                  ) : null}
                                   <label className="flex items-center gap-2 text-xs text-[#68738a]">
                                     <input
                                       type="checkbox"
@@ -1665,9 +1721,27 @@ export function MindPalaceShell() {
                     </label>
                     <label>
                       <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.15em] text-[#8a8f98]">Kind of thought</span>
-                      <select className="modern-control w-full" value={thoughtType} onChange={(event) => setThoughtType(event.target.value)}><option value="thought">Thought</option><option value="journal">Journal</option><option value="quote">Quote</option><option value="book_excerpt">Book excerpt</option></select>
+                      <select className="modern-control w-full" value={thoughtType} onChange={(event) => { setThoughtType(event.target.value); if (event.target.value !== "book_excerpt") setSelectedBookId(""); }}><option value="thought">Thought</option><option value="journal">Journal</option><option value="quote">Quote</option><option value="book_excerpt">Book excerpt</option></select>
                     </label>
                   </div>
+                  {thoughtType === "book_excerpt" ? (
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      <label>
+                        <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.15em] text-[#8a8f98]">Book</span>
+                        <select className="modern-control w-full" value={selectedBookId} onChange={(event) => setSelectedBookId(event.target.value)} required>
+                          <option value="">Select a saved book</option>
+                          {books.map((book) => <option key={book.id} value={book.id}>{book.title} · {book.author}</option>)}
+                          <option value="__new__">+ Add a new book</option>
+                        </select>
+                      </label>
+                      {selectedBookId === "__new__" ? (
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <label><span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.15em] text-[#8a8f98]">Book title</span><input className="modern-control w-full" value={newBookTitle} onChange={(event) => setNewBookTitle(event.target.value)} required /></label>
+                          <label><span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.15em] text-[#8a8f98]">Author</span><input className="modern-control w-full" value={newBookAuthor} onChange={(event) => setNewBookAuthor(event.target.value)} required /></label>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
                     <label>
                       <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.15em] text-[#8a8f98]">Context, if useful</span>
@@ -2398,7 +2472,7 @@ export function MindPalaceShell() {
                               <select
                                 className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]"
                                 value={editThoughtType}
-                                onChange={(event) => setEditThoughtType(event.target.value)}
+                                onChange={(event) => { setEditThoughtType(event.target.value); if (event.target.value !== "book_excerpt") setEditBookId(""); }}
                               >
                                 <option value="thought">Thought</option>
                                 <option value="journal">Journal</option>
@@ -2416,6 +2490,12 @@ export function MindPalaceShell() {
                               />
                             </label>
                           </div>
+                          {editThoughtType === "book_excerpt" ? (
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <label className="grid gap-1 text-xs text-[#68738a]">Book<select className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]" value={editBookId} onChange={(event) => setEditBookId(event.target.value)} required><option value="">Select a saved book</option>{books.map((book) => <option key={book.id} value={book.id}>{book.title} · {book.author}</option>)}<option value="__new__">+ Add a new book</option></select></label>
+                              {editBookId === "__new__" ? <div className="grid gap-3 sm:grid-cols-2"><label className="grid gap-1 text-xs text-[#68738a]">Book title<input className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]" value={editBookTitle} onChange={(event) => setEditBookTitle(event.target.value)} required /></label><label className="grid gap-1 text-xs text-[#68738a]">Author<input className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]" value={editBookAuthor} onChange={(event) => setEditBookAuthor(event.target.value)} required /></label></div> : null}
+                            </div>
+                          ) : null}
                           <label className="flex items-center gap-2 text-xs text-[#68738a]">
                             <input
                               type="checkbox"
@@ -2549,7 +2629,7 @@ export function MindPalaceShell() {
                   <select
                     className="h-11 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 outline-none focus:border-[#263a67]"
                     value={thoughtType}
-                    onChange={(event) => setThoughtType(event.target.value)}
+                    onChange={(event) => { setThoughtType(event.target.value); if (event.target.value !== "book_excerpt") setSelectedBookId(""); }}
                   >
                     <option value="thought">Thought</option>
                     <option value="journal">Journal</option>
@@ -2557,6 +2637,13 @@ export function MindPalaceShell() {
                     <option value="book_excerpt">Book excerpt</option>
                   </select>
                 </label>
+
+                {thoughtType === "book_excerpt" ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="grid gap-2 text-sm text-[#263a67]">Book<select className="h-11 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 outline-none focus:border-[#263a67]" value={selectedBookId} onChange={(event) => setSelectedBookId(event.target.value)} required><option value="">Select a saved book</option>{books.map((book) => <option key={book.id} value={book.id}>{book.title} · {book.author}</option>)}<option value="__new__">+ Add a new book</option></select></label>
+                    {selectedBookId === "__new__" ? <div className="grid gap-3 sm:grid-cols-2"><label className="grid gap-2 text-sm text-[#263a67]">Book title<input className="h-11 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 outline-none focus:border-[#263a67]" value={newBookTitle} onChange={(event) => setNewBookTitle(event.target.value)} required /></label><label className="grid gap-2 text-sm text-[#263a67]">Author<input className="h-11 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 outline-none focus:border-[#263a67]" value={newBookAuthor} onChange={(event) => setNewBookAuthor(event.target.value)} required /></label></div> : null}
+                  </div>
+                ) : null}
 
                 <label className="grid gap-2 text-sm text-[#263a67]">
                   Tags
