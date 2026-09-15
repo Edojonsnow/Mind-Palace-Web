@@ -41,6 +41,7 @@ export type ThoughtListOptions = {
   q?: string;
   thought_type?: string;
   source_type?: string;
+  book_id?: string;
   tag?: string;
   book?: string;
   theme?: string;

@@ -241,7 +241,7 @@ function isExportExpired(exportRequest: ExportRequest): boolean {
 
 type LoadState = "idle" | "loading" | "ready" | "error";
 type ArchiveFilter = "all" | "active" | "archived";
-type WorkspaceMode = "hub" | "organizing" | "remember" | "search" | "ask";
+type WorkspaceMode = "hub" | "organizing" | "remember" | "search" | "ask" | "books";
 
 type RecallFilters = {
   q: string;
@@ -249,6 +249,7 @@ type RecallFilters = {
   source_type: string;
   tag: string;
   book: string;
+  book_id: string;
   theme: string;
   emotion: string;
   person: string;
@@ -262,6 +263,7 @@ const DEFAULT_RECALL_FILTERS: RecallFilters = {
   source_type: "",
   tag: "",
   book: "",
+  book_id: "",
   theme: "",
   emotion: "",
   person: "",
@@ -284,6 +286,7 @@ function recallQuery(filters: RecallFilters, page: number): ThoughtListOptions {
     source_type: filters.source_type || undefined,
     tag: filters.tag.trim() || undefined,
     book: filters.book.trim() || undefined,
+    book_id: filters.book_id || undefined,
     theme: filters.theme.trim() || undefined,
     emotion: filters.emotion.trim() || undefined,
     person: filters.person.trim() || undefined,
@@ -300,7 +303,7 @@ function activeRecallFilterLabels(filters: RecallFilters): string[] {
     filters.thought_type ? `Type: ${formatStatus(filters.thought_type)}` : "",
     filters.source_type ? `Source: ${formatStatus(filters.source_type)}` : "",
     filters.tag.trim() ? `Tag: ${filters.tag.trim()}` : "",
-    filters.book.trim() ? `Book: ${filters.book.trim()}` : "",
+    filters.book.trim() ? `Book: ${filters.book.trim()}` : filters.book_id ? "Book: selected" : "",
     filters.theme.trim() ? `Theme: ${filters.theme.trim()}` : "",
     filters.emotion.trim() ? `Emotion: ${filters.emotion.trim()}` : "",
     filters.person.trim() ? `Person: ${filters.person.trim()}` : "",
@@ -1258,6 +1261,40 @@ export function MindPalaceShell() {
                       ))}
                   </div>
                 </div>
+              ) : workspaceMode === "books" ? (
+                <div className="mind-workspace-enter w-full max-w-5xl">
+                  <div className="mb-8 max-w-2xl">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#35a79f]">[ Books / 05 ]</p>
+                    <h1 className="mt-4 font-display text-5xl font-medium tracking-[-0.055em] text-[#202329] sm:text-6xl">Books you have kept close.</h1>
+                    <p className="mt-5 text-sm leading-6 text-[#777c86]">Open a book to revisit its saved excerpts and thoughts.</p>
+                  </div>
+                  {books.length === 0 ? (
+                    <div className="rounded-[24px] border border-black/[0.08] bg-white/80 p-8 text-sm text-[#777c86] shadow-[0_20px_60px_rgba(31,35,45,0.07)]">Your saved books will appear here when you add your first book excerpt.</div>
+                  ) : (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {books.map((book, index) => (
+                        <button
+                          key={book.id}
+                          className="remember-category-card rounded-[24px] border border-black/[0.08] bg-white/80 p-6 text-left shadow-[0_20px_60px_rgba(31,35,45,0.07)] hover:-translate-y-1 hover:border-[#cfd6ec] hover:bg-white hover:shadow-[0_28px_70px_rgba(31,35,45,0.12)] active:translate-y-0"
+                          type="button"
+                          onClick={() => {
+                            const nextFilters = { ...DEFAULT_RECALL_FILTERS, book_id: book.id };
+                            setRecallDraftFilters(nextFilters);
+                            setRecallFilters(nextFilters);
+                            setRecallPage(1);
+                            setWorkspaceMode("search");
+                            void refresh(1, nextFilters);
+                          }}
+                        >
+                          <span className="text-[10px] font-semibold tracking-[0.18em] text-[#9a9ea7]">{String(index + 1).padStart(2, "0")}</span>
+                          <h2 className="mt-6 font-display text-2xl font-semibold tracking-[-0.035em] text-[#24272d]">{book.title}</h2>
+                          <p className="mt-2 text-sm text-[#777c86]">{book.author}</p>
+                          <p className="mt-6 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9a9ea7]">{book.thought_count} {book.thought_count === 1 ? "saved thought" : "saved thoughts"}</p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ) : workspaceMode === "search" ? (
                 <div className="mind-workspace-enter w-full max-w-5xl">
                   <div className="grid gap-8 lg:grid-cols-[0.65fr_1.35fr]">
@@ -2203,10 +2240,10 @@ export function MindPalaceShell() {
                 <Search size={17} aria-hidden="true" />
                 Mind
               </a>
-              <a className="flex h-10 items-center gap-2 rounded-xl px-3 text-sm text-[#68738a]">
+              <button className="flex h-10 w-full items-center gap-2 rounded-xl px-3 text-left text-sm text-[#68738a] hover:bg-[#f6f8fc] hover:text-[#263a67]" type="button" onClick={() => setWorkspaceMode("books")}>
                 <BookOpenText size={17} aria-hidden="true" />
                 Books
-              </a>
+              </button>
             </nav>
           </aside>
 
