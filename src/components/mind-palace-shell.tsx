@@ -58,6 +58,7 @@ import {
   listThoughts,
   organizeThought,
   Thought,
+  ThoughtType,
   ThoughtListOptions,
   requestAccountDeletion,
   restoreThought,
@@ -86,6 +87,13 @@ function formatDate(value: string): string {
 
 function formatStatus(value: string): string {
   return value.replaceAll("_", " ");
+}
+
+function parseThoughtType(value: string): ThoughtType {
+  if (value === "journal" || value === "quote" || value === "book_excerpt") {
+    return value;
+  }
+  return "thought";
 }
 
 type LabelFilterKey = "theme" | "emotion" | "person" | "place" | "tag" | "book";
@@ -372,7 +380,7 @@ export function MindPalaceShell() {
   const [body, setBody] = useState("");
   const [title, setTitle] = useState("");
   const [manualTags, setManualTags] = useState("");
-  const [thoughtType, setThoughtType] = useState("thought");
+  const [thoughtType, setThoughtType] = useState<ThoughtType>("thought");
   const [selectedBookId, setSelectedBookId] = useState("");
   const [newBookTitle, setNewBookTitle] = useState("");
   const [newBookAuthor, setNewBookAuthor] = useState("");
@@ -381,7 +389,7 @@ export function MindPalaceShell() {
   const [editingThoughtId, setEditingThoughtId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editBody, setEditBody] = useState("");
-  const [editThoughtType, setEditThoughtType] = useState("thought");
+  const [editThoughtType, setEditThoughtType] = useState<ThoughtType>("thought");
   const [editBookId, setEditBookId] = useState("");
   const [editBookTitle, setEditBookTitle] = useState("");
   const [editBookAuthor, setEditBookAuthor] = useState("");
@@ -1384,7 +1392,7 @@ export function MindPalaceShell() {
                                       <select
                                         className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]"
                                         value={editThoughtType}
-                                        onChange={(event) => { setEditThoughtType(event.target.value); if (event.target.value !== "book_excerpt") setEditBookId(""); }}
+                                        onChange={(event) => { const nextType = parseThoughtType(event.target.value); setEditThoughtType(nextType); if (nextType !== "book_excerpt") setEditBookId(""); }}
                                       >
                                         <option value="thought">Thought</option>
                                         <option value="journal">Journal</option>
@@ -1758,7 +1766,7 @@ export function MindPalaceShell() {
                     </label>
                     <label>
                       <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.15em] text-[#8a8f98]">Kind of thought</span>
-                      <select className="modern-control w-full" value={thoughtType} onChange={(event) => { setThoughtType(event.target.value); if (event.target.value !== "book_excerpt") setSelectedBookId(""); }}><option value="thought">Thought</option><option value="journal">Journal</option><option value="quote">Quote</option><option value="book_excerpt">Book excerpt</option></select>
+                      <select className="modern-control w-full" value={thoughtType} onChange={(event) => { const nextType = parseThoughtType(event.target.value); setThoughtType(nextType); if (nextType !== "book_excerpt") setSelectedBookId(""); }}><option value="thought">Thought</option><option value="journal">Journal</option><option value="quote">Quote</option><option value="book_excerpt">Book excerpt</option></select>
                     </label>
                   </div>
                   {thoughtType === "book_excerpt" ? (
@@ -2509,7 +2517,7 @@ export function MindPalaceShell() {
                               <select
                                 className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]"
                                 value={editThoughtType}
-                                onChange={(event) => { setEditThoughtType(event.target.value); if (event.target.value !== "book_excerpt") setEditBookId(""); }}
+                                onChange={(event) => { const nextType = parseThoughtType(event.target.value); setEditThoughtType(nextType); if (nextType !== "book_excerpt") setEditBookId(""); }}
                               >
                                 <option value="thought">Thought</option>
                                 <option value="journal">Journal</option>
@@ -2666,7 +2674,7 @@ export function MindPalaceShell() {
                   <select
                     className="h-11 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 outline-none focus:border-[#263a67]"
                     value={thoughtType}
-                    onChange={(event) => { setThoughtType(event.target.value); if (event.target.value !== "book_excerpt") setSelectedBookId(""); }}
+                    onChange={(event) => { const nextType = parseThoughtType(event.target.value); setThoughtType(nextType); if (nextType !== "book_excerpt") setSelectedBookId(""); }}
                   >
                     <option value="thought">Thought</option>
                     <option value="journal">Journal</option>

@@ -18,7 +18,13 @@ Local commands:
 npm run dev
 npm run lint
 npm run build
+npm run generate:api
 ```
+
+When backend request or response schemas change, first regenerate the contract
+from `../mind-palace-app` with `.venv/bin/python scripts/export_openapi.py
+openapi.json`, then run `npm run generate:api`. The generated file at
+`src/generated/api.ts` is derived output and must not be edited directly.
 
 Project rules:
 
@@ -31,6 +37,18 @@ Project rules:
 
 ## Commit Messages
 
+- For fixes and updates, use these body headers exactly:
+
+  ```text
+  ## Problem
+  <what was wrong or needed>
+
+  ## Solution
+  <what this commit implemented>
+  ```
+
+- A genuinely new feature may use an imperative `feat:` subject without those
+  headers.
 - Use an imperative subject that clearly names the change.
 - Include a short body explaining the main implementation details, user-facing impact, and verification when relevant.
 - Avoid one-line-only commit messages for implementation work.

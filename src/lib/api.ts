@@ -1,41 +1,10 @@
-export type Thought = {
-  id: string;
-  title: string | null;
-  body: string;
-  thought_type: string;
-  source_type: string;
-  source_title: string | null;
-  source_author: string | null;
-  source_url: string | null;
-  book_id: string | null;
-  book_title: string | null;
-  book_author: string | null;
-  page_reference: string | null;
-  manual_tags: string[];
-  storage_scope: string;
-  use_with_ask_my_mind: boolean;
-  ai_processing_status: "not_requested" | "pending" | "processing" | "ready" | "failed";
-  is_archived: boolean;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
-  purge_at: string | null;
-  ai_metadata: ThoughtMetadata | null;
-};
+import type { components } from "@/generated/api";
 
-export type ThoughtMetadata = {
-  summary: string | null;
-  themes: string[];
-  emotions: string[];
-  people: string[];
-  places: string[];
-  books: string[];
-  key_questions: string[];
-  action_items: string[];
-  deterministic_metadata: Record<string, unknown>;
-  created_at: string;
-  updated_at: string;
-};
+type Schemas = components["schemas"];
+
+export type ThoughtType = Schemas["ThoughtType"];
+export type Thought = Schemas["ThoughtRead"];
+export type ThoughtMetadata = Schemas["ThoughtMetadataRead"];
 
 export type ThoughtListOptions = {
   q?: string;
@@ -63,120 +32,45 @@ export type ThoughtListResponse = {
   totalPages: number;
 };
 
-export type AskSource = {
-  citation_label: string;
-  chunk_id: string;
-  thought_id: string;
-  title: string | null;
-  snippet: string;
-  source_type: string;
-  source_title: string | null;
-  source_author: string | null;
-  created_at: string;
-  similarity_score: number;
-  is_cited: boolean;
-};
+export type AskSource = Schemas["AskSource"];
+export type AskResponse = Schemas["AskResponse"];
 
-export type AskResponse = {
-  conversation_id: string;
-  answer: string;
-  sources: AskSource[];
-  created_at: string;
-};
-
-export type AskMessage = {
-  id: string;
+export type AskMessage = Omit<Schemas["ChatMessageRead"], "role" | "citations"> & {
   role: "user" | "assistant";
-  content: string;
   citations: AskSource[];
-  created_at: string;
 };
 
-export type AskConversation = {
-  conversation_id: string;
+export type AskConversation = Omit<Schemas["ChatConversationRead"], "messages"> & {
   messages: AskMessage[];
 };
 
-export type UserSettings = {
-  default_use_with_ask_my_mind: boolean;
-  store_chat_history: boolean;
-  mobile_offline_cache_enabled: boolean;
-};
+export type UserSettings = Schemas["UserSettingsRead"];
 
-export type RememberItem = {
-  label: string;
-  count: number;
-};
+export type RememberItem = Schemas["RememberItem"];
 
-export type RememberCategory = {
+export type RememberCategory = Omit<Schemas["RememberCategory"], "key"> & {
   key: "themes" | "emotions" | "people" | "books";
-  label: string;
-  items: RememberItem[];
 };
 
-export type RememberOverview = {
-  thoughts_analyzed: number;
+export type RememberOverview = Omit<Schemas["RememberOverview"], "categories"> & {
   categories: RememberCategory[];
 };
 
-export type Book = {
-  id: string;
-  title: string;
-  author: string;
-  created_at: string;
-  updated_at: string;
-  thought_count: number;
-};
+export type Book = Schemas["BookRead"];
 
-export type ExportRequest = {
-  id: string;
+export type ExportRequest = Schemas["ExportRequestRead"] & {
   status: "pending" | "processing" | "completed" | "failed" | "expired";
-  error_message: string | null;
-  created_at: string;
-  completed_at: string | null;
-  expires_at: string;
 };
 
-export type AccountDeletionRequest = {
-  id: string;
+export type AccountDeletionRequest = Schemas["AccountDeletionRequestRead"] & {
   status: "pending" | "cancelled" | "completed" | "failed";
-  requested_at: string;
-  purge_at: string;
-  completed_at: string | null;
-  error_message: string | null;
 };
 
-export type CreateThoughtInput = {
-  title?: string;
-  body: string;
-  thought_type?: string;
-  source_type?: string;
-  source_title?: string;
-  source_author?: string;
-  book_id?: string;
-  book_title?: string;
-  book_author?: string;
-  page_reference?: string;
-  manual_tags?: string[];
-  use_with_ask_my_mind?: boolean;
+export type CreateThoughtInput = Partial<Schemas["ThoughtCreate"]> & {
+  body: Schemas["ThoughtCreate"]["body"];
 };
 
-export type UpdateThoughtInput = {
-  title?: string | null;
-  body?: string;
-  thought_type?: string;
-  source_type?: string;
-  source_title?: string | null;
-  source_author?: string | null;
-  source_url?: string | null;
-  book_id?: string | null;
-  book_title?: string | null;
-  book_author?: string | null;
-  page_reference?: string | null;
-  manual_tags?: string[];
-  use_with_ask_my_mind?: boolean;
-  is_archived?: boolean;
-};
+export type UpdateThoughtInput = Partial<Schemas["ThoughtUpdate"]>;
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
 
