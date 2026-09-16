@@ -71,7 +71,6 @@ import {
   CompactLabelList,
   DEFAULT_RECALL_FILTERS,
   EMPTY_REMEMBER_CATEGORIES,
-  activeRecallFilterLabels,
   formatDate,
   formatStatus,
   generatedMetadataLabels,
@@ -90,6 +89,7 @@ import {
   ReminisceCategoryDetail,
 } from "@/components/mind-palace-shell-helpers";
 import { MindMapHome } from "@/components/mind-map-home";
+import { RecallSearchPanel } from "@/components/recall-search-panel";
 
 async function getApiToken(): Promise<string | null> {
   return getJWTToken();
@@ -1017,45 +1017,14 @@ export function MindPalaceShell() {
                     </header>
 
                     <div className="rounded-[30px] border border-black/[0.08] bg-white/80 p-4 shadow-[0_30px_90px_rgba(31,35,45,0.1)] backdrop-blur-xl sm:p-7">
-                      <form onSubmit={handleRecallSubmit}>
-                        <label className="block">
-                          <span className="sr-only">Search your thoughts</span>
-                          <input
-                            autoFocus
-                            className="h-auto w-full border-0 border-b border-black/10 bg-transparent px-0 pb-5 font-display text-2xl tracking-[-0.035em] text-[#202329] outline-none placeholder:text-[#a5a8af] sm:text-4xl"
-                            placeholder="What do you remember?"
-                            value={recallDraftFilters.q}
-                            onChange={(event) => setRecallDraftFilters((current) => ({ ...current, q: event.target.value }))}
-                          />
-                        </label>
-                        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                          <select className="modern-control" aria-label="Thought type" value={recallDraftFilters.thought_type} onChange={(event) => setRecallDraftFilters((current) => ({ ...current, thought_type: event.target.value }))}>
-                            <option value="">All thought types</option><option value="thought">Thought</option><option value="journal">Journal</option><option value="quote">Quote</option><option value="book_excerpt">Book excerpt</option>
-                          </select>
-                          <select className="modern-control" aria-label="Source" value={recallDraftFilters.source_type} onChange={(event) => setRecallDraftFilters((current) => ({ ...current, source_type: event.target.value }))}>
-                            <option value="">Every source</option><option value="manual">Manual</option><option value="book">Book</option><option value="article">Article</option><option value="website">Website</option><option value="audio">Audio</option><option value="import">Import</option>
-                          </select>
-                          <select className="modern-control" aria-label="Archive" value={recallDraftFilters.archive} onChange={(event) => setRecallDraftFilters((current) => ({ ...current, archive: event.target.value as ArchiveFilter }))}>
-                            <option value="all">All thoughts</option><option value="active">Active only</option><option value="archived">Archived only</option>
-                          </select>
-                          <input className="modern-control" aria-label="Tag" placeholder="Tag" value={recallDraftFilters.tag} onChange={(event) => setRecallDraftFilters((current) => ({ ...current, tag: event.target.value }))} />
-                          <input className="modern-control sm:col-span-2" aria-label="Book or author" placeholder="Book or author" value={recallDraftFilters.book} onChange={(event) => setRecallDraftFilters((current) => ({ ...current, book: event.target.value }))} />
-                        </div>
-                        <div className="mt-5 flex items-center justify-between gap-3">
-                          <button className="h-11 rounded-full bg-[#24272d] px-6 text-xs font-semibold uppercase tracking-[0.12em] text-white hover:bg-black" type="submit">Search memory</button>
-                          <button className="h-11 px-3 text-xs font-semibold text-[#777c86] hover:text-black disabled:opacity-35" type="button" disabled={!hasRecallFilters} onClick={handleRecallReset}>Clear filters</button>
-                        </div>
-                      </form>
-                      {activeRecallFilterLabels(recallFilters).length > 0 ? (
-                        <div className="mt-4 flex flex-wrap items-center gap-1.5 text-[10px] text-[#777c86]">
-                          <span className="mr-1 font-semibold uppercase tracking-[0.12em]">Active filters</span>
-                          {activeRecallFilterLabels(recallFilters).map((label) => (
-                            <span key={label} className="rounded-full bg-[#f3f3f0] px-2 py-1 text-[#68738a]">
-                              {label}
-                            </span>
-                          ))}
-                        </div>
-                      ) : null}
+                      <RecallSearchPanel
+                        draftFilters={recallDraftFilters}
+                        activeFilters={recallFilters}
+                        hasFilters={hasRecallFilters}
+                        onDraftFiltersChange={setRecallDraftFilters}
+                        onSubmit={handleRecallSubmit}
+                        onReset={handleRecallReset}
+                      />
 
                       <div className="mt-7 max-h-[36vh] overflow-y-auto border-t border-black/[0.07] pr-1">
                         {loadState === "loading" ? (
