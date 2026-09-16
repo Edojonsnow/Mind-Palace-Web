@@ -148,6 +148,11 @@ export function MindPalaceShell() {
   const isAuthenticated = Boolean(session.data?.user) && authMode === "sign-in";
 
   const hasSavedThoughts = recallTotal > 0 || thoughts.length > 0;
+  const hasProcessingThoughts = thoughts.some(
+    (thought) =>
+      thought.use_with_ask_my_mind &&
+      (thought.ai_processing_status === "pending" || thought.ai_processing_status === "processing"),
+  );
   const showAskAction = loadState !== "ready" || hasSavedThoughts;
   const hasRecallFilters = useMemo(
     () => Object.values(recallDraftFilters).some((value) => value !== "" && value !== "all"),
@@ -295,6 +300,18 @@ export function MindPalaceShell() {
     );
     return () => window.clearInterval(pollId);
   }, [exportRequest, isAuthenticated, refreshExportStatus]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !hasProcessingThoughts) {
+      return;
+    }
+
+    const pollId = window.setInterval(() => {
+      void refresh(recallPage, recallFilters);
+      void loadRemember();
+    }, 2500);
+    return () => window.clearInterval(pollId);
+  }, [hasProcessingThoughts, isAuthenticated, loadRemember, recallFilters, recallPage, refresh]);
 
   async function handleAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
