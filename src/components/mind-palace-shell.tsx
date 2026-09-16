@@ -2,21 +2,15 @@
 
 import {
   Archive,
-  BookOpenText,
-  Brain,
   Check,
   CircleAlert,
   ChevronLeft,
   ChevronRight,
-  Download,
   Filter,
   Pencil,
   RefreshCw,
   Save,
   Search,
-  ShieldCheck,
-  Sparkles,
-  Undo2,
   X,
   Trash2,
 } from "lucide-react";
@@ -65,7 +59,6 @@ import {
   CompactLabelList,
   DEFAULT_RECALL_FILTERS,
   formatDate,
-  formatStatus,
   generatedMetadataLabels,
   isExportExpired,
   manualThoughtLabels,
@@ -1233,192 +1226,6 @@ export function MindPalaceShell() {
               </button>}
             </section> : null}
 
-            {isAuthenticated ? <section className="rounded-2xl border border-[#dde2ee] bg-white p-4">
-              <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#172033]">
-                <Sparkles size={17} aria-hidden="true" />
-                Ask default
-              </div>
-              <label className="flex items-center justify-between gap-3 text-sm text-[#263a67]">
-                <span>Use new thoughts with Ask My Mind</span>
-                <input
-                  className="h-5 w-5 accent-[#263a67]"
-                  type="checkbox"
-                  checked={settings?.default_use_with_ask_my_mind ?? false}
-                  disabled={!isAuthenticated || loadState !== "ready"}
-                  onChange={(event) => void handleDefaultAskToggle(event.target.checked)}
-                />
-              </label>
-            </section> : null}
-
-            {isAuthenticated ? <section className="rounded-2xl border border-[#dde2ee] bg-white">
-              <button
-                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-[#172033]"
-                type="button"
-                aria-expanded={isTrustControlsOpen}
-                onClick={() => setIsTrustControlsOpen((current) => !current)}
-              >
-                <span className="flex items-center gap-2">
-                  <ShieldCheck size={17} aria-hidden="true" />
-                  Data &amp; privacy
-                </span>
-                <ChevronRight
-                  className={isTrustControlsOpen ? "rotate-90 transition-transform" : "transition-transform"}
-                  size={16}
-                  aria-hidden="true"
-                />
-              </button>
-
-              {isTrustControlsOpen ? <div className="space-y-5 border-t border-[#dde2ee] p-4">
-                {lifecycleState === "loading" ? (
-                  <div className="flex items-center gap-2 text-xs text-[#68738a]">
-                    <RefreshCw className="animate-spin" size={15} aria-hidden="true" />
-                    Loading data controls...
-                  </div>
-                ) : lifecycleState === "error" ? (
-                  <div className="flex items-start gap-2 text-xs text-[#bb454f]">
-                    <CircleAlert className="mt-0.5 shrink-0" size={15} aria-hidden="true" />
-                    <span>{lifecycleMessage || "Unable to load data controls."}</span>
-                  </div>
-                ) : null}
-
-                <div>
-                  <h3 className="text-sm font-semibold text-[#172033]">Deleted thoughts</h3>
-                  <p className="mt-1 text-xs leading-5 text-[#68738a]">
-                    Restore a thought before its recovery window ends.
-                  </p>
-                  {deletedThoughts.length === 0 ? (
-                    <p className="mt-3 text-xs text-[#68738a]">No thoughts are waiting to be restored.</p>
-                  ) : (
-                    <div className="mt-3 space-y-2">
-                      {deletedThoughts.map((thought) => (
-                        <div key={thought.id} className="rounded-xl border border-[#dde2ee] bg-[#f6f8fc] p-3">
-                          <p className="line-clamp-2 text-xs leading-5 text-[#172033]">
-                            {thought.title || thought.body}
-                          </p>
-                          {thought.purge_at ? (
-                            <p className="mt-2 text-[11px] text-[#68738a]">
-                              Purges {formatDate(thought.purge_at)}
-                            </p>
-                          ) : null}
-                          <button
-                            className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#dde2ee] px-2.5 text-xs font-medium text-[#263a67] disabled:cursor-not-allowed disabled:opacity-50"
-                            type="button"
-                            onClick={() => void handleRestoreThought(thought.id)}
-                            disabled={restoringThoughtId !== null}
-                          >
-                            <Undo2 size={14} aria-hidden="true" />
-                            {restoringThoughtId === thought.id ? "Restoring..." : "Restore"}
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="border-t border-[#dde2ee] pt-4">
-                  <h3 className="text-sm font-semibold text-[#172033]">Export your data</h3>
-                  <p className="mt-1 text-xs leading-5 text-[#68738a]">
-                    Download your thoughts, settings, and saved chat history as JSON.
-                  </p>
-                  {exportRequest ? (
-                    <div className="mt-3 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] p-3">
-                      <p className="text-xs capitalize text-[#68738a]">
-                        Status: {formatStatus(exportRequest.status)}
-                      </p>
-                      {exportRequest.status === "failed" ? (
-                        <p className="mt-1 text-xs text-[#bb454f]">
-                          {exportRequest.error_message || "Export generation failed."}
-                        </p>
-                      ) : null}
-                      {exportRequest.status === "completed" && !isExportExpired(exportRequest) ? (
-                        <>
-                          <p className="mt-1 text-xs text-[#68738a]">
-                            Available until {formatDate(exportRequest.expires_at)}.
-                          </p>
-                          <button
-                            className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-xl bg-[#263a67] px-2.5 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
-                            type="button"
-                            onClick={() => void handleDownloadExport()}
-                            disabled={isDownloadingExport}
-                          >
-                            <Download size={14} aria-hidden="true" />
-                            {isDownloadingExport ? "Downloading..." : "Download JSON"}
-                          </button>
-                        </>
-                      ) : null}
-                      {isExportExpired(exportRequest) ? (
-                        <p className="mt-1 text-xs text-[#bb454f]">
-                          This export has expired. Request a new one.
-                        </p>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  <button
-                    className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#dde2ee] px-2.5 text-xs font-medium text-[#263a67] disabled:cursor-not-allowed disabled:opacity-50"
-                    type="button"
-                    onClick={() => void handleCreateExport()}
-                    disabled={isCreatingExport || exportRequest?.status === "pending" || exportRequest?.status === "processing"}
-                  >
-                    <Download size={14} aria-hidden="true" />
-                    {isCreatingExport ? "Requesting..." : "Request export"}
-                  </button>
-                </div>
-
-                <div className="border-t border-[#dde2ee] pt-4">
-                  <h3 className="text-sm font-semibold text-[#172033]">Delete account</h3>
-                  {accountDeletion?.status === "pending" ? (
-                    <>
-                      <p className="mt-1 text-xs leading-5 text-[#bb454f]">
-                        Your account is scheduled for permanent deletion on {formatDate(accountDeletion.purge_at)}.
-                      </p>
-                      <button
-                        className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#dde2ee] px-2.5 text-xs font-medium text-[#bb454f] disabled:cursor-not-allowed disabled:opacity-50"
-                        type="button"
-                        onClick={() => void handleCancelAccountDeletion()}
-                        disabled={isCancellingDeletion}
-                      >
-                        <Undo2 size={14} aria-hidden="true" />
-                        {isCancellingDeletion ? "Cancelling..." : "Cancel deletion"}
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <p className="mt-1 text-xs leading-5 text-[#68738a]">
-                        Your data is removed after the recovery window. This cannot be undone after that point.
-                      </p>
-                      <button
-                        className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#dde2ee] px-2.5 text-xs font-medium text-[#bb454f] disabled:cursor-not-allowed disabled:opacity-50"
-                        type="button"
-                        onClick={() => void handleRequestAccountDeletion()}
-                        disabled={isRequestingDeletion}
-                      >
-                        <ShieldCheck size={14} aria-hidden="true" />
-                        {isRequestingDeletion ? "Requesting..." : "Request account deletion"}
-                      </button>
-                    </>
-                  )}
-                </div>
-
-                {lifecycleMessage && lifecycleState !== "error" ? (
-                  <p className="text-xs text-[#263a67]">{lifecycleMessage}</p>
-                ) : null}
-              </div> : null}
-            </section> : null}
-
-            <nav className={`${isAuthenticated ? "" : "hidden"} rounded-2xl border border-[#dde2ee] bg-white p-2`}>
-              <a className="flex h-10 items-center gap-2 rounded-xl bg-[#eef0fa] px-3 text-sm font-medium">
-                <Brain size={17} aria-hidden="true" />
-                Home
-              </a>
-              <a className="flex h-10 items-center gap-2 rounded-xl px-3 text-sm text-[#68738a]">
-                <Search size={17} aria-hidden="true" />
-                Mind
-              </a>
-              <button className="flex h-10 w-full items-center gap-2 rounded-xl px-3 text-left text-sm text-[#68738a] hover:bg-[#f6f8fc] hover:text-[#263a67]" type="button" onClick={() => setWorkspaceMode("books")}>
-                <BookOpenText size={17} aria-hidden="true" />
-                Books
-              </button>
-            </nav>
           </aside>
 
           <div className={`${isAuthenticated ? "grid" : "hidden"} gap-6 xl:grid-cols-[minmax(0,1fr)_380px]`}>
