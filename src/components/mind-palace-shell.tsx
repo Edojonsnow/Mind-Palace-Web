@@ -3,7 +3,6 @@
 import {
   Archive,
   BookOpenText,
-  BookMarked,
   Brain,
   Check,
   CircleAlert,
@@ -11,18 +10,13 @@ import {
   ChevronRight,
   Download,
   Filter,
-  Heart,
-  MessageCircleQuestion,
-  LogOut,
   Pencil,
   RefreshCw,
   Save,
   Search,
   ShieldCheck,
   Sparkles,
-  Send,
   Undo2,
-  UsersRound,
   X,
   Trash2,
 } from "lucide-react";
@@ -70,7 +64,6 @@ import { authClient, getJWTToken } from "@/lib/auth-client";
 import {
   CompactLabelList,
   DEFAULT_RECALL_FILTERS,
-  EMPTY_REMEMBER_CATEGORIES,
   formatDate,
   formatStatus,
   generatedMetadataLabels,
@@ -94,6 +87,7 @@ import { ThoughtCaptureModal } from "@/components/thought-capture-modal";
 import { TrustControlsPanel } from "@/components/trust-controls-panel";
 import { BooksWorkspace } from "@/components/books-workspace";
 import { ReminisceWorkspace } from "@/components/reminisce-workspace";
+import { ThoughtEditForm } from "@/components/thought-edit-form";
 
 async function getApiToken(): Promise<string | null> {
   return getJWTToken();
@@ -132,12 +126,6 @@ export function MindPalaceShell() {
   const [selectedRememberCategory, setSelectedRememberCategory] =
     useState<RememberCategoryData["key"] | null>(null);
   const [isCaptureOpen, setIsCaptureOpen] = useState(false);
-  const mindMode =
-    workspaceMode === "reminisce"
-      ? "categories"
-      : workspaceMode === "organizing"
-        ? "organizing"
-        : "actions";
   const [deletedThoughts, setDeletedThoughts] = useState<Thought[]>([]);
   const [exportRequest, setExportRequest] = useState<ExportRequest | null>(null);
   const [accountDeletion, setAccountDeletion] = useState<AccountDeletionRequest | null>(null);
@@ -172,7 +160,6 @@ export function MindPalaceShell() {
   const [editUseWithAsk, setEditUseWithAsk] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [deletingThoughtId, setDeletingThoughtId] = useState<string | null>(null);
-  const [isChatOpen, setIsChatOpen] = useState(false);
   const [question, setQuestion] = useState("");
   const [chatMessages, setChatMessages] = useState<AskMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -451,19 +438,6 @@ export function MindPalaceShell() {
     setSelectedRememberCategory(null);
     setWorkspaceMode("organizing");
     window.setTimeout(() => setWorkspaceMode("reminisce"), 520);
-  }
-
-  function setMindMode(value: "actions" | "organizing" | "categories") {
-    if (value !== "categories") {
-      setSelectedRememberCategory(null);
-    }
-    setWorkspaceMode(
-      value === "categories" ? "reminisce" : value === "organizing" ? "organizing" : "hub",
-    );
-  }
-
-  function scrollToWorkspace(sectionId: string) {
-    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth" });
   }
 
   async function handleCreateExport() {
@@ -1019,82 +993,28 @@ export function MindPalaceShell() {
                             <div>
                               <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.1em] text-[#8b909a]"><span>{thought.thought_type}</span><span>·</span><span>{formatDate(thought.created_at)}</span>{thought.use_with_ask_my_mind && (thought.ai_processing_status === "pending" || thought.ai_processing_status === "processing") ? <><span>·</span><span className="text-[#9a7b3f]">Organizing...</span></> : null}</div>
                               {editingThoughtId === thought.id ? (
-                                <form className="mt-3 grid gap-3" onSubmit={(event) => void handleUpdateThought(event, thought.id)}>
-                                  <label className="grid gap-1 text-xs text-[#68738a]">
-                                    Title
-                                    <input
-                                      className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]"
-                                      value={editTitle}
-                                      onChange={(event) => setEditTitle(event.target.value)}
-                                    />
-                                  </label>
-                                  <label className="grid gap-1 text-xs text-[#68738a]">
-                                    Thought
-                                    <textarea
-                                      className="min-h-28 resize-y rounded-xl border border-[#dde2ee] bg-[#f6f8fc] p-3 text-sm leading-6 text-[#172033] outline-none focus:border-[#263a67]"
-                                      value={editBody}
-                                      onChange={(event) => setEditBody(event.target.value)}
-                                      required
-                                    />
-                                  </label>
-                                  <div className="grid gap-3 sm:grid-cols-2">
-                                    <label className="grid gap-1 text-xs text-[#68738a]">
-                                      Type
-                                      <select
-                                        className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]"
-                                        value={editThoughtType}
-                                        onChange={(event) => { const nextType = parseThoughtType(event.target.value); setEditThoughtType(nextType); if (nextType !== "book_excerpt") setEditBookId(""); }}
-                                      >
-                                        <option value="thought">Thought</option>
-                                        <option value="journal">Journal</option>
-                                        <option value="quote">Quote</option>
-                                        <option value="book_excerpt">Book excerpt</option>
-                                      </select>
-                                    </label>
-                                    <label className="grid gap-1 text-xs text-[#68738a]">
-                                      Manual tags
-                                      <input
-                                        className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]"
-                                        placeholder="e.g. work, ideas"
-                                        value={editManualTags}
-                                        onChange={(event) => setEditManualTags(event.target.value)}
-                                      />
-                                    </label>
-                                  </div>
-                                  {editThoughtType === "book_excerpt" ? (
-                                    <div className="grid gap-3 sm:grid-cols-2">
-                                      <label className="grid gap-1 text-xs text-[#68738a]">Book<select className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]" value={editBookId} onChange={(event) => setEditBookId(event.target.value)} required><option value="">Select a saved book</option>{books.map((book) => <option key={book.id} value={book.id}>{book.title} · {book.author}</option>)}<option value="__new__">+ Add a new book</option></select></label>
-                                      {editBookId === "__new__" ? <div className="grid gap-3 sm:grid-cols-2"><label className="grid gap-1 text-xs text-[#68738a]">Book title<input className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]" value={editBookTitle} onChange={(event) => setEditBookTitle(event.target.value)} required /></label><label className="grid gap-1 text-xs text-[#68738a]">Author<input className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]" value={editBookAuthor} onChange={(event) => setEditBookAuthor(event.target.value)} required /></label></div> : null}
-                                    </div>
-                                  ) : null}
-                                  <label className="flex items-center gap-2 text-xs text-[#68738a]">
-                                    <input
-                                      type="checkbox"
-                                      checked={editUseWithAsk}
-                                      onChange={(event) => setEditUseWithAsk(event.target.checked)}
-                                    />
-                                    Use with Ask My Mind
-                                  </label>
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <button
-                                      className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#263a67] px-3 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
-                                      type="submit"
-                                      disabled={isUpdating || !editBody.trim()}
-                                    >
-                                      <Check size={15} aria-hidden="true" />
-                                      {isUpdating ? "Saving..." : "Save changes"}
-                                    </button>
-                                    <button
-                                      className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#dde2ee] px-3 text-xs text-[#263a67] disabled:cursor-not-allowed disabled:opacity-50"
-                                      type="button"
-                                      onClick={cancelEditingThought}
-                                      disabled={isUpdating}
-                                    >
-                                      <X size={15} aria-hidden="true" />
-                                      Cancel
-                                    </button>
-                                  </div>
-                                </form>
+                                <ThoughtEditForm
+                                  title={editTitle}
+                                  body={editBody}
+                                  thoughtType={editThoughtType}
+                                  books={books}
+                                  bookId={editBookId}
+                                  bookTitle={editBookTitle}
+                                  bookAuthor={editBookAuthor}
+                                  manualTags={editManualTags}
+                                  useWithAsk={editUseWithAsk}
+                                  isUpdating={isUpdating}
+                                  onSubmit={(event) => void handleUpdateThought(event, thought.id)}
+                                  onTitleChange={setEditTitle}
+                                  onBodyChange={setEditBody}
+                                  onThoughtTypeChange={(nextType) => { setEditThoughtType(nextType); if (nextType !== "book_excerpt") setEditBookId(""); }}
+                                  onBookIdChange={setEditBookId}
+                                  onBookTitleChange={setEditBookTitle}
+                                  onBookAuthorChange={setEditBookAuthor}
+                                  onManualTagsChange={setEditManualTags}
+                                  onUseWithAskChange={setEditUseWithAsk}
+                                  onCancel={cancelEditingThought}
+                                />
                               ) : (
                                 <>
                                   <div className="mt-1 flex items-start justify-between gap-3">
@@ -1163,160 +1083,6 @@ export function MindPalaceShell() {
                 />
               )}
             </div>
-            <button
-              className="hidden"
-              onClick={() => void handleSignOut()}
-              title="Sign out"
-              type="button"
-            >
-              <LogOut size={18} aria-hidden="true" />
-              <span className="sr-only">Sign out</span>
-            </button>
-            <div className="hidden">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#6f7fd8]">
-                {mindMode === "categories" ? "Your mind, in focus" : "Welcome back, Alex"}
-              </p>
-              <h1 className="font-display text-3xl font-semibold tracking-[-0.03em] text-[#172033] sm:text-4xl">
-                {mindMode === "categories"
-                  ? "The patterns taking shape"
-                  : "Where would you like to wander?"}
-              </h1>
-              <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-[#68738a] sm:text-base">
-                {mindMode === "categories"
-                  ? `${rememberOverview?.thoughts_analyzed ?? 0} AI-enabled thoughts organized quietly in the background.`
-                  : "Capture what is here, revisit what was, or ask your own thoughts a question."}
-              </p>
-            </div>
-
-            <div className="hidden">
-              <svg
-                className="pointer-events-none absolute inset-0 hidden h-full w-full sm:block"
-                viewBox="0 0 800 354"
-                preserveAspectRatio="none"
-                aria-hidden="true"
-              >
-                <g fill="none" stroke="#cfd6ec" strokeWidth="1.5" strokeDasharray="5 7">
-                  <path d="M400 177 C310 177 300 59 195 59" />
-                  <path d="M400 177 C490 177 500 59 605 59" />
-                  <path d="M400 177 C310 177 300 295 195 295" />
-                  <path d="M400 177 C490 177 500 295 605 295" />
-                </g>
-              </svg>
-
-              <button
-                className="mind-core relative order-first col-span-2 mx-auto flex h-[158px] w-[158px] flex-col items-center justify-center rounded-full border border-[#cfd6ec] bg-[#263a67] text-white sm:order-none sm:col-span-1 sm:col-start-2 sm:row-start-2"
-                type="button"
-                onClick={() => mindMode === "categories" && setMindMode("actions")}
-                aria-label={mindMode === "categories" ? "Return to mind actions" : "Your mind"}
-              >
-                <span className="mind-orbit absolute h-[178px] w-[178px] rounded-full border border-dashed border-[#aeb9e8]" />
-                <Brain size={42} strokeWidth={1.6} aria-hidden="true" />
-                <span className="font-display mt-2 text-sm font-semibold">
-                  {mindMode === "organizing"
-                    ? "Reminiscing…"
-                    : mindMode === "categories"
-                      ? "My mind"
-                      : "Begin here"}
-                </span>
-              </button>
-
-              {mindMode === "actions" ? (
-                <>
-                  <button
-                    className="mind-node-enter group rounded-2xl border border-[#dde2ee] bg-white p-4 text-left shadow-[0_10px_30px_rgba(38,58,103,0.06)] hover:-translate-y-1 hover:border-[#6f7fd8] hover:shadow-[0_16px_36px_rgba(38,58,103,0.12)] sm:col-start-1 sm:row-start-1"
-                    type="button"
-                    onClick={() => scrollToWorkspace("save-thought")}
-                  >
-                    <span className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-[#eef0fa] text-[#6f7fd8]"><Save size={18} /></span>
-                    <span className="font-display block text-sm font-semibold text-[#172033]">Save a thought</span>
-                    <span className="mt-1 block text-xs leading-5 text-[#68738a]">Get it out in under ten seconds.</span>
-                  </button>
-                  <button
-                    className="mind-node-enter group rounded-2xl border border-[#dde2ee] bg-white p-4 text-left shadow-[0_10px_30px_rgba(38,58,103,0.06)] hover:-translate-y-1 hover:border-[#35b8b0] hover:shadow-[0_16px_36px_rgba(38,58,103,0.12)] disabled:cursor-not-allowed disabled:opacity-50 sm:col-start-3 sm:row-start-1"
-                    style={{ animationDelay: "70ms" }}
-                    type="button"
-                    disabled={!hasSavedThoughts}
-                    onClick={() => setWorkspaceMode("ask")}
-                  >
-                    <span className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-[#e7f7f5] text-[#24796f]"><MessageCircleQuestion size={18} /></span>
-                    <span className="font-display block text-sm font-semibold text-[#172033]">Ask my mind</span>
-                    <span className="mt-1 block text-xs leading-5 text-[#68738a]">Find meaning with cited answers.</span>
-                  </button>
-                  <button
-                    className="mind-node-enter group rounded-2xl border border-[#dde2ee] bg-white p-4 text-left shadow-[0_10px_30px_rgba(38,58,103,0.06)] hover:-translate-y-1 hover:border-[#6f7fd8] hover:shadow-[0_16px_36px_rgba(38,58,103,0.12)] sm:col-start-1 sm:row-start-3"
-                    style={{ animationDelay: "140ms" }}
-                    type="button"
-                    onClick={() => scrollToWorkspace("thoughts-workspace")}
-                  >
-                    <span className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-[#eef0fa] text-[#6f7fd8]"><Search size={18} /></span>
-                    <span className="font-display block text-sm font-semibold text-[#172033]">Search thoughts</span>
-                    <span className="mt-1 block text-xs leading-5 text-[#68738a]">Recall a detail, person, or idea.</span>
-                  </button>
-                  <button
-                    className="mind-node-enter group rounded-2xl border border-[#dde2ee] bg-white p-4 text-left shadow-[0_10px_30px_rgba(38,58,103,0.06)] hover:-translate-y-1 hover:border-[#35b8b0] hover:shadow-[0_16px_36px_rgba(38,58,103,0.12)] sm:col-start-3 sm:row-start-3"
-                    style={{ animationDelay: "210ms" }}
-                    type="button"
-                    onClick={revealReminisce}
-                  >
-                    <span className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-[#e7f7f5] text-[#24796f]"><Sparkles size={18} /></span>
-                    <span className="font-display block text-sm font-semibold text-[#172033]">View thoughts</span>
-                    <span className="mt-1 block text-xs leading-5 text-[#68738a]">See what your mind has organized.</span>
-                  </button>
-                </>
-              ) : mindMode === "organizing" ? (
-                <div className="col-span-2 flex items-center justify-center gap-2 text-sm text-[#68738a] sm:col-span-3 sm:row-start-1 sm:row-end-4">
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-[#6f7fd8]" />
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-[#35b8b0] [animation-delay:120ms]" />
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-[#6f7fd8] [animation-delay:240ms]" />
-                </div>
-              ) : (
-                (rememberOverview?.categories ?? EMPTY_REMEMBER_CATEGORIES).map((category, index) => {
-                  const positions = [
-                    "sm:col-start-1 sm:row-start-1",
-                    "sm:col-start-3 sm:row-start-1",
-                    "sm:col-start-1 sm:row-start-3",
-                    "sm:col-start-3 sm:row-start-3",
-                  ];
-                  const CategoryIcon =
-                    category.key === "themes"
-                      ? Sparkles
-                      : category.key === "emotions"
-                        ? Heart
-                        : category.key === "people"
-                          ? UsersRound
-                          : BookMarked;
-                  return (
-                    <article
-                      key={category.key}
-                      className={`mind-node-enter rounded-2xl border border-[#cfd6ec] bg-white p-4 shadow-[0_12px_36px_rgba(38,58,103,0.09)] ${positions[index]}`}
-                      style={{ animationDelay: `${index * 70}ms` }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#eef0fa] text-[#6f7fd8]"><CategoryIcon size={18} /></span>
-                        <h2 className="font-display text-sm font-semibold text-[#172033]">{category.label}</h2>
-                      </div>
-                      <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#68738a]">
-                        {category.items.length > 0
-                          ? category.items.slice(0, 3).map((item) => item.label).join(" · ")
-                          : "Waiting for more AI-enabled thoughts"}
-                      </p>
-                    </article>
-                  );
-                })
-              )}
-            </div>
-
-            {mindMode === "categories" ? (
-              <div className="hidden">
-                <button
-                  className="rounded-xl border border-[#dde2ee] bg-white px-4 text-sm font-medium text-[#263a67] hover:border-[#6f7fd8] hover:bg-[#eef0fa]"
-                  type="button"
-                  onClick={() => scrollToWorkspace("thoughts-workspace")}
-                >
-                  Browse the full timeline
-                </button>
-              </div>
-            ) : null}
           </section>
         ) : null}
 
@@ -1366,129 +1132,6 @@ export function MindPalaceShell() {
             onRequestDeletion={() => void handleRequestAccountDeletion()}
             onCancelDeletion={() => void handleCancelAccountDeletion()}
           />
-        ) : null}
-
-        {isChatOpen && isAuthenticated ? (
-          <section
-            id="ask-my-mind"
-            className="mx-auto mt-6 w-[calc(100%-2rem)] max-w-7xl overflow-hidden rounded-2xl border border-[#dde2ee] bg-white shadow-sm sm:w-[calc(100%-3rem)] lg:w-[calc(100%-4rem)]"
-          >
-            <div className="flex items-center justify-between border-b border-[#dde2ee] px-5 py-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#eef0fa] text-[#263a67]">
-                  <MessageCircleQuestion size={19} aria-hidden="true" />
-                </div>
-                <div>
-                  <h2 className="text-base font-semibold text-[#172033]">Ask my mind</h2>
-                  <p className="text-xs text-[#68738a]">
-                    Answers use only thoughts you have allowed AI to analyze.
-                  </p>
-                </div>
-              </div>
-              <button
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#dde2ee] text-[#263a67] hover:bg-[#f6f8fc]"
-                type="button"
-                aria-label="Close Ask My Mind"
-                title="Close Ask My Mind"
-                onClick={() => setIsChatOpen(false)}
-              >
-                <X size={17} aria-hidden="true" />
-              </button>
-            </div>
-
-            <div className="grid min-h-[260px] lg:grid-cols-[minmax(0,1fr)_300px]">
-              <div className="flex min-h-[260px] flex-col border-b border-[#dde2ee] lg:border-b-0 lg:border-r">
-                <div className="flex-1 space-y-3 overflow-y-auto px-5 py-5">
-                  {chatMessages.length === 0 ? (
-                    <div className="flex min-h-36 items-center justify-center text-center text-sm text-[#68738a]">
-                      Ask a question about your saved thoughts.
-                    </div>
-                  ) : (
-                    chatMessages.map((chatMessage) => (
-                      <div
-                        key={chatMessage.id}
-                        className={`flex ${chatMessage.role === "user" ? "justify-end" : "justify-start"}`}
-                      >
-                        <div
-                          className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-6 ${
-                            chatMessage.role === "user"
-                              ? "bg-[#172033] text-white"
-                              : "border border-[#dde2ee] bg-[#f6f8fc] text-[#172033]"
-                          }`}
-                        >
-                          {chatMessage.content}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                  {isAsking ? (
-                    <div className="text-sm text-[#68738a]">Thinking...</div>
-                  ) : null}
-                </div>
-
-                {askMessage ? (
-                  <div className="mx-5 mb-3 flex items-center gap-2 rounded-xl border border-[#d8c7a4] bg-[#fff8e8] px-3 py-2 text-sm text-[#6c5521]">
-                    <CircleAlert size={16} aria-hidden="true" />
-                    {askMessage}
-                  </div>
-                ) : null}
-
-                <form className="flex gap-2 border-t border-[#dde2ee] p-4" onSubmit={handleAsk}>
-                  <textarea
-                    className="min-h-11 flex-1 resize-none rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 py-2 text-sm leading-5 outline-none focus:border-[#263a67]"
-                    placeholder="What would you like to revisit?"
-                    value={question}
-                    onChange={(event) => setQuestion(event.target.value)}
-                    rows={2}
-                    maxLength={5000}
-                    disabled={isAsking}
-                  />
-                  <button
-                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center self-end rounded-xl bg-[#263a67] text-white disabled:cursor-not-allowed disabled:bg-[#9ca6ba]"
-                    type="submit"
-                    aria-label="Send question"
-                    title="Send question"
-                    disabled={!question.trim() || isAsking}
-                  >
-                    <Send size={17} aria-hidden="true" />
-                  </button>
-                </form>
-              </div>
-
-              <aside className="bg-[#f6f8fc] px-5 py-5">
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-[#172033]">Sources</h3>
-                  <span className="text-xs text-[#68738a]">{latestSources.length}</span>
-                </div>
-                {latestSources.length === 0 ? (
-                  <p className="text-sm leading-5 text-[#68738a]">
-                    Sources will appear here after you ask a question.
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {latestSources.map((source) => (
-                      <article key={source.chunk_id} className="border-l-2 border-[#263a67] pl-3">
-                        <div className="mb-1 flex items-center gap-2">
-                          <span className="text-xs font-semibold text-[#263a67]">
-                            {source.citation_label}
-                          </span>
-                          {source.is_cited ? (
-                            <span className="text-[11px] text-[#68738a]">Used in answer</span>
-                          ) : null}
-                        </div>
-                        <p className="text-xs font-medium text-[#172033]">
-                          {source.title ?? source.source_title ?? "Untitled thought"}
-                        </p>
-                        <p className="mt-1 line-clamp-4 text-xs leading-5 text-[#68738a]">
-                          {source.snippet}
-                        </p>
-                      </article>
-                    ))}
-                  </div>
-                )}
-              </aside>
-            </div>
-          </section>
         ) : null}
 
         <section
