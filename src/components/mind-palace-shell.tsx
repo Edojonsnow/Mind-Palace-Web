@@ -59,7 +59,6 @@ import {
   organizeThought,
   Thought,
   ThoughtType,
-  ThoughtListOptions,
   requestAccountDeletion,
   restoreThought,
   updateSettings,
@@ -68,257 +67,29 @@ import {
   RememberOverview,
 } from "@/lib/api";
 import { authClient, getJWTToken } from "@/lib/auth-client";
-
-function splitTags(value: string): string[] {
-  return value
-    .split(",")
-    .map((tag) => tag.trim())
-    .filter(Boolean);
-}
-
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
-
-function formatStatus(value: string): string {
-  return value.replaceAll("_", " ");
-}
-
-function parseThoughtType(value: string): ThoughtType {
-  if (value === "journal" || value === "quote" || value === "book_excerpt") {
-    return value;
-  }
-  return "thought";
-}
-
-type LabelFilterKey = "theme" | "emotion" | "person" | "place" | "tag" | "book";
-
-type ThoughtLabel = {
-  label: string;
-  value: string;
-  filterKey: LabelFilterKey;
-};
-
-type RememberCategoryData = RememberOverview["categories"][number];
-
-function RememberCategoryDetail({
-  category,
-  onBack,
-  onItemClick,
-}: {
-  category: RememberCategoryData;
-  onBack: () => void;
-  onItemClick: (categoryKey: RememberCategoryData["key"], value: string) => void;
-}) {
-  const CategoryIcon =
-    category.key === "themes"
-      ? Sparkles
-      : category.key === "emotions"
-        ? Heart
-        : category.key === "people"
-          ? UsersRound
-          : BookMarked;
-
-  return (
-    <div className="col-span-full rounded-[26px] border border-black/[0.08] bg-white/80 p-6 shadow-[0_20px_60px_rgba(31,35,45,0.07)] backdrop-blur-xl sm:p-8">
-      <button
-        className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#777c86] hover:text-[#263a67]"
-        type="button"
-        onClick={onBack}
-      >
-        <ChevronLeft size={14} aria-hidden="true" />
-        All categories
-      </button>
-      <div className="mt-6 flex items-center gap-3">
-        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#eef0fa] text-[#6f7fd8]">
-          <CategoryIcon size={21} aria-hidden="true" />
-        </span>
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9a9ea7]">
-            Category view
-          </p>
-          <h2 className="mt-1 font-display text-3xl font-semibold tracking-[-0.04em] text-[#24272d]">
-            {category.label}
-          </h2>
-        </div>
-      </div>
-      {category.items.length === 0 ? (
-        <p className="mt-8 text-sm text-[#8b909a]">Still taking shape</p>
-      ) : (
-        <div className="mt-8 flex flex-wrap items-center gap-3">
-          {category.items.map((item, index) => (
-            <button
-              key={item.label}
-              className="remember-bubble-enter rounded-full border border-[#d9deef] bg-[#f7f8fd] px-4 py-3 text-sm text-[#4f5d7c] shadow-[0_8px_20px_rgba(38,58,103,0.05)] hover:-translate-y-1 hover:border-[#6f7fd8] hover:bg-white hover:text-[#263a67] hover:shadow-[0_14px_28px_rgba(38,58,103,0.12)] active:translate-y-0"
-              style={{ animationDelay: `${index * 45}ms` }}
-              type="button"
-              onClick={() => onItemClick(category.key, item.label)}
-            >
-              {item.label}
-              <sup className="ml-1 text-[#969ba4]">{item.count}</sup>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function generatedMetadataLabels(thought: Thought): ThoughtLabel[] {
-  if (!thought.ai_metadata) {
-    return [];
-  }
-
-  return [
-    ...thought.ai_metadata.themes.map((value) => ({ label: `Theme: ${value}`, value, filterKey: "theme" as const })),
-    ...thought.ai_metadata.emotions.map((value) => ({ label: `Emotion: ${value}`, value, filterKey: "emotion" as const })),
-    ...thought.ai_metadata.people.map((value) => ({ label: `Person: ${value}`, value, filterKey: "person" as const })),
-    ...thought.ai_metadata.places.map((value) => ({ label: `Place: ${value}`, value, filterKey: "place" as const })),
-  ];
-}
-
-function manualThoughtLabels(thought: Thought): ThoughtLabel[] {
-  return thought.manual_tags.map((value) => ({ label: value, value, filterKey: "tag" }));
-}
-
-function CompactLabelList({
-  labels,
-  variant,
-  maxVisible = 5,
-  onLabelClick,
-}: {
-  labels: ThoughtLabel[];
-  variant: "ai" | "manual";
-  maxVisible?: number;
-  onLabelClick?: (label: ThoughtLabel) => void;
-}) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  if (labels.length === 0) {
-    return null;
-  }
-
-  const visibleLabels = isExpanded ? labels : labels.slice(0, maxVisible);
-  const hiddenCount = labels.length - visibleLabels.length;
-  const labelClassName =
-    variant === "ai"
-      ? "rounded-full bg-[#eef0fa] px-2 py-1 text-[10px] text-[#68738a]"
-      : "rounded-full border border-[#dde2ee] px-2 py-1 text-[10px] text-[#68738a]";
-
-  return (
-    <div className="mt-2 flex flex-wrap items-center gap-1.5">
-      {visibleLabels.map((label) => (
-        onLabelClick ? (
-          <button
-            key={`${label.filterKey}:${label.value}`}
-            className={`${labelClassName} cursor-pointer hover:border-[#6f7fd8] hover:text-[#263a67]`}
-            type="button"
-            title={`Filter by ${label.label}`}
-            onClick={() => onLabelClick(label)}
-          >
-            {label.label}
-          </button>
-        ) : (
-          <span key={`${label.filterKey}:${label.value}`} className={labelClassName}>
-            {label.label}
-          </span>
-        )
-      ))}
-      {labels.length > maxVisible ? (
-        <button
-          className="px-1 text-[10px] font-semibold text-[#5367c7] hover:text-[#263a67]"
-          type="button"
-          aria-expanded={isExpanded}
-          onClick={() => setIsExpanded((current) => !current)}
-        >
-          {isExpanded ? "Show fewer" : `+${hiddenCount} more`}
-        </button>
-      ) : null}
-    </div>
-  );
-}
-
-function isExportExpired(exportRequest: ExportRequest): boolean {
-  return exportRequest.status === "expired" || new Date(exportRequest.expires_at) <= new Date();
-}
-
-type LoadState = "idle" | "loading" | "ready" | "error";
-type ArchiveFilter = "all" | "active" | "archived";
-type WorkspaceMode = "hub" | "organizing" | "remember" | "search" | "ask" | "books";
-
-type RecallFilters = {
-  q: string;
-  thought_type: string;
-  source_type: string;
-  tag: string;
-  book: string;
-  book_id: string;
-  theme: string;
-  emotion: string;
-  person: string;
-  place: string;
-  archive: ArchiveFilter;
-};
-
-const DEFAULT_RECALL_FILTERS: RecallFilters = {
-  q: "",
-  thought_type: "",
-  source_type: "",
-  tag: "",
-  book: "",
-  book_id: "",
-  theme: "",
-  emotion: "",
-  person: "",
-  place: "",
-  archive: "all",
-};
-
-const RECALL_PAGE_SIZE = 20;
-const EMPTY_REMEMBER_CATEGORIES: RememberOverview["categories"] = [
-  { key: "themes", label: "Themes", items: [] },
-  { key: "emotions", label: "Emotions", items: [] },
-  { key: "people", label: "People", items: [] },
-  { key: "books", label: "Books", items: [] },
-];
-
-function recallQuery(filters: RecallFilters, page: number): ThoughtListOptions {
-  return {
-    q: filters.q.trim() || undefined,
-    thought_type: filters.thought_type || undefined,
-    source_type: filters.source_type || undefined,
-    tag: filters.tag.trim() || undefined,
-    book: filters.book.trim() || undefined,
-    book_id: filters.book_id || undefined,
-    theme: filters.theme.trim() || undefined,
-    emotion: filters.emotion.trim() || undefined,
-    person: filters.person.trim() || undefined,
-    place: filters.place.trim() || undefined,
-    is_archived: filters.archive === "all" ? undefined : filters.archive === "archived",
-    page,
-    page_size: RECALL_PAGE_SIZE,
-  };
-}
-
-function activeRecallFilterLabels(filters: RecallFilters): string[] {
-  return [
-    filters.q.trim() ? `Search: ${filters.q.trim()}` : "",
-    filters.thought_type ? `Type: ${formatStatus(filters.thought_type)}` : "",
-    filters.source_type ? `Source: ${formatStatus(filters.source_type)}` : "",
-    filters.tag.trim() ? `Tag: ${filters.tag.trim()}` : "",
-    filters.book.trim() ? `Book: ${filters.book.trim()}` : filters.book_id ? "Book: selected" : "",
-    filters.theme.trim() ? `Theme: ${filters.theme.trim()}` : "",
-    filters.emotion.trim() ? `Emotion: ${filters.emotion.trim()}` : "",
-    filters.person.trim() ? `Person: ${filters.person.trim()}` : "",
-    filters.place.trim() ? `Place: ${filters.place.trim()}` : "",
-    filters.archive !== "all" ? `Archive: ${filters.archive}` : "",
-  ].filter((label): label is string => Boolean(label));
-}
+import {
+  CompactLabelList,
+  DEFAULT_RECALL_FILTERS,
+  EMPTY_REMEMBER_CATEGORIES,
+  activeRecallFilterLabels,
+  formatDate,
+  formatStatus,
+  generatedMetadataLabels,
+  isExportExpired,
+  manualThoughtLabels,
+  parseThoughtType,
+  recallQuery,
+  splitTags,
+  type LabelFilterKey,
+  type ArchiveFilter,
+  type LoadState,
+  type RecallFilters,
+  type RememberCategoryData,
+  type ThoughtLabel,
+  type WorkspaceMode,
+  ReminisceCategoryDetail,
+} from "@/components/mind-palace-shell-helpers";
+import { MindMapHome } from "@/components/mind-map-home";
 
 async function getApiToken(): Promise<string | null> {
   return getJWTToken();
@@ -358,7 +129,7 @@ export function MindPalaceShell() {
     useState<RememberCategoryData["key"] | null>(null);
   const [isCaptureOpen, setIsCaptureOpen] = useState(false);
   const mindMode =
-    workspaceMode === "remember"
+    workspaceMode === "reminisce"
       ? "categories"
       : workspaceMode === "organizing"
         ? "organizing"
@@ -663,11 +434,11 @@ export function MindPalaceShell() {
     }
   }
 
-  function revealRememberedMind() {
+  function revealReminisce() {
     if (workspaceMode === "organizing") {
       return;
     }
-    if (workspaceMode === "remember") {
+    if (workspaceMode === "reminisce") {
       setSelectedRememberCategory(null);
       setWorkspaceMode("hub");
       return;
@@ -675,7 +446,7 @@ export function MindPalaceShell() {
 
     setSelectedRememberCategory(null);
     setWorkspaceMode("organizing");
-    window.setTimeout(() => setWorkspaceMode("remember"), 520);
+    window.setTimeout(() => setWorkspaceMode("reminisce"), 520);
   }
 
   function setMindMode(value: "actions" | "organizing" | "categories") {
@@ -683,7 +454,7 @@ export function MindPalaceShell() {
       setSelectedRememberCategory(null);
     }
     setWorkspaceMode(
-      value === "categories" ? "remember" : value === "organizing" ? "organizing" : "hub",
+      value === "categories" ? "reminisce" : value === "organizing" ? "organizing" : "hub",
     );
   }
 
@@ -1191,84 +962,13 @@ export function MindPalaceShell() {
 
             <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 items-center justify-center py-10 sm:py-12">
               {workspaceMode === "hub" ? (
-                <div className="mind-workspace-enter flex w-full flex-col items-center justify-center text-center">
-                  <div className="mx-auto max-w-2xl text-center">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#6f7fd8]">
-                      [ Private memory / 01 ]
-                    </p>
-                    <h1 className="mt-3 font-display text-[clamp(1.75rem,3vw,2.6rem)] font-medium leading-tight tracking-[-0.045em] text-[#1f2228]">
-                      Wander through your mind.
-                    </h1>
-                    <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-[#777c86]">
-                      Write without organizing. Return when you need clarity. Your thoughts arrange themselves quietly.
-                    </p>
-                  </div>
-
-                  <div className="relative mx-auto mt-2 aspect-square w-full max-w-[620px] sm:mt-3">
-                    <div className="absolute inset-[12%] rounded-full border border-black/[0.06]" />
-                    <div className="absolute inset-[24%] rounded-full border border-dashed border-[#6f7fd8]/25" />
-                    <div className="mind-sculpture absolute left-1/2 top-1/2 flex h-[116px] w-[116px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full sm:h-[250px] sm:w-[250px]">
-                      <span className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_34%_28%,#8fa0ff_0%,#5367c7_34%,#29345f_68%,#181b27_100%)] shadow-[0_35px_90px_rgba(32,42,89,0.34)]" />
-                      <span className="absolute inset-[13%] rounded-[43%_57%_54%_46%/46%_38%_62%_54%] border border-white/30" />
-                      <span className="absolute inset-[27%] rounded-[56%_44%_37%_63%/52%_60%_40%_48%] border border-white/20" />
-                      <span className="relative text-center text-[10px] font-semibold uppercase tracking-[0.23em] text-white/90">
-                        Your<br />mind
-                      </span>
-                    </div>
-
-                    {[
-                      {
-                        number: "01",
-                        title: "Save a thought",
-                        detail: "Capture without friction",
-                        placement: "left-0 top-[8%]",
-                        action: () => setIsCaptureOpen(true),
-                      },
-                      {
-                        number: "02",
-                        title: "Ask my mind",
-                        detail: "Answers grounded in you",
-                        placement: "right-0 top-[8%]",
-                        action: () => setWorkspaceMode("ask"),
-                      },
-                      {
-                        number: "03",
-                        title: "Search thoughts",
-                        detail: "Find the exact fragment",
-                        placement: "bottom-[8%] left-0",
-                        action: () => setWorkspaceMode("search"),
-                      },
-                      {
-                        number: "04",
-                        title: "View thoughts",
-                        detail: "See emerging patterns",
-                        placement: "bottom-[8%] right-0",
-                        action: revealRememberedMind,
-                      },
-                    ]
-                      .filter((action) => action.number !== "02" || showAskAction)
-                      .map((action, index) => (
-                      <button
-                        key={action.number}
-                        className={`mind-action-card absolute ${action.placement} w-[43%] rounded-[18px] border border-black/[0.08] bg-white/80 p-3 text-left shadow-[0_18px_55px_rgba(30,34,45,0.08)] backdrop-blur-xl disabled:cursor-not-allowed disabled:opacity-35 sm:rounded-[22px] sm:p-5`}
-                        style={{ animationDelay: `${index * 70}ms` }}
-                        type="button"
-                        onClick={action.action}
-                      >
-                        <span className="flex items-center justify-between text-[10px] font-semibold tracking-[0.18em] text-[#9196a0]">
-                          {action.number}
-                          <span aria-hidden="true">↗</span>
-                        </span>
-                        <span className="mt-2 block font-display text-xs font-semibold tracking-[-0.02em] text-[#202329] sm:mt-5 sm:text-base">
-                          {action.title}
-                        </span>
-                        <span className="mt-1 hidden text-[11px] leading-5 text-[#777c86] sm:block sm:text-xs">
-                          {action.detail}
-                        </span>
-                      </button>
-                      ))}
-                  </div>
-                </div>
+                <MindMapHome
+                  showAskAction={showAskAction}
+                  onSaveThought={() => setIsCaptureOpen(true)}
+                  onAskMind={() => setWorkspaceMode("ask")}
+                  onSearchThoughts={() => setWorkspaceMode("search")}
+                  onReminisce={revealReminisce}
+                />
               ) : workspaceMode === "books" ? (
                 <div className="mind-workspace-enter w-full max-w-5xl">
                   <div className="mb-8 max-w-2xl">
@@ -1283,7 +983,7 @@ export function MindPalaceShell() {
                       {books.map((book, index) => (
                         <button
                           key={book.id}
-                          className="remember-category-card rounded-[24px] border border-black/[0.08] bg-white/80 p-6 text-left shadow-[0_20px_60px_rgba(31,35,45,0.07)] hover:-translate-y-1 hover:border-[#cfd6ec] hover:bg-white hover:shadow-[0_28px_70px_rgba(31,35,45,0.12)] active:translate-y-0"
+                          className="reminisce-category-card rounded-[24px] border border-black/[0.08] bg-white/80 p-6 text-left shadow-[0_20px_60px_rgba(31,35,45,0.07)] hover:-translate-y-1 hover:border-[#cfd6ec] hover:bg-white hover:shadow-[0_28px_70px_rgba(31,35,45,0.12)] active:translate-y-0"
                           type="button"
                           onClick={() => {
                             const nextFilters = { ...DEFAULT_RECALL_FILTERS, book_id: book.id };
@@ -1522,13 +1222,13 @@ export function MindPalaceShell() {
                 <div className="mind-workspace-enter w-full max-w-6xl">
                   <div className="grid gap-8 lg:grid-cols-[0.7fr_1.3fr] lg:gap-14">
                     <header>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#35a79f]">[ Remember / 04 ]</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#35a79f]">[ Reminisce / 04 ]</p>
                       <h1 className="mt-5 font-display text-5xl font-medium leading-[0.98] tracking-[-0.055em] text-[#202329] sm:text-7xl">Patterns, without the filing.</h1>
                       <p className="mt-6 max-w-sm text-sm leading-6 text-[#747983]">{rememberOverview?.thoughts_analyzed ?? 0} AI-enabled thoughts have contributed to this view.</p>
                     </header>
                     <div className="grid gap-3 sm:grid-cols-2">
                       {selectedRememberCategory ? (
-                        <RememberCategoryDetail
+                        <ReminisceCategoryDetail
                           category={
                             (rememberOverview?.categories ?? EMPTY_REMEMBER_CATEGORIES).find(
                               (category) => category.key === selectedRememberCategory,
@@ -1541,7 +1241,7 @@ export function MindPalaceShell() {
                         (rememberOverview?.categories ?? EMPTY_REMEMBER_CATEGORIES).map((category, index) => (
                           <button
                             key={category.key}
-                            className="remember-category-card rounded-[26px] border border-black/[0.08] bg-white/80 p-6 text-left shadow-[0_20px_60px_rgba(31,35,45,0.07)] backdrop-blur-xl hover:-translate-y-1 hover:border-[#cfd6ec] hover:bg-white hover:shadow-[0_28px_70px_rgba(31,35,45,0.12)] active:translate-y-0"
+                            className="reminisce-category-card rounded-[26px] border border-black/[0.08] bg-white/80 p-6 text-left shadow-[0_20px_60px_rgba(31,35,45,0.07)] backdrop-blur-xl hover:-translate-y-1 hover:border-[#cfd6ec] hover:bg-white hover:shadow-[0_28px_70px_rgba(31,35,45,0.12)] active:translate-y-0"
                             type="button"
                             aria-label={`Open ${category.label}`}
                             onClick={() => setSelectedRememberCategory(category.key)}
@@ -1576,7 +1276,7 @@ export function MindPalaceShell() {
             </button>
             <div className="hidden">
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#6f7fd8]">
-                {mindMode === "categories" ? "Your mind, remembered" : "Welcome back, Alex"}
+                {mindMode === "categories" ? "Your mind, in focus" : "Welcome back, Alex"}
               </p>
               <h1 className="font-display text-3xl font-semibold tracking-[-0.03em] text-[#172033] sm:text-4xl">
                 {mindMode === "categories"
@@ -1615,7 +1315,7 @@ export function MindPalaceShell() {
                 <Brain size={42} strokeWidth={1.6} aria-hidden="true" />
                 <span className="font-display mt-2 text-sm font-semibold">
                   {mindMode === "organizing"
-                    ? "Remembering…"
+                    ? "Reminiscing…"
                     : mindMode === "categories"
                       ? "My mind"
                       : "Begin here"}
@@ -1658,7 +1358,7 @@ export function MindPalaceShell() {
                     className="mind-node-enter group rounded-2xl border border-[#dde2ee] bg-white p-4 text-left shadow-[0_10px_30px_rgba(38,58,103,0.06)] hover:-translate-y-1 hover:border-[#35b8b0] hover:shadow-[0_16px_36px_rgba(38,58,103,0.12)] sm:col-start-3 sm:row-start-3"
                     style={{ animationDelay: "210ms" }}
                     type="button"
-                    onClick={revealRememberedMind}
+                    onClick={revealReminisce}
                   >
                     <span className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-[#e7f7f5] text-[#24796f]"><Sparkles size={18} /></span>
                     <span className="font-display block text-sm font-semibold text-[#172033]">View thoughts</span>
@@ -1913,7 +1613,7 @@ export function MindPalaceShell() {
                 <form className="flex gap-2 border-t border-[#dde2ee] p-4" onSubmit={handleAsk}>
                   <textarea
                     className="min-h-11 flex-1 resize-none rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 py-2 text-sm leading-5 outline-none focus:border-[#263a67]"
-                    placeholder="What would you like to remember?"
+                    placeholder="What would you like to revisit?"
                     value={question}
                     onChange={(event) => setQuestion(event.target.value)}
                     rows={2}
@@ -1980,7 +1680,7 @@ export function MindPalaceShell() {
                 {authMode === "sign-in"
                   ? "Return to your mind."
                   : authMode === "sign-up"
-                    ? "Begin remembering."
+                    ? "Begin reminiscing."
                     : "Confirm it is you."}
               </h1>
               <p className="mb-7 mt-3 text-sm leading-6 text-[#7a7f88]">Your thoughts stay private and your AI controls remain yours.</p>

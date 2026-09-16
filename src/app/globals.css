@@ -124,7 +124,7 @@ textarea:focus-visible {
   }
 }
 
-@keyframes remember-bubble-enter {
+@keyframes reminisce-bubble-enter {
   from {
     opacity: 0;
     transform: translateY(8px) scale(0.88);
@@ -165,11 +165,11 @@ textarea:focus-visible {
   animation: capture-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.remember-bubble-enter {
-  animation: remember-bubble-enter 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+.reminisce-bubble-enter {
+  animation: reminisce-bubble-enter 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.remember-category-card {
+.reminisce-category-card {
   transition:
     transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
     border-color 200ms ease,
