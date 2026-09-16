@@ -86,10 +86,14 @@ import {
   type RememberCategoryData,
   type ThoughtLabel,
   type WorkspaceMode,
-  ReminisceCategoryDetail,
 } from "@/components/mind-palace-shell-helpers";
 import { MindMapHome } from "@/components/mind-map-home";
 import { RecallSearchPanel } from "@/components/recall-search-panel";
+import { AskMyMindWorkspace } from "@/components/ask-my-mind-workspace";
+import { ThoughtCaptureModal } from "@/components/thought-capture-modal";
+import { TrustControlsPanel } from "@/components/trust-controls-panel";
+import { BooksWorkspace } from "@/components/books-workspace";
+import { ReminisceWorkspace } from "@/components/reminisce-workspace";
 
 async function getApiToken(): Promise<string | null> {
   return getJWTToken();
@@ -970,39 +974,17 @@ export function MindPalaceShell() {
                   onReminisce={revealReminisce}
                 />
               ) : workspaceMode === "books" ? (
-                <div className="mind-workspace-enter w-full max-w-5xl">
-                  <div className="mb-8 max-w-2xl">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#35a79f]">[ Books / 05 ]</p>
-                    <h1 className="mt-4 font-display text-5xl font-medium tracking-[-0.055em] text-[#202329] sm:text-6xl">Books you have kept close.</h1>
-                    <p className="mt-5 text-sm leading-6 text-[#777c86]">Open a book to revisit its saved excerpts and thoughts.</p>
-                  </div>
-                  {books.length === 0 ? (
-                    <div className="rounded-[24px] border border-black/[0.08] bg-white/80 p-8 text-sm text-[#777c86] shadow-[0_20px_60px_rgba(31,35,45,0.07)]">Your saved books will appear here when you add your first book excerpt.</div>
-                  ) : (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {books.map((book, index) => (
-                        <button
-                          key={book.id}
-                          className="reminisce-category-card rounded-[24px] border border-black/[0.08] bg-white/80 p-6 text-left shadow-[0_20px_60px_rgba(31,35,45,0.07)] hover:-translate-y-1 hover:border-[#cfd6ec] hover:bg-white hover:shadow-[0_28px_70px_rgba(31,35,45,0.12)] active:translate-y-0"
-                          type="button"
-                          onClick={() => {
-                            const nextFilters = { ...DEFAULT_RECALL_FILTERS, book_id: book.id };
-                            setRecallDraftFilters(nextFilters);
-                            setRecallFilters(nextFilters);
-                            setRecallPage(1);
-                            setWorkspaceMode("search");
-                            void refresh(1, nextFilters);
-                          }}
-                        >
-                          <span className="text-[10px] font-semibold tracking-[0.18em] text-[#9a9ea7]">{String(index + 1).padStart(2, "0")}</span>
-                          <h2 className="mt-6 font-display text-2xl font-semibold tracking-[-0.035em] text-[#24272d]">{book.title}</h2>
-                          <p className="mt-2 text-sm text-[#777c86]">{book.author}</p>
-                          <p className="mt-6 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9a9ea7]">{book.thought_count} {book.thought_count === 1 ? "saved thought" : "saved thoughts"}</p>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <BooksWorkspace
+                  books={books}
+                  onBookSelect={(bookId) => {
+                    const nextFilters = { ...DEFAULT_RECALL_FILTERS, book_id: bookId };
+                    setRecallDraftFilters(nextFilters);
+                    setRecallFilters(nextFilters);
+                    setRecallPage(1);
+                    setWorkspaceMode("search");
+                    void refresh(1, nextFilters);
+                  }}
+                />
               ) : workspaceMode === "search" ? (
                 <div className="mind-workspace-enter w-full max-w-5xl">
                   <div className="grid gap-8 lg:grid-cols-[0.65fr_1.35fr]">
@@ -1157,81 +1139,28 @@ export function MindPalaceShell() {
                   </div>
                 </div>
               ) : workspaceMode === "ask" ? (
-                <div className="w-full max-w-5xl">
-                  <div className="mb-8 max-w-2xl">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#35a79f]">[ Ask my mind / 02 ]</p>
-                    <h1 className="mt-4 font-display text-5xl font-medium tracking-[-0.055em] text-[#202329] sm:text-6xl">A conversation grounded in you.</h1>
-                  </div>
-                  <div className="grid min-h-[520px] overflow-hidden rounded-[30px] border border-black/[0.08] bg-white/80 shadow-[0_30px_90px_rgba(31,35,45,0.1)] backdrop-blur-xl lg:grid-cols-[1fr_300px]">
-                    <div className="flex min-h-0 flex-col border-b border-black/[0.07] lg:border-b-0 lg:border-r">
-                      <div className="flex-1 space-y-4 overflow-y-auto p-5 sm:p-7">
-                        {chatMessages.length === 0 ? <p className="max-w-md font-display text-2xl leading-9 tracking-[-0.025em] text-[#90949c]">Ask about a pattern, decision, person, or idea you have written about.</p> : chatMessages.map((chatMessage) => (
-                          <div key={chatMessage.id} className={chatMessage.role === "user" ? "ml-auto max-w-[80%] rounded-[20px] bg-[#24272d] px-5 py-4 text-sm leading-6 text-white" : "max-w-[88%] border-l border-[#6f7fd8] pl-5 text-sm leading-7 text-[#343840]"}>{chatMessage.content}</div>
-                        ))}
-                        {isAsking ? <p className="text-xs uppercase tracking-[0.14em] text-[#8b909a]">Looking through your thoughts…</p> : null}
-                      </div>
-                      <form className="m-4 flex items-end gap-3 rounded-[22px] border border-black/[0.09] bg-[#f4f4f1] p-2 sm:m-5" onSubmit={handleAsk}>
-                        <textarea className="min-h-12 flex-1 resize-none bg-transparent px-3 py-3 text-sm leading-6 outline-none" placeholder="Ask something only your mind could answer…" value={question} onChange={(event) => setQuestion(event.target.value)} rows={2} maxLength={5000} disabled={isAsking} />
-                        <button className="h-11 rounded-full bg-[#24272d] px-5 text-xs font-semibold uppercase tracking-[0.12em] text-white disabled:opacity-35" type="submit" disabled={!question.trim() || isAsking}>Ask →</button>
-                      </form>
-                      {askMessage ? <p className="mx-5 mb-4 text-xs leading-5 text-[#bb454f]">{askMessage}</p> : null}
-                    </div>
-                    <aside className="bg-[#f3f3f0]/70 p-5 sm:p-7">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8d929c]">Sources / {latestSources.length}</p>
-                      <div className="mt-5 space-y-5">{latestSources.length === 0 ? <p className="text-sm leading-6 text-[#8b909a]">Citations appear here with the exact thoughts used.</p> : latestSources.map((source) => <article key={source.chunk_id}><span className="text-[10px] font-semibold tracking-[0.12em] text-[#6f7fd8]">{source.citation_label}</span><h2 className="mt-1 text-sm font-semibold text-[#30343b]">{source.title ?? source.source_title ?? "Untitled thought"}</h2><p className="mt-1 line-clamp-4 text-xs leading-5 text-[#737984]">{source.snippet}</p></article>)}</div>
-                    </aside>
-                  </div>
-                </div>
+                <AskMyMindWorkspace
+                  messages={chatMessages}
+                  question={question}
+                  isAsking={isAsking}
+                  errorMessage={askMessage}
+                  sources={latestSources}
+                  onQuestionChange={setQuestion}
+                  onSubmit={handleAsk}
+                />
               ) : workspaceMode === "organizing" ? (
                 <div className="mind-workspace-enter text-center">
                   <div className="mx-auto h-52 w-52 animate-pulse rounded-full bg-[radial-gradient(circle_at_34%_28%,#8fa0ff_0%,#5367c7_34%,#29345f_68%,#181b27_100%)] shadow-[0_35px_90px_rgba(32,42,89,0.34)]" />
                   <p className="mt-8 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#777c86]">Rearranging the view…</p>
                 </div>
               ) : (
-                <div className="mind-workspace-enter w-full max-w-6xl">
-                  <div className="grid gap-8 lg:grid-cols-[0.7fr_1.3fr] lg:gap-14">
-                    <header>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#35a79f]">[ Reminisce / 04 ]</p>
-                      <h1 className="mt-5 font-display text-5xl font-medium leading-[0.98] tracking-[-0.055em] text-[#202329] sm:text-7xl">Patterns, without the filing.</h1>
-                      <p className="mt-6 max-w-sm text-sm leading-6 text-[#747983]">{rememberOverview?.thoughts_analyzed ?? 0} AI-enabled thoughts have contributed to this view.</p>
-                    </header>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {selectedRememberCategory ? (
-                        <ReminisceCategoryDetail
-                          category={
-                            (rememberOverview?.categories ?? EMPTY_REMEMBER_CATEGORIES).find(
-                              (category) => category.key === selectedRememberCategory,
-                            ) ?? EMPTY_REMEMBER_CATEGORIES[0]
-                          }
-                          onBack={() => setSelectedRememberCategory(null)}
-                          onItemClick={handleRememberCategoryItemClick}
-                        />
-                      ) : (
-                        (rememberOverview?.categories ?? EMPTY_REMEMBER_CATEGORIES).map((category, index) => (
-                          <button
-                            key={category.key}
-                            className="reminisce-category-card rounded-[26px] border border-black/[0.08] bg-white/80 p-6 text-left shadow-[0_20px_60px_rgba(31,35,45,0.07)] backdrop-blur-xl hover:-translate-y-1 hover:border-[#cfd6ec] hover:bg-white hover:shadow-[0_28px_70px_rgba(31,35,45,0.12)] active:translate-y-0"
-                            type="button"
-                            aria-label={`Open ${category.label}`}
-                            onClick={() => setSelectedRememberCategory(category.key)}
-                          >
-                            <span className="text-[10px] font-semibold tracking-[0.18em] text-[#9a9ea7]">
-                              {String(index + 1).padStart(2, "0")}
-                            </span>
-                            <h2 className="mt-7 font-display text-2xl font-semibold tracking-[-0.035em] text-[#24272d]">
-                              {category.label}
-                            </h2>
-                            <p className="mt-5 text-sm text-[#8b909a]">
-                              {category.items.length > 0
-                                ? `${category.items.length} ${category.label.toLowerCase()} identified`
-                                : "Still taking shape"}
-                            </p>
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </div>
+                <ReminisceWorkspace
+                  overview={rememberOverview}
+                  selectedCategory={selectedRememberCategory}
+                  onSelectCategory={setSelectedRememberCategory}
+                  onClearCategory={() => setSelectedRememberCategory(null)}
+                  onCategoryItemClick={handleRememberCategoryItemClick}
+                />
               )}
             </div>
             <button
@@ -1392,126 +1321,51 @@ export function MindPalaceShell() {
         ) : null}
 
         {isCaptureOpen && isAuthenticated ? (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-[#17191d]/55 p-3 backdrop-blur-md sm:p-6"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="capture-title"
-          >
-            <button
-              className="absolute inset-0 cursor-default"
-              type="button"
-              aria-label="Close thought composer"
-              onClick={() => setIsCaptureOpen(false)}
-            />
-            <section className="capture-panel-enter relative z-10 flex max-h-[92dvh] w-full max-w-4xl flex-col overflow-hidden rounded-[32px] bg-[#f7f7f4] shadow-[0_50px_160px_rgba(0,0,0,0.32)]">
-              <header className="flex items-center justify-between border-b border-black/[0.07] px-5 py-4 sm:px-8">
-                <div className="flex items-center gap-3">
-                  <span className="h-2 w-2 rounded-full bg-[#35a79f]" />
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#727780]">Private capture / autosaved after submission</p>
-                </div>
-                <button className="h-10 rounded-full border border-black/10 px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#565b64] hover:bg-white" type="button" onClick={() => setIsCaptureOpen(false)}>Close</button>
-              </header>
-
-              <form className="min-h-0 overflow-y-auto" onSubmit={handleCreateThought}>
-                <div className="px-5 pb-5 pt-7 sm:px-10 sm:pb-8 sm:pt-10">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#6f7fd8]">[ New thought ]</p>
-                  <h1 id="capture-title" className="mt-3 font-display text-4xl font-medium tracking-[-0.05em] text-[#202329] sm:text-5xl">What is moving through your mind?</h1>
-                  <textarea
-                    autoFocus
-                    className="mt-7 min-h-52 w-full resize-none border-0 bg-transparent font-display text-xl leading-9 tracking-[-0.025em] text-[#30343b] outline-none placeholder:text-[#a4a7ad] sm:min-h-64 sm:text-2xl"
-                    placeholder="Start anywhere. You do not need to organize it."
-                    value={body}
-                    onChange={(event) => setBody(event.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="border-t border-black/[0.07] bg-white/70 px-5 py-5 sm:px-8">
-                  <div className="grid gap-3 sm:grid-cols-[1.4fr_0.7fr]">
-                    <label>
-                      <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.15em] text-[#8a8f98]">Optional title</span>
-                      <input className="modern-control w-full" placeholder="Give this thought a name" value={title} onChange={(event) => setTitle(event.target.value)} />
-                    </label>
-                    <label>
-                      <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.15em] text-[#8a8f98]">Kind of thought</span>
-                      <select className="modern-control w-full" value={thoughtType} onChange={(event) => { const nextType = parseThoughtType(event.target.value); setThoughtType(nextType); if (nextType !== "book_excerpt") setSelectedBookId(""); }}><option value="thought">Thought</option><option value="journal">Journal</option><option value="quote">Quote</option><option value="book_excerpt">Book excerpt</option></select>
-                    </label>
-                  </div>
-                  {thoughtType === "book_excerpt" ? (
-                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                      <label>
-                        <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.15em] text-[#8a8f98]">Book</span>
-                        <select className="modern-control w-full" value={selectedBookId} onChange={(event) => setSelectedBookId(event.target.value)} required>
-                          <option value="">Select a saved book</option>
-                          {books.map((book) => <option key={book.id} value={book.id}>{book.title} · {book.author}</option>)}
-                          <option value="__new__">+ Add a new book</option>
-                        </select>
-                      </label>
-                      {selectedBookId === "__new__" ? (
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          <label><span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.15em] text-[#8a8f98]">Book title</span><input className="modern-control w-full" value={newBookTitle} onChange={(event) => setNewBookTitle(event.target.value)} required /></label>
-                          <label><span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.15em] text-[#8a8f98]">Author</span><input className="modern-control w-full" value={newBookAuthor} onChange={(event) => setNewBookAuthor(event.target.value)} required /></label>
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-                    <label>
-                      <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.15em] text-[#8a8f98]">Context, if useful</span>
-                      <input className="modern-control w-full" placeholder="Tags separated by commas" value={manualTags} onChange={(event) => setManualTags(event.target.value)} />
-                    </label>
-                    <label className="flex min-h-12 items-center justify-between gap-6 rounded-2xl border border-black/[0.08] bg-[#f3f3f0] px-4 text-xs font-medium text-[#4d525b]">
-                      <span>Let Ask My Mind use this</span>
-                      <input className="h-4 w-4 accent-[#24272d]" type="checkbox" checked={useWithAsk} onChange={(event) => setUseWithAsk(event.target.checked)} />
-                    </label>
-                  </div>
-                  <div className="mt-5 flex items-center justify-between gap-4">
-                    <p className="hidden max-w-md text-xs leading-5 text-[#8a8f98] sm:block">AI access is off unless you enable it. Your original thought remains visible only inside your account.</p>
-                    <button className="h-12 shrink-0 rounded-full bg-[#24272d] px-7 text-xs font-semibold uppercase tracking-[0.12em] text-white hover:bg-black disabled:cursor-not-allowed disabled:opacity-35" type="submit" disabled={!body.trim() || isSaving}>{isSaving ? "Keeping it…" : "Keep this thought →"}</button>
-                  </div>
-                </div>
-              </form>
-            </section>
-          </div>
+          <ThoughtCaptureModal
+            body={body}
+            title={title}
+            thoughtType={thoughtType}
+            books={books}
+            selectedBookId={selectedBookId}
+            newBookTitle={newBookTitle}
+            newBookAuthor={newBookAuthor}
+            manualTags={manualTags}
+            useWithAsk={useWithAsk}
+            isSaving={isSaving}
+            onClose={() => setIsCaptureOpen(false)}
+            onSubmit={handleCreateThought}
+            onBodyChange={setBody}
+            onTitleChange={setTitle}
+            onThoughtTypeChange={(nextType) => { setThoughtType(nextType); if (nextType !== "book_excerpt") setSelectedBookId(""); }}
+            onBookChange={setSelectedBookId}
+            onNewBookTitleChange={setNewBookTitle}
+            onNewBookAuthorChange={setNewBookAuthor}
+            onManualTagsChange={setManualTags}
+            onUseWithAskChange={setUseWithAsk}
+          />
         ) : null}
 
         {isTrustControlsOpen && isAuthenticated ? (
-          <div className="fixed inset-0 z-50 flex justify-end bg-[#17191d]/40 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="privacy-title">
-            <button className="absolute inset-0 cursor-default" type="button" aria-label="Close privacy settings" onClick={() => setIsTrustControlsOpen(false)} />
-            <section className="capture-panel-enter relative z-10 h-full w-full max-w-xl overflow-y-auto bg-[#f7f7f4] p-6 shadow-[-30px_0_100px_rgba(0,0,0,0.18)] sm:p-9">
-              <div className="flex items-start justify-between gap-6">
-                <div><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#35a79f]">[ Trust controls ]</p><h1 id="privacy-title" className="mt-3 font-display text-4xl font-medium tracking-[-0.05em] text-[#202329]">Privacy &amp; data</h1></div>
-                <button className="h-10 rounded-full border border-black/10 px-4 text-[11px] font-semibold uppercase tracking-[0.12em]" type="button" onClick={() => setIsTrustControlsOpen(false)}>Close</button>
-              </div>
-
-              <div className="mt-10 space-y-4">
-                <section className="rounded-[24px] border border-black/[0.08] bg-white p-5">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b9099]">AI participation</p>
-                  <label className="mt-4 flex items-center justify-between gap-5 text-sm leading-6 text-[#383c44]"><span>Use new thoughts with Ask My Mind by default</span><input className="h-5 w-5 accent-[#24272d]" type="checkbox" checked={settings?.default_use_with_ask_my_mind ?? false} disabled={loadState !== "ready"} onChange={(event) => void handleDefaultAskToggle(event.target.checked)} /></label>
-                </section>
-
-                <section className="rounded-[24px] border border-black/[0.08] bg-white p-5">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b9099]">Deleted thoughts</p>
-                  <p className="mt-2 text-sm leading-6 text-[#6f747e]">Restore a thought before its recovery window ends.</p>
-                  <div className="mt-4 space-y-3">{deletedThoughts.length === 0 ? <p className="text-sm text-[#92969e]">Nothing is waiting to be restored.</p> : deletedThoughts.map((thought) => <article key={thought.id} className="rounded-2xl bg-[#f3f3f0] p-4"><p className="line-clamp-2 text-sm text-[#3e424a]">{thought.title || thought.body}</p><button className="mt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#5367c7]" type="button" onClick={() => void handleRestoreThought(thought.id)} disabled={restoringThoughtId !== null}>{restoringThoughtId === thought.id ? "Restoring…" : "Restore thought"}</button></article>)}</div>
-                </section>
-
-                <section className="rounded-[24px] border border-black/[0.08] bg-white p-5">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b9099]">Your archive</p>
-                  <p className="mt-2 text-sm leading-6 text-[#6f747e]">Create a JSON export of your thoughts, settings, and saved conversations.</p>
-                  {exportRequest ? <p className="mt-3 text-xs text-[#777c86]">Export status: {formatStatus(exportRequest.status)}{exportRequest.status === "completed" && !isExportExpired(exportRequest) ? ` · available until ${formatDate(exportRequest.expires_at)}` : ""}</p> : null}
-                  <div className="mt-4 flex flex-wrap gap-2"><button className="h-10 rounded-full border border-black/10 px-4 text-[10px] font-semibold uppercase tracking-[0.12em]" type="button" onClick={() => void handleCreateExport()} disabled={isCreatingExport || exportRequest?.status === "pending" || exportRequest?.status === "processing"}>{isCreatingExport ? "Requesting…" : "Request export"}</button>{exportRequest?.status === "completed" && !isExportExpired(exportRequest) ? <button className="h-10 rounded-full bg-[#24272d] px-4 text-[10px] font-semibold uppercase tracking-[0.12em] text-white" type="button" onClick={() => void handleDownloadExport()} disabled={isDownloadingExport}>{isDownloadingExport ? "Downloading…" : "Download JSON"}</button> : null}</div>
-                </section>
-
-                <section className="rounded-[24px] border border-[#bb454f]/20 bg-[#fffafa] p-5">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#bb454f]">Account deletion</p>
-                  {accountDeletion?.status === "pending" ? <><p className="mt-2 text-sm leading-6 text-[#7a4a4e]">Permanent deletion is scheduled for {formatDate(accountDeletion.purge_at)}.</p><button className="mt-4 h-10 rounded-full border border-[#bb454f]/30 px-4 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#bb454f]" type="button" onClick={() => void handleCancelAccountDeletion()} disabled={isCancellingDeletion}>{isCancellingDeletion ? "Cancelling…" : "Cancel deletion"}</button></> : <><p className="mt-2 text-sm leading-6 text-[#7a6668]">Your Mind Palace data is removed after the recovery window.</p><button className="mt-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#bb454f]" type="button" onClick={() => void handleRequestAccountDeletion()} disabled={isRequestingDeletion}>{isRequestingDeletion ? "Requesting…" : "Request account deletion"}</button></>}
-                </section>
-              </div>
-              {lifecycleMessage ? <p className="mt-5 text-sm text-[#5f646d]">{lifecycleMessage}</p> : null}
-            </section>
-          </div>
+          <TrustControlsPanel
+            settings={settings}
+            deletedThoughts={deletedThoughts}
+            exportRequest={exportRequest}
+            accountDeletion={accountDeletion}
+            lifecycleState={lifecycleState}
+            lifecycleMessage={lifecycleMessage}
+            restoringThoughtId={restoringThoughtId}
+            isCreatingExport={isCreatingExport}
+            isDownloadingExport={isDownloadingExport}
+            isRequestingDeletion={isRequestingDeletion}
+            isCancellingDeletion={isCancellingDeletion}
+            onClose={() => setIsTrustControlsOpen(false)}
+            onDefaultAskToggle={(value) => void handleDefaultAskToggle(value)}
+            onRestoreThought={(thoughtId) => void handleRestoreThought(thoughtId)}
+            onCreateExport={() => void handleCreateExport()}
+            onDownloadExport={() => void handleDownloadExport()}
+            onRequestDeletion={() => void handleRequestAccountDeletion()}
+            onCancelDeletion={() => void handleCancelAccountDeletion()}
+          />
         ) : null}
 
         {isChatOpen && isAuthenticated ? (
