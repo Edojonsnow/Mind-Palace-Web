@@ -51,28 +51,28 @@ export function ThoughtEditForm({
 }: ThoughtEditFormProps) {
   return (
     <form className="mt-3 grid gap-3" onSubmit={onSubmit}>
-      <label className="grid gap-1 text-xs text-[#68738a]">
+      <label className="grid gap-1 text-xs text-[#68787a]">
         Title
         <input
-          className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]"
+          className="h-10 rounded-xl border border-[#e0e7e6] bg-[#fffefa] px-3 text-sm text-[#172033] outline-none focus:border-[#345f60]"
           value={title}
           onChange={(event) => onTitleChange(event.target.value)}
         />
       </label>
-      <label className="grid gap-1 text-xs text-[#68738a]">
+      <label className="grid gap-1 text-xs text-[#68787a]">
         Thought
         <textarea
-          className="min-h-28 resize-y rounded-xl border border-[#dde2ee] bg-[#f6f8fc] p-3 text-sm leading-6 text-[#172033] outline-none focus:border-[#263a67]"
+          className="min-h-28 resize-y rounded-xl border border-[#e0e7e6] bg-[#fffefa] p-3 text-sm leading-6 text-[#172033] outline-none focus:border-[#345f60]"
           value={body}
           onChange={(event) => onBodyChange(event.target.value)}
           required
         />
       </label>
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="grid gap-1 text-xs text-[#68738a]">
+        <label className="grid gap-1 text-xs text-[#68787a]">
           Type
           <select
-            className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]"
+            className="h-10 rounded-xl border border-[#e0e7e6] bg-[#fffefa] px-3 text-sm text-[#172033] outline-none focus:border-[#345f60]"
             value={thoughtType}
             onChange={(event) =>
               onThoughtTypeChange(parseThoughtType(event.target.value))
@@ -84,10 +84,10 @@ export function ThoughtEditForm({
             <option value="book_excerpt">Book excerpt</option>
           </select>
         </label>
-        <label className="grid gap-1 text-xs text-[#68738a]">
+        <label className="grid gap-1 text-xs text-[#68787a]">
           Manual tags
           <input
-            className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]"
+            className="h-10 rounded-xl border border-[#e0e7e6] bg-[#fffefa] px-3 text-sm text-[#172033] outline-none focus:border-[#345f60]"
             placeholder="e.g. work, ideas"
             value={manualTags}
             onChange={(event) => onManualTagsChange(event.target.value)}
@@ -96,10 +96,10 @@ export function ThoughtEditForm({
       </div>
       {thoughtType === "book_excerpt" ? (
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="grid gap-1 text-xs text-[#68738a]">
+          <label className="grid gap-1 text-xs text-[#68787a]">
             Book
             <select
-              className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]"
+              className="h-10 rounded-xl border border-[#e0e7e6] bg-[#fffefa] px-3 text-sm text-[#172033] outline-none focus:border-[#345f60]"
               value={bookId}
               onChange={(event) => onBookIdChange(event.target.value)}
               required
@@ -115,19 +115,19 @@ export function ThoughtEditForm({
           </label>
           {bookId === "__new__" ? (
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="grid gap-1 text-xs text-[#68738a]">
+              <label className="grid gap-1 text-xs text-[#68787a]">
                 Book title
                 <input
-                  className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]"
+                  className="h-10 rounded-xl border border-[#e0e7e6] bg-[#fffefa] px-3 text-sm text-[#172033] outline-none focus:border-[#345f60]"
                   value={bookTitle}
                   onChange={(event) => onBookTitleChange(event.target.value)}
                   required
                 />
               </label>
-              <label className="grid gap-1 text-xs text-[#68738a]">
+              <label className="grid gap-1 text-xs text-[#68787a]">
                 Author
                 <input
-                  className="h-10 rounded-xl border border-[#dde2ee] bg-[#f6f8fc] px-3 text-sm text-[#172033] outline-none focus:border-[#263a67]"
+                  className="h-10 rounded-xl border border-[#e0e7e6] bg-[#fffefa] px-3 text-sm text-[#172033] outline-none focus:border-[#345f60]"
                   value={bookAuthor}
                   onChange={(event) => onBookAuthorChange(event.target.value)}
                   required
@@ -137,7 +137,7 @@ export function ThoughtEditForm({
           ) : null}
         </div>
       ) : null}
-      <label className="flex items-center gap-2 text-xs text-[#68738a]">
+      <label className="flex items-center gap-2 text-xs text-[#68787a]">
         <input
           type="checkbox"
           checked={useWithAsk}
@@ -147,7 +147,7 @@ export function ThoughtEditForm({
       </label>
       <div className="flex flex-wrap items-center gap-2">
         <button
-          className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#263a67] px-3 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#345f60] px-3 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
           type="submit"
           disabled={isUpdating || !body.trim()}
         >
@@ -155,7 +155,7 @@ export function ThoughtEditForm({
           {isUpdating ? "Saving..." : "Save changes"}
         </button>
         <button
-          className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#dde2ee] px-3 text-xs text-[#263a67] disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#e0e7e6] px-3 text-xs text-[#345f60] disabled:cursor-not-allowed disabled:opacity-50"
           type="button"
           onClick={onCancel}
           disabled={isUpdating}

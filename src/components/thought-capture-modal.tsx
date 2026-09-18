@@ -42,7 +42,7 @@ export function ThoughtCaptureModal({
         </header>
         <form className="min-h-0 overflow-y-auto" onSubmit={onSubmit}>
           <div className="px-5 pb-5 pt-7 sm:px-10 sm:pb-8 sm:pt-10">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#6f7fd8]">[ New thought ]</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#587878]">[ New thought ]</p>
             <h1 id="capture-title" className="mt-3 font-display text-4xl font-medium tracking-[-0.05em] text-[#202329] sm:text-5xl">What is moving through your mind?</h1>
             <textarea autoFocus className="mt-7 min-h-52 w-full resize-none border-0 bg-transparent font-display text-xl leading-9 tracking-[-0.025em] text-[#30343b] outline-none placeholder:text-[#a4a7ad] sm:min-h-64 sm:text-2xl" placeholder="Start anywhere. You do not need to organize it." value={body} onChange={(event) => onBodyChange(event.target.value)} required />
           </div>

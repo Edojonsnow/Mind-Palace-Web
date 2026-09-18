@@ -31,7 +31,7 @@ export function AskMyMindWorkspace({
         <div className="flex min-h-0 flex-col border-b border-black/[0.07] lg:border-b-0 lg:border-r">
           <div className="flex-1 space-y-4 overflow-y-auto p-5 sm:p-7">
             {messages.length === 0 ? <p className="max-w-md font-display text-2xl leading-9 tracking-[-0.025em] text-[#90949c]">Ask about a pattern, decision, person, or idea you have written about.</p> : messages.map((message) => (
-              <div key={message.id} className={message.role === "user" ? "ml-auto max-w-[80%] rounded-[20px] bg-[#24272d] px-5 py-4 text-sm leading-6 text-white" : "max-w-[88%] border-l border-[#6f7fd8] pl-5 text-sm leading-7 text-[#343840]"}>{message.content}</div>
+              <div key={message.id} className={message.role === "user" ? "ml-auto max-w-[80%] rounded-[20px] bg-[#24272d] px-5 py-4 text-sm leading-6 text-white" : "max-w-[88%] border-l border-[#587878] pl-5 text-sm leading-7 text-[#343840]"}>{message.content}</div>
             ))}
             {isAsking ? <p className="text-xs uppercase tracking-[0.14em] text-[#8b909a]">Looking through your thoughts…</p> : null}
           </div>
@@ -43,7 +43,7 @@ export function AskMyMindWorkspace({
         </div>
         <aside className="bg-[#f3f3f0]/70 p-5 sm:p-7">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8d929c]">Sources / {sources.length}</p>
-          <div className="mt-5 space-y-5">{sources.length === 0 ? <p className="text-sm leading-6 text-[#8b909a]">Citations appear here with the exact thoughts used.</p> : sources.map((source) => <article key={source.chunk_id}><span className="text-[10px] font-semibold tracking-[0.12em] text-[#6f7fd8]">{source.citation_label}</span><h2 className="mt-1 text-sm font-semibold text-[#30343b]">{source.title ?? source.source_title ?? "Untitled thought"}</h2><p className="mt-1 line-clamp-4 text-xs leading-5 text-[#737984]">{source.snippet}</p></article>)}</div>
+          <div className="mt-5 space-y-5">{sources.length === 0 ? <p className="text-sm leading-6 text-[#8b909a]">Citations appear here with the exact thoughts used.</p> : sources.map((source) => <article key={source.chunk_id}><span className="text-[10px] font-semibold tracking-[0.12em] text-[#587878]">{source.citation_label}</span><h2 className="mt-1 text-sm font-semibold text-[#30343b]">{source.title ?? source.source_title ?? "Untitled thought"}</h2><p className="mt-1 line-clamp-4 text-xs leading-5 text-[#737984]">{source.snippet}</p></article>)}</div>
         </aside>
       </div>
     </div>

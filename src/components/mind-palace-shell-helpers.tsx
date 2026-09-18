@@ -73,7 +73,7 @@ export function ReminisceCategoryDetail({
   return (
     <div className="col-span-full rounded-[26px] border border-black/[0.08] bg-white/80 p-6 shadow-[0_20px_60px_rgba(31,35,45,0.07)] backdrop-blur-xl sm:p-8">
       <button
-        className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#777c86] hover:text-[#263a67]"
+        className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#777c86] hover:text-[#345f60]"
         type="button"
         onClick={onBack}
       >
@@ -81,7 +81,7 @@ export function ReminisceCategoryDetail({
         All categories
       </button>
       <div className="mt-6 flex items-center gap-3">
-        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#eef0fa] text-[#6f7fd8]">
+        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#eef3ef] text-[#587878]">
           <CategoryIcon size={21} aria-hidden="true" />
         </span>
         <div>
@@ -100,7 +100,7 @@ export function ReminisceCategoryDetail({
           {category.items.map((item, index) => (
             <button
               key={item.label}
-              className="reminisce-bubble-enter rounded-full border border-[#d9deef] bg-[#f7f8fd] px-4 py-3 text-sm text-[#4f5d7c] shadow-[0_8px_20px_rgba(38,58,103,0.05)] hover:-translate-y-1 hover:border-[#6f7fd8] hover:bg-white hover:text-[#263a67] hover:shadow-[0_14px_28px_rgba(38,58,103,0.12)] active:translate-y-0"
+              className="reminisce-bubble-enter rounded-full border border-[#d9deef] bg-[#f7f8fd] px-4 py-3 text-sm text-[#4f5d7c] shadow-[0_8px_20px_rgba(38,58,103,0.05)] hover:-translate-y-1 hover:border-[#587878] hover:bg-white hover:text-[#345f60] hover:shadow-[0_14px_28px_rgba(38,58,103,0.12)] active:translate-y-0"
               style={{ animationDelay: `${index * 45}ms` }}
               type="button"
               onClick={() => onItemClick(category.key, item.label)}
@@ -153,8 +153,8 @@ export function CompactLabelList({
   const hiddenCount = labels.length - visibleLabels.length;
   const labelClassName =
     variant === "ai"
-      ? "rounded-full bg-[#eef0fa] px-2 py-1 text-[10px] text-[#68738a]"
-      : "rounded-full border border-[#dde2ee] px-2 py-1 text-[10px] text-[#68738a]";
+      ? "rounded-full bg-[#eef3ef] px-2 py-1 text-[10px] text-[#68787a]"
+      : "rounded-full border border-[#e0e7e6] px-2 py-1 text-[10px] text-[#68787a]";
 
   return (
     <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -162,7 +162,7 @@ export function CompactLabelList({
         onLabelClick ? (
           <button
             key={`${label.filterKey}:${label.value}`}
-            className={`${labelClassName} cursor-pointer hover:border-[#6f7fd8] hover:text-[#263a67]`}
+            className={`${labelClassName} cursor-pointer hover:border-[#587878] hover:text-[#345f60]`}
             type="button"
             title={`Filter by ${label.label}`}
             onClick={() => onLabelClick(label)}
@@ -177,7 +177,7 @@ export function CompactLabelList({
       ))}
       {labels.length > maxVisible ? (
         <button
-          className="px-1 text-[10px] font-semibold text-[#5367c7] hover:text-[#263a67]"
+          className="px-1 text-[10px] font-semibold text-[#587878] hover:text-[#345f60]"
           type="button"
           aria-expanded={isExpanded}
           onClick={() => setIsExpanded((current) => !current)}

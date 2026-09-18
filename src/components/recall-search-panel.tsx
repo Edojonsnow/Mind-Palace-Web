@@ -61,7 +61,7 @@ export function RecallSearchPanel({
         <div className="mt-4 flex flex-wrap items-center gap-1.5 text-[10px] text-[#777c86]">
           <span className="mr-1 font-semibold uppercase tracking-[0.12em]">Active filters</span>
           {activeRecallFilterLabels(activeFilters).map((label) => (
-            <span key={label} className="rounded-full bg-[#f3f3f0] px-2 py-1 text-[#68738a]">{label}</span>
+            <span key={label} className="rounded-full bg-[#f3f3f0] px-2 py-1 text-[#68787a]">{label}</span>
           ))}
         </div>
       ) : null}

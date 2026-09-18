@@ -58,6 +58,7 @@ import {
   type WorkspaceMode,
 } from "@/components/mind-palace-shell-helpers";
 import { MindMapHome } from "@/components/mind-map-home";
+import homeStyles from "@/components/mind-map-home.module.css";
 import { RecallSearchPanel } from "@/components/recall-search-panel";
 import { AskMyMindWorkspace } from "@/components/ask-my-mind-workspace";
 import { ThoughtCaptureModal } from "@/components/thought-capture-modal";
@@ -825,7 +826,7 @@ export function MindPalaceShell() {
 
   if (!hasMounted) {
     return (
-      <main className="flex min-h-dvh items-center justify-center bg-[#f6f8fc] px-4 text-[#172033]">
+      <main className="flex min-h-dvh items-center justify-center bg-[#fffefa] px-4 text-[#172033]">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7d828b]">
           Restoring your private space…
         </p>
@@ -834,12 +835,12 @@ export function MindPalaceShell() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f6f8fc] text-[#172033]">
+    <main className="min-h-screen bg-[#fffefa] text-[#172033]">
       <div className="flex min-h-screen w-full flex-col">
         {isAuthenticated ? (
-          <section className="relative isolate flex min-h-dvh w-full flex-col justify-center overflow-hidden bg-white px-4 py-12 sm:px-8">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(111,127,216,0.14),transparent_36%),linear-gradient(to_bottom,rgba(246,248,252,0.2),rgba(238,240,250,0.56))]" />
-            <div className="absolute right-4 top-4 z-30 flex items-center gap-2 sm:right-7 sm:top-6">
+          <section className={workspaceMode === "hub" ? homeStyles.shell : "relative isolate flex min-h-dvh w-full flex-col justify-center overflow-hidden bg-white px-4 py-12 sm:px-8"}>
+            {workspaceMode === "hub" ? <div className={homeStyles.brand}>mind palace<span>A place for what stays with you.</span></div> : <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(88,120,120,0.10),transparent_36%),linear-gradient(to_bottom,rgba(255,254,250,0.2),rgba(238,243,239,0.56))]" />}
+            <div className={workspaceMode === "hub" ? homeStyles.utilities : "absolute right-4 top-4 z-30 flex items-center gap-2 sm:right-7 sm:top-6"}>
               <button
                 className="h-10 rounded-full border border-black/10 bg-white/75 px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#31343b] backdrop-blur-xl hover:bg-white"
                 type="button"
@@ -848,7 +849,7 @@ export function MindPalaceShell() {
                 Privacy &amp; data
               </button>
               <button
-                className="h-10 rounded-full bg-[#202226] px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-white hover:bg-black"
+                className={`h-10 rounded-full bg-[#202226] px-4 text-[11px] font-semibold uppercase tracking-[0.12em] ${workspaceMode === "hub" ? "text-[#12304a]" : "text-white"} hover:bg-black`}
                 type="button"
                 onClick={() => void handleSignOut()}
               >
@@ -877,7 +878,7 @@ export function MindPalaceShell() {
               </button>
             ) : null}
 
-            <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 items-center justify-center py-10 sm:py-12">
+            <div className={workspaceMode === "hub" ? homeStyles.content : "relative z-10 mx-auto flex w-full max-w-7xl flex-1 items-center justify-center py-10 sm:py-12"}>
               {workspaceMode === "hub" ? (
                 <MindMapHome
                   showAskAction={showAskAction}
@@ -902,7 +903,7 @@ export function MindPalaceShell() {
                 <div className="mind-workspace-enter w-full max-w-5xl">
                   <div className="grid gap-8 lg:grid-cols-[0.65fr_1.35fr]">
                     <header className="pt-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#6f7fd8]">[ Recall / 03 ]</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#587878]">[ Recall / 03 ]</p>
                       <h1 className="mt-5 font-display text-5xl font-medium leading-[0.98] tracking-[-0.055em] text-[#202329] sm:text-6xl">
                         Find the thought behind the thought.
                       </h1>
@@ -959,7 +960,7 @@ export function MindPalaceShell() {
                                   <div className="mt-1 flex items-start justify-between gap-3">
                                     <h2 className="font-display text-base font-semibold text-[#24272d]">{thought.title || "Untitled thought"}</h2>
                                     <button
-                                      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[#263a67] hover:bg-[#eef0fa] disabled:cursor-not-allowed disabled:opacity-40"
+                                      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[#345f60] hover:bg-[#eef3ef] disabled:cursor-not-allowed disabled:opacity-40"
                                       type="button"
                                       aria-label="Edit thought"
                                       title="Edit thought"
@@ -1009,7 +1010,7 @@ export function MindPalaceShell() {
                 />
               ) : workspaceMode === "organizing" ? (
                 <div className="mind-workspace-enter text-center">
-                  <div className="mx-auto h-52 w-52 animate-pulse rounded-full bg-[radial-gradient(circle_at_34%_28%,#8fa0ff_0%,#5367c7_34%,#29345f_68%,#181b27_100%)] shadow-[0_35px_90px_rgba(32,42,89,0.34)]" />
+                  <div className="mx-auto h-52 w-52 animate-pulse rounded-full bg-[radial-gradient(circle_at_34%_28%,#b8c9c1_0%,#587878_34%,#345f60_68%,#304042_100%)] shadow-[0_35px_90px_rgba(52,95,96,0.24)]" />
                   <p className="mt-8 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#777c86]">Rearranging the view…</p>
                 </div>
               ) : (
@@ -1080,7 +1081,7 @@ export function MindPalaceShell() {
             {session.isPending ? <section className="rounded-[30px] border border-black/[0.08] bg-white p-8 shadow-[0_30px_100px_rgba(31,35,45,0.08)]">
               <div className="text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7d828b]">Restoring your private space…</div>
             </section> : !isAuthenticated ? <section className="rounded-[30px] border border-black/[0.08] bg-white p-7 shadow-[0_30px_100px_rgba(31,35,45,0.1)] sm:p-9">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#6f7fd8]">[ Private memory ]</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#587878]">[ Private memory ]</p>
               <h1 className="mt-4 font-display text-4xl font-medium tracking-[-0.05em] text-[#202329]">
                 {authMode === "sign-in"
                   ? "Return to your mind."
@@ -1091,7 +1092,7 @@ export function MindPalaceShell() {
               <p className="mb-7 mt-3 text-sm leading-6 text-[#7a7f88]">Your thoughts stay private and your AI controls remain yours.</p>
               <form className="space-y-3" onSubmit={handleAuth}>
                 {authMode === "confirm" ? <>
-                  <p className="text-sm leading-5 text-[#68738a]">
+                  <p className="text-sm leading-5 text-[#68787a]">
                     Enter the six-digit code sent to {authEmail}.
                   </p>
                   <input
@@ -1142,10 +1143,10 @@ export function MindPalaceShell() {
                         : "Create account"}
                 </button>
               </form>
-              {authMessage ? <p className="mt-4 text-xs leading-5 text-[#68738a]">{authMessage}</p> : null}
+              {authMessage ? <p className="mt-4 text-xs leading-5 text-[#68787a]">{authMessage}</p> : null}
               {authMode === "confirm" ? <button
                 type="button"
-                className="mt-4 text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-[#5367c7] disabled:opacity-50"
+                className="mt-4 text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-[#587878] disabled:opacity-50"
                 onClick={() => void handleResendVerificationCode()}
                 disabled={isResendingCode}
               >
@@ -1153,7 +1154,7 @@ export function MindPalaceShell() {
               </button> : null}
               {authMode === "confirm" ? <button
                 type="button"
-                className="mt-4 text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-[#5367c7]"
+                className="mt-4 text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-[#587878]"
                 onClick={() => {
                   setAuthMode("sign-up");
                   setVerificationCode("");
@@ -1162,7 +1163,7 @@ export function MindPalaceShell() {
               >
                 Use a different email
               </button> : <button
-                className="mt-4 text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-[#5367c7]"
+                className="mt-4 text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-[#587878]"
                 onClick={() => {
                   setAuthMode(authMode === "sign-in" ? "sign-up" : "sign-in");
                   setAuthMessage("");
