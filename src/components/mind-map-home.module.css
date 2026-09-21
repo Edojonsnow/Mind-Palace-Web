@@ -109,8 +109,9 @@
   .utilities button:last-child:hover { z-index: 1; box-shadow: 0 10px 24px rgb(0 0 0 / 0.18); transform: translateY(-1px) scale(1.045); }
 }
 .content { position: relative; z-index: 10; display: flex; flex: 1; align-items: center; justify-content: center; width: 100%; }
+.workspaceShell { position: relative; isolation: isolate; display: flex; flex-direction: column; justify-content: center; width: 100%; min-height: 100dvh; overflow: hidden; padding: 110px 40px 26px; background: var(--background); color: var(--foreground); }
 @media (max-width: 700px) {
-  .shell { padding: 135px 20px 18px; }
+  .shell, .workspaceShell { padding: 135px 20px 18px; }
   .brand { top: 22px; left: 22px; font-size: 17px; }
   .brand span { display: none; }
   .utilities { top: 64px; right: auto; left: 20px; }

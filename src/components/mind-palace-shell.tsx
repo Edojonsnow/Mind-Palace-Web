@@ -827,7 +827,7 @@ export function MindPalaceShell() {
 
   if (!hasMounted) {
     return (
-      <main className="flex min-h-dvh items-center justify-center bg-[#fffefa] px-4 text-[#172033]">
+      <main className="flex min-h-dvh items-center justify-center bg-[#fffefa] px-4 text-[#1c1c1c]">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7d828b]">
           Restoring your private space…
         </p>
@@ -836,14 +836,14 @@ export function MindPalaceShell() {
   }
 
   return (
-    <main className="min-h-screen bg-[#fffefa] text-[#172033]">
+    <main className="min-h-screen bg-[#fffefa] text-[#1c1c1c]">
       <div className="flex min-h-screen w-full flex-col">
         {isAuthenticated ? (
-          <section className={workspaceMode === "hub" ? homeStyles.shell : "relative isolate flex min-h-dvh w-full flex-col justify-center overflow-hidden bg-white px-4 py-12 sm:px-8"}>
-            {workspaceMode === "hub" ? <div className={homeStyles.brand}>mind palace<span>A place for what stays with you.</span></div> : <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(88,120,120,0.10),transparent_36%),linear-gradient(to_bottom,rgba(255,254,250,0.2),rgba(238,243,239,0.56))]" />}
-            <div className={workspaceMode === "hub" ? homeStyles.utilities : "absolute right-4 top-4 z-30 flex items-center gap-2 sm:right-7 sm:top-6"}>
+          <section className={workspaceMode === "hub" ? homeStyles.shell : homeStyles.workspaceShell}>
+            {workspaceMode === "hub" ? <div className={homeStyles.brand}>mind palace<span>A place for what stays with you.</span></div> : <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.035),transparent_38%),linear-gradient(to_bottom,rgba(255,254,250,0.16),rgba(241,241,239,0.58))]" />}
+            <div className={homeStyles.utilities}>
               <button
-                className="h-10 rounded-full border border-black/10 bg-white/75 px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#31343b] backdrop-blur-xl hover:bg-white"
+                className="h-10 rounded-full border border-black/10 bg-white/75 px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#1c1c1c] backdrop-blur-xl hover:bg-white"
                 type="button"
                 onClick={() => setIsTrustControlsOpen(true)}
               >
@@ -860,7 +860,7 @@ export function MindPalaceShell() {
 
             {message ? (
               <div className="pointer-events-none fixed inset-x-0 top-5 z-[60] flex justify-center px-4">
-                <div className="capture-panel-enter rounded-full border border-black/10 bg-[#24272d] px-5 py-3 text-xs font-medium text-white shadow-xl">
+                <div className="capture-panel-enter rounded-full border border-black/10 bg-[#1f1f1f] px-5 py-3 text-xs font-medium text-white shadow-xl">
                   {message}
                 </div>
               </div>
