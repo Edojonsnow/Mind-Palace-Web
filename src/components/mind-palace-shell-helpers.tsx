@@ -200,7 +200,6 @@ export type WorkspaceMode = "hub" | "organizing" | "reminisce" | "search" | "ask
 export type RecallFilters = {
   q: string;
   thought_type: string;
-  source_type: string;
   tag: string;
   book: string;
   book_id: string;
@@ -214,7 +213,6 @@ export type RecallFilters = {
 export const DEFAULT_RECALL_FILTERS: RecallFilters = {
   q: "",
   thought_type: "",
-  source_type: "",
   tag: "",
   book: "",
   book_id: "",
@@ -237,7 +235,6 @@ export function recallQuery(filters: RecallFilters, page: number): ThoughtListOp
   return {
     q: filters.q.trim() || undefined,
     thought_type: filters.thought_type || undefined,
-    source_type: filters.source_type || undefined,
     tag: filters.tag.trim() || undefined,
     book: filters.book.trim() || undefined,
     book_id: filters.book_id || undefined,
@@ -255,7 +252,6 @@ export function activeRecallFilterLabels(filters: RecallFilters): string[] {
   return [
     filters.q.trim() ? `Search: ${filters.q.trim()}` : "",
     filters.thought_type ? `Type: ${formatStatus(filters.thought_type)}` : "",
-    filters.source_type ? `Source: ${formatStatus(filters.source_type)}` : "",
     filters.tag.trim() ? `Tag: ${filters.tag.trim()}` : "",
     filters.book.trim() ? `Book: ${filters.book.trim()}` : filters.book_id ? "Book: selected" : "",
     filters.theme.trim() ? `Theme: ${filters.theme.trim()}` : "",

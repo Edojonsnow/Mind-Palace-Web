@@ -60,6 +60,7 @@ import {
 import { MindMapHome } from "@/components/mind-map-home";
 import homeStyles from "@/components/mind-map-home.module.css";
 import { RecallSearchPanel } from "@/components/recall-search-panel";
+import recallStyles from "@/components/recall-workspace.module.css";
 import { AskMyMindWorkspace } from "@/components/ask-my-mind-workspace";
 import { ThoughtCaptureModal } from "@/components/thought-capture-modal";
 import { TrustControlsPanel } from "@/components/trust-controls-panel";
@@ -900,19 +901,12 @@ export function MindPalaceShell() {
                   }}
                 />
               ) : workspaceMode === "search" ? (
-                <div className="mind-workspace-enter w-full max-w-5xl">
-                  <div className="grid gap-8 lg:grid-cols-[0.65fr_1.35fr]">
-                    <header className="pt-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#587878]">[ Recall / 03 ]</p>
-                      <h1 className="mt-5 font-display text-5xl font-medium leading-[0.98] tracking-[-0.055em] text-[#202329] sm:text-6xl">
-                        Find the thought behind the thought.
-                      </h1>
-                      <p className="mt-6 max-w-sm text-sm leading-6 text-[#747983]">
-                        Search the words you remember, then narrow by context. Nothing here changes how your thoughts are organized.
-                      </p>
-                    </header>
-
-                    <div className="rounded-[30px] border border-black/[0.08] bg-white/80 p-4 shadow-[0_30px_90px_rgba(31,35,45,0.1)] backdrop-blur-xl sm:p-7">
+                <div className="mind-workspace-enter w-full max-w-6xl">
+                  <div className={recallStyles.layout}>
+                    <aside className={recallStyles.sidebar}>
+                      <h1 className={recallStyles.title}>Find what you remember.</h1>
+                      <p className={recallStyles.description}>Search the words you remember, then narrow by context. Your thoughts stay exactly where you left them.</p>
+                      <div className={recallStyles.searchCard}>
                       <RecallSearchPanel
                         draftFilters={recallDraftFilters}
                         activeFilters={recallFilters}
@@ -921,17 +915,24 @@ export function MindPalaceShell() {
                         onSubmit={handleRecallSubmit}
                         onReset={handleRecallReset}
                       />
+                      </div>
+                    </aside>
 
-                      <div className="mt-7 max-h-[36vh] overflow-y-auto border-t border-black/[0.07] pr-1">
+                    <section className={recallStyles.results}>
+                      <div className={recallStyles.resultsHeader}>
+                        <h2 className={recallStyles.resultsTitle}>Your thoughts</h2>
+                        <span className={recallStyles.resultsCount}>{recallTotal} {recallTotal === 1 ? "thought" : "thoughts"}</span>
+                      </div>
+                      <div className={recallStyles.resultList}>
                         {loadState === "loading" ? (
-                          <p className="py-8 text-sm text-[#777c86]">Searching your memory…</p>
+                          <p className={recallStyles.emptyState}>Searching your memory…</p>
                         ) : thoughts.length === 0 ? (
-                          <p className="py-8 text-sm text-[#777c86]">No thoughts match this view yet.</p>
+                          <p className={recallStyles.emptyState}>No thoughts match this view yet.</p>
                         ) : thoughts.map((thought, index) => (
-                          <article key={thought.id} className="grid grid-cols-[32px_1fr] gap-3 border-b border-black/[0.06] py-4 last:border-0">
-                            <span className="pt-0.5 text-[10px] font-semibold tracking-[0.12em] text-[#a1a5ae]">{String(index + 1).padStart(2, "0")}</span>
+                          <article key={thought.id} className={recallStyles.resultItem}>
+                            <span className={recallStyles.resultNumber}>{String(index + 1).padStart(2, "0")}</span>
                             <div>
-                              <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.1em] text-[#8b909a]"><span>{thought.thought_type}</span><span>·</span><span>{formatDate(thought.created_at)}</span>{thought.use_with_ask_my_mind && (thought.ai_processing_status === "pending" || thought.ai_processing_status === "processing") ? <><span>·</span><span className="text-[#9a7b3f]">Organizing...</span></> : null}</div>
+                              <div className={recallStyles.resultMeta}><span>{thought.thought_type}</span><span>·</span><span>{formatDate(thought.created_at)}</span>{thought.use_with_ask_my_mind && (thought.ai_processing_status === "pending" || thought.ai_processing_status === "processing") ? <><span>·</span><span>Organizing...</span></> : null}</div>
                               {editingThoughtId === thought.id ? (
                                 <ThoughtEditForm
                                   title={editTitle}
@@ -958,9 +959,9 @@ export function MindPalaceShell() {
                               ) : (
                                 <>
                                   <div className="mt-1 flex items-start justify-between gap-3">
-                                    <h2 className="font-display text-base font-semibold text-[#24272d]">{thought.title || "Untitled thought"}</h2>
+                                    <h2 className={recallStyles.resultTitle}>{thought.title || "Untitled thought"}</h2>
                                     <button
-                                      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[#345f60] hover:bg-[#eef3ef] disabled:cursor-not-allowed disabled:opacity-40"
+                                      className={recallStyles.editButton}
                                       type="button"
                                       aria-label="Edit thought"
                                       title="Edit thought"
@@ -970,7 +971,7 @@ export function MindPalaceShell() {
                                       <Pencil size={15} aria-hidden="true" />
                                     </button>
                                   </div>
-                                  <p className="mt-1 line-clamp-2 text-sm leading-6 text-[#666b75]">{thought.body}</p>
+                                  <p className={recallStyles.resultBody}>{thought.body}</p>
                                   <CompactLabelList labels={generatedMetadataLabels(thought)} variant="ai" onLabelClick={handleLabelClick} />
                                   <CompactLabelList labels={manualThoughtLabels(thought)} variant="manual" maxVisible={4} onLabelClick={handleLabelClick} />
                                   {thought.ai_processing_status === "failed" && thought.use_with_ask_my_mind ? (
@@ -990,12 +991,12 @@ export function MindPalaceShell() {
                         ))}
                       </div>
                       {recallTotal > 0 ? (
-                        <div className="flex items-center justify-between border-t border-black/[0.07] pt-4 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8b909a]">
+                        <div className={recallStyles.pagination}>
                           <span>{recallTotal} {recallTotal === 1 ? "thought" : "thoughts"}</span>
                           {recallTotalPages > 1 ? <div className="flex items-center gap-3"><button type="button" disabled={recallPage === 1 || loadState === "loading"} onClick={() => handleRecallPageChange(recallPage - 1)}>← Previous</button><span>{recallPage} / {recallTotalPages}</span><button type="button" disabled={recallPage === recallTotalPages || loadState === "loading"} onClick={() => handleRecallPageChange(recallPage + 1)}>Next →</button></div> : null}
                         </div>
                       ) : null}
-                    </div>
+                    </section>
                   </div>
                 </div>
               ) : workspaceMode === "ask" ? (
