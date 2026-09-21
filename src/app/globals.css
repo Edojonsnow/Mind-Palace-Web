@@ -1,23 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  /* Quiet Ivory: a calm paper surface with one shared interaction language. */
+  /* Monochrome: warm ivory space with black ink and soft gray surfaces. */
   --background: #fffefa;
-  --foreground: #304042;
-  --mp-primary: #587878;
-  --mp-secondary: #7396a3;
-  --mp-accent: #dce8df;
-  --mp-surface: #fbfcf9;
-  --mp-subtle: #d8e5ea;
-  --mp-muted: #68787a;
-  --mp-border: #e0e7e6;
-  --mp-memory: #efd9ce;
-  --mp-recall: #d9e6e4;
-  --mp-thinking: #d8e5ea;
-  --mp-pattern: #dce8df;
-  --mp-deep: #345f60;
-  --mp-card-hover: #eef3ef;
-  --mp-card-hover-border: #b8c9c1;
+  --foreground: #1c1c1c;
+  --mp-primary: #1f1f1f;
+  --mp-secondary: #707070;
+  --mp-accent: #ededed;
+  --mp-surface: #ffffff;
+  --mp-subtle: #f1f1f1;
+  --mp-muted: #707070;
+  --mp-border: #e2e2e2;
+  --mp-memory: #e7e7e7;
+  --mp-recall: #dcdcdc;
+  --mp-thinking: #ededed;
+  --mp-pattern: #e4e4e4;
+  --mp-deep: #111111;
+  --mp-card-hover: #f1f1f1;
+  --mp-card-hover-border: #bdbdbd;
 }
 
 @theme inline {
@@ -63,7 +63,7 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid rgb(88 120 120 / 30%);
+  outline: 3px solid rgb(31 31 31 / 30%);
   outline-offset: 2px;
 }
 
@@ -81,10 +81,10 @@ textarea:focus-visible {
 @keyframes mind-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgb(88 120 120 / 12%), 0 22px 60px rgb(52 95 96 / 16%);
+    box-shadow: 0 0 0 0 rgb(31 31 31 / 12%), 0 22px 60px rgb(17 17 17 / 16%);
   }
   50% {
-    box-shadow: 0 0 0 14px rgb(88 120 120 / 0%), 0 22px 60px rgb(52 95 96 / 20%);
+    box-shadow: 0 0 0 14px rgb(31 31 31 / 0%), 0 22px 60px rgb(17 17 17 / 20%);
   }
 }
 
@@ -231,9 +231,9 @@ textarea:focus-visible {
 }
 
 .modern-control:focus {
-  border-color: rgb(88 120 120 / 0.55);
+  border-color: rgb(31 31 31 / 0.55);
   background: #fff;
-  box-shadow: 0 0 0 4px rgb(88 120 120 / 0.1);
+  box-shadow: 0 0 0 4px rgb(31 31 31 / 0.1);
 }
 
 @media (prefers-reduced-motion: reduce) {

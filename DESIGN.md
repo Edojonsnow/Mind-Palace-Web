@@ -1,28 +1,27 @@
-# Quiet Ivory
+# Monochrome Mind Palace
 
-The active Mind Palace design-system experiment is Quiet Ivory: a calm paper surface with sage and blue-gray accents and one shared interaction treatment.
+The active Mind Palace design direction is monochrome: warm white space, black ink, soft gray surfaces, and rounded cards. The brain remains the interactive center, while color is removed from the interface so actions feel quiet and immediate.
 
 ## Color tokens
 
 | Token | Value | Role |
 | --- | --- | --- |
 | `--background` | `#FFFEFA` | Warm white page canvas |
-| `--mp-surface` | `#FBFCF9` | Soft neutral cards and raised surfaces |
-| `--foreground` | `#304042` | Blue-gray primary ink and headings |
-| `--mp-muted` | `#68787A` | Supporting copy |
-| `--mp-primary` | `#587878` | Sign-out button, selected controls, and primary interaction |
-| `--mp-secondary` | `#7396A3` | Focus and secondary emphasis |
-| `--mp-memory` | `#EFD9CE` | Capture and memory highlight |
-| `--mp-thinking` | `#D8E5EA` | Ask and thinking state |
-| `--mp-recall` | `#D9E6E4` | Recall and association state |
-| `--mp-pattern` | `#DCE8DF` | View thoughts and pattern state |
-| `--mp-deep` | `#345F60` | Optional deep utility accent |
-| `--mp-border` | `#E0E7E6` | Quiet structural border |
-| `--mp-card-hover` | `#EEF3EF` | Shared card hover and selected surface |
-| `--mp-card-hover-border` | `#B8C9C1` | Shared card hover and selected border |
-
-Pastels are reserved for surfaces and highlights. Text stays in the ink or muted-ink tokens for readability. The brain's color regions are interaction cues, not medical or diagnostic claims.
+| `--mp-surface` | `#FFFFFF` | Card and raised surfaces |
+| `--foreground` | `#1C1C1C` | Primary ink and headings |
+| `--mp-muted` | `#707070` | Supporting copy |
+| `--mp-primary` | `#1F1F1F` | Sign-out button and primary actions |
+| `--mp-secondary` | `#707070` | Secondary emphasis |
+| `--mp-subtle` | `#F1F1F1` | Soft structural surface |
+| `--mp-border` | `#E2E2E2` | Quiet card border |
+| `--mp-memory` | `#E7E7E7` | Capture and memory state |
+| `--mp-thinking` | `#EDEDED` | Ask and thinking state |
+| `--mp-recall` | `#DCDCDC` | Recall and association state |
+| `--mp-pattern` | `#E4E4E4` | View thoughts and pattern state |
+| `--mp-deep` | `#111111` | Deep utility accent |
+| `--mp-card-hover` | `#F1F1F1` | Shared card hover and selected surface |
+| `--mp-card-hover-border` | `#BDBDBD` | Shared card hover and selected border |
 
 ## Homepage application
 
-The homepage uses the ivory canvas, blue-gray ink, and soft neutral surfaces. Every action card uses the same hover and selected colors; the authenticated shell uses `--mp-primary` for the sign-out button background.
+The homepage uses an ivory canvas, black typography, light separators, and rounded cards. Every action card shares one gray hover treatment. The 3D brain remains rotatable and responds to each action with a restrained highlight.

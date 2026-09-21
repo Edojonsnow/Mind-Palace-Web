@@ -12,7 +12,7 @@ export type BrainScene = {
 };
 
 const palette: Record<BrainAction, string> = {
-  save: "#e9d69f", ask: "#bfd3e8", search: "#d4c6e5", reminisce: "#bbdacd",
+  save: "#555555", ask: "#777777", search: "#3f3f3f", reminisce: "#969696",
 };
 
 // Illustrative associations, not exclusive functional or diagnostic regions.
@@ -54,7 +54,7 @@ export function createBrainScene(host: HTMLElement, onReady: () => void, onError
 
   const root = new THREE.Group();
   scene.add(root);
-  const baseColor = new THREE.Color("#e8eeee");
+  const baseColor = new THREE.Color("#e8e8e8");
   const noEmission = new THREE.Color(0x000000);
   const surfaces: Array<{ material: THREE.MeshStandardMaterial; label: string; region: string; ghost?: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial> }> = [];
   const geometries = new Set<THREE.BufferGeometry>();
@@ -141,7 +141,7 @@ export function createBrainScene(host: HTMLElement, onReady: () => void, onError
       materials.add(material);
       geometries.add(mesh.geometry);
       // Inverted normal hulls trace anatomical folds, rather than triangle wireframes.
-      const outlineMaterial = new THREE.MeshBasicMaterial({ color: "#647d7b", side: THREE.BackSide, transparent: true, opacity: 0.6, depthWrite: false });
+      const outlineMaterial = new THREE.MeshBasicMaterial({ color: "#666666", side: THREE.BackSide, transparent: true, opacity: 0.6, depthWrite: false });
       outlineMaterial.onBeforeCompile = (shader) => {
         shader.vertexShader = shader.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\ntransformed += normal * 0.00028;");
       };

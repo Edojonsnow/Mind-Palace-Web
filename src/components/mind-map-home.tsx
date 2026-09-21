@@ -27,6 +27,7 @@ export function MindMapHome({ showAskAction, onSaveThought, onAskMind, onSearchT
   const pendingAction = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onBrainReady = useCallback(() => setBrainReady(true), []);
   const activeAction = hovered ?? focused ?? selected;
+  const cardActiveAction = hovered ?? focused;
   const actionHandlers = { save: onSaveThought, ask: onAskMind, search: onSearchThoughts, reminisce: onReminisce };
 
   useEffect(() => () => { if (pendingAction.current) clearTimeout(pendingAction.current); }, []);
@@ -59,7 +60,7 @@ export function MindMapHome({ showAskAction, onSaveThought, onAskMind, onSearchT
               <button className={styles.action} type="button" onClick={() => choose(action.action)}
                 onPointerEnter={(event) => { if (event.pointerType !== "touch") setHovered(action.action); }}
                 onPointerLeave={() => setHovered(null)} onFocus={() => setFocused(action.action)} onBlur={() => setFocused(null)}
-                data-active={activeAction === action.action}>
+                data-active={cardActiveAction === action.action}>
                 <span className={styles.actionTop} aria-hidden="true"><Icon size={19} strokeWidth={1.35} /><ArrowUpRight className={styles.arrow} size={16} strokeWidth={1.35} /></span>
                 <span className={styles.actionTitle}>{action.title}</span>
                 <span className={styles.actionDetail}>{action.detail}</span>

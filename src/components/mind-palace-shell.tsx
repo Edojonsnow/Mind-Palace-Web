@@ -849,7 +849,7 @@ export function MindPalaceShell() {
                 Privacy &amp; data
               </button>
               <button
-                className={`h-10 rounded-full bg-[#202226] px-4 text-[11px] font-semibold uppercase tracking-[0.12em] ${workspaceMode === "hub" ? "text-[#12304a]" : "text-white"} hover:bg-black`}
+                className={`h-10 rounded-full bg-[#1f1f1f] px-4 text-[11px] font-semibold uppercase tracking-[0.12em] ${workspaceMode === "hub" ? "text-white" : "text-white"} hover:bg-black`}
                 type="button"
                 onClick={() => void handleSignOut()}
               >
@@ -1010,7 +1010,7 @@ export function MindPalaceShell() {
                 />
               ) : workspaceMode === "organizing" ? (
                 <div className="mind-workspace-enter text-center">
-                  <div className="mx-auto h-52 w-52 animate-pulse rounded-full bg-[radial-gradient(circle_at_34%_28%,#b8c9c1_0%,#587878_34%,#345f60_68%,#304042_100%)] shadow-[0_35px_90px_rgba(52,95,96,0.24)]" />
+                  <div className="mx-auto h-52 w-52 animate-pulse rounded-full bg-[radial-gradient(circle_at_34%_28%,#d8d8d8_0%,#777777_34%,#2f2f2f_68%,#111111_100%)] shadow-[0_35px_90px_rgba(17,17,17,0.24)]" />
                   <p className="mt-8 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#777c86]">Rearranging the view…</p>
                 </div>
               ) : (
