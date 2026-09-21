@@ -100,22 +100,38 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  margin-top: 2px;
+  padding: 4px 2px 2px;
   color: var(--mp-muted);
   font-size: 10px;
 }
 
 .activeLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   margin-right: 2px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
+.activeLabel::before {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--mp-primary);
+  content: "";
+}
+
 .filterTag {
   border-radius: 999px;
   background: #ffffff;
-  padding: 6px 8px;
+  padding: 7px 11px;
+  color: #4f4f4f;
+  line-height: 1;
+  box-shadow: 0 3px 10px rgb(0 0 0 / 0.055);
 }
 
 .searchInput:focus-visible,
