@@ -489,8 +489,11 @@ export interface components {
         RememberCategory: {
             /** Items */
             items: components["schemas"]["RememberItem"][];
-            /** Key */
-            key: string;
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "tags" | "books";
             /** Label */
             label: string;
         };
@@ -554,42 +557,8 @@ export interface components {
             /** Use With Ask My Mind */
             use_with_ask_my_mind?: boolean | null;
         };
-        /** ThoughtMetadataRead */
-        ThoughtMetadataRead: {
-            /** Action Items */
-            action_items: string[];
-            /** Books */
-            books: string[];
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Deterministic Metadata */
-            deterministic_metadata: {
-                [key: string]: unknown;
-            };
-            /** Emotions */
-            emotions: string[];
-            /** Key Questions */
-            key_questions: string[];
-            /** People */
-            people: string[];
-            /** Places */
-            places: string[];
-            /** Summary */
-            summary: string | null;
-            /** Themes */
-            themes: string[];
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
-        };
         /** ThoughtRead */
         ThoughtRead: {
-            ai_metadata?: components["schemas"]["ThoughtMetadataRead"] | null;
             ai_processing_status: components["schemas"]["AIProcessingStatus"];
             /** Body */
             body: string;

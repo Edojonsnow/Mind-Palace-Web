@@ -4,7 +4,6 @@ type Schemas = components["schemas"];
 
 export type ThoughtType = Schemas["ThoughtType"];
 export type Thought = Schemas["ThoughtRead"];
-export type ThoughtMetadata = Schemas["ThoughtMetadataRead"];
 
 export type ThoughtListOptions = {
   q?: string;
@@ -49,7 +48,7 @@ export type UserSettings = Schemas["UserSettingsRead"];
 export type RememberItem = Schemas["RememberItem"];
 
 export type RememberCategory = Omit<Schemas["RememberCategory"], "key"> & {
-  key: "themes" | "emotions" | "people" | "books";
+  key: "tags" | "books";
 };
 
 export type RememberOverview = Omit<Schemas["RememberOverview"], "categories"> & {

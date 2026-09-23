@@ -45,7 +45,6 @@ import {
   CompactLabelList,
   DEFAULT_RECALL_FILTERS,
   formatDate,
-  generatedMetadataLabels,
   isExportExpired,
   manualThoughtLabels,
   recallQuery,
@@ -699,15 +698,11 @@ export function MindPalaceShell() {
     value: string,
   ) {
     const filterKeyByCategory: Record<RememberCategoryData["key"], LabelFilterKey> = {
-      themes: "theme",
-      emotions: "emotion",
-      people: "person",
+      tags: "tag",
       books: "book",
     };
     const labelByCategory: Record<RememberCategoryData["key"], string> = {
-      themes: "Theme",
-      emotions: "Emotion",
-      people: "Person",
+      tags: "Tag",
       books: "Book",
     };
     handleLabelClick({
@@ -972,8 +967,7 @@ export function MindPalaceShell() {
                                     </button>
                                   </div>
                                   <p className={recallStyles.resultBody}>{thought.body}</p>
-                                  <CompactLabelList labels={generatedMetadataLabels(thought)} variant="ai" onLabelClick={handleLabelClick} />
-                                  <CompactLabelList labels={manualThoughtLabels(thought)} variant="manual" maxVisible={4} onLabelClick={handleLabelClick} />
+                                  <CompactLabelList labels={manualThoughtLabels(thought)} maxVisible={4} onLabelClick={handleLabelClick} />
                                   {thought.ai_processing_status === "failed" && thought.use_with_ask_my_mind ? (
                                     <button
                                       className="mt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#b15b4d] disabled:opacity-50"

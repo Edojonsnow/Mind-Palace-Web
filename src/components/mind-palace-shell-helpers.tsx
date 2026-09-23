@@ -1,9 +1,7 @@
 import {
   BookMarked,
   ChevronLeft,
-  Heart,
-  Sparkles,
-  UsersRound,
+  Tag,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -42,7 +40,7 @@ export function parseThoughtType(value: string): ThoughtType {
   return "thought";
 }
 
-export type LabelFilterKey = "theme" | "emotion" | "person" | "place" | "tag" | "book";
+export type LabelFilterKey = "tag" | "book";
 
 export type ThoughtLabel = {
   label: string;
@@ -61,14 +59,7 @@ export function ReminisceCategoryDetail({
   onBack: () => void;
   onItemClick: (categoryKey: RememberCategoryData["key"], value: string) => void;
 }) {
-  const CategoryIcon =
-    category.key === "themes"
-      ? Sparkles
-      : category.key === "emotions"
-        ? Heart
-        : category.key === "people"
-          ? UsersRound
-          : BookMarked;
+  const CategoryIcon = category.key === "tags" ? Tag : BookMarked;
 
   return (
     <div className="col-span-full rounded-[26px] border border-black/[0.08] bg-white/80 p-6 shadow-[0_20px_60px_rgba(31,35,45,0.07)] backdrop-blur-xl sm:p-8">
@@ -115,31 +106,16 @@ export function ReminisceCategoryDetail({
   );
 }
 
-export function generatedMetadataLabels(thought: Thought): ThoughtLabel[] {
-  if (!thought.ai_metadata) {
-    return [];
-  }
-
-  return [
-    ...thought.ai_metadata.themes.map((value) => ({ label: `Theme: ${value}`, value, filterKey: "theme" as const })),
-    ...thought.ai_metadata.emotions.map((value) => ({ label: `Emotion: ${value}`, value, filterKey: "emotion" as const })),
-    ...thought.ai_metadata.people.map((value) => ({ label: `Person: ${value}`, value, filterKey: "person" as const })),
-    ...thought.ai_metadata.places.map((value) => ({ label: `Place: ${value}`, value, filterKey: "place" as const })),
-  ];
-}
-
 export function manualThoughtLabels(thought: Thought): ThoughtLabel[] {
   return thought.manual_tags.map((value) => ({ label: value, value, filterKey: "tag" }));
 }
 
 export function CompactLabelList({
   labels,
-  variant,
   maxVisible = 5,
   onLabelClick,
 }: {
   labels: ThoughtLabel[];
-  variant: "ai" | "manual";
   maxVisible?: number;
   onLabelClick?: (label: ThoughtLabel) => void;
 }) {
@@ -151,10 +127,7 @@ export function CompactLabelList({
 
   const visibleLabels = isExpanded ? labels : labels.slice(0, maxVisible);
   const hiddenCount = labels.length - visibleLabels.length;
-  const labelClassName =
-    variant === "ai"
-      ? "rounded-full bg-[#eef3ef] px-2 py-1 text-[10px] text-[#68787a]"
-      : "rounded-full border border-[#e0e7e6] px-2 py-1 text-[10px] text-[#68787a]";
+  const labelClassName = "rounded-full border border-[#e0e7e6] px-2 py-1 text-[10px] text-[#68787a]";
 
   return (
     <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -203,10 +176,6 @@ export type RecallFilters = {
   tag: string;
   book: string;
   book_id: string;
-  theme: string;
-  emotion: string;
-  person: string;
-  place: string;
   archive: ArchiveFilter;
 };
 
@@ -216,18 +185,12 @@ export const DEFAULT_RECALL_FILTERS: RecallFilters = {
   tag: "",
   book: "",
   book_id: "",
-  theme: "",
-  emotion: "",
-  person: "",
-  place: "",
   archive: "all",
 };
 
 export const RECALL_PAGE_SIZE = 20;
 export const EMPTY_REMEMBER_CATEGORIES: RememberOverview["categories"] = [
-  { key: "themes", label: "Themes", items: [] },
-  { key: "emotions", label: "Emotions", items: [] },
-  { key: "people", label: "People", items: [] },
+  { key: "tags", label: "Tags", items: [] },
   { key: "books", label: "Books", items: [] },
 ];
 
@@ -238,10 +201,6 @@ export function recallQuery(filters: RecallFilters, page: number): ThoughtListOp
     tag: filters.tag.trim() || undefined,
     book: filters.book.trim() || undefined,
     book_id: filters.book_id || undefined,
-    theme: filters.theme.trim() || undefined,
-    emotion: filters.emotion.trim() || undefined,
-    person: filters.person.trim() || undefined,
-    place: filters.place.trim() || undefined,
     is_archived: filters.archive === "all" ? undefined : filters.archive === "archived",
     page,
     page_size: RECALL_PAGE_SIZE,
@@ -254,10 +213,6 @@ export function activeRecallFilterLabels(filters: RecallFilters): string[] {
     filters.thought_type ? `Type: ${formatStatus(filters.thought_type)}` : "",
     filters.tag.trim() ? `Tag: ${filters.tag.trim()}` : "",
     filters.book.trim() ? `Book: ${filters.book.trim()}` : filters.book_id ? "Book: selected" : "",
-    filters.theme.trim() ? `Theme: ${filters.theme.trim()}` : "",
-    filters.emotion.trim() ? `Emotion: ${filters.emotion.trim()}` : "",
-    filters.person.trim() ? `Person: ${filters.person.trim()}` : "",
-    filters.place.trim() ? `Place: ${filters.place.trim()}` : "",
     filters.archive !== "all" ? `Archive: ${filters.archive}` : "",
   ].filter((label): label is string => Boolean(label));
 }
