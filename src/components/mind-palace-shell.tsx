@@ -83,7 +83,9 @@ export function MindPalaceShell() {
     () => true,
     () => false,
   );
-  const [authMode, setAuthMode] = useState<"sign-in" | "sign-up" | "confirm">("sign-in");
+  const [authMode, setAuthMode] = useState<
+    "sign-in" | "sign-up" | "confirm" | "forgot-password" | "reset-password"
+  >("sign-in");
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [authName, setAuthName] = useState("");
@@ -335,6 +337,39 @@ export function MindPalaceShell() {
         setVerificationCode("");
         setAuthMode("sign-in");
         setAuthMessage("Email confirmed.");
+        return;
+      }
+
+      if (authMode === "forgot-password") {
+        const result = await authClient.emailOtp.requestPasswordReset({ email: authEmail });
+
+        if (result.error) {
+          setAuthMessage(result.error.message ?? "Unable to send the reset code.");
+          return;
+        }
+
+        setVerificationCode("");
+        setAuthMode("reset-password");
+        setAuthMessage(`We sent a password reset code to ${authEmail}.`);
+        return;
+      }
+
+      if (authMode === "reset-password") {
+        const result = await authClient.emailOtp.resetPassword({
+          email: authEmail,
+          otp: verificationCode,
+          password: authPassword,
+        });
+
+        if (result.error) {
+          setAuthMessage(result.error.message ?? "Unable to reset your password.");
+          return;
+        }
+
+        setAuthPassword("");
+        setVerificationCode("");
+        setAuthMode("sign-in");
+        setAuthMessage("Password updated. Sign in again.");
         return;
       }
 
@@ -1083,13 +1118,36 @@ export function MindPalaceShell() {
                   ? "Return to your mind."
                   : authMode === "sign-up"
                     ? "Begin reminiscing."
-                    : "Confirm it is you."}
+                    : authMode === "confirm"
+                      ? "Confirm it is you."
+                      : authMode === "forgot-password"
+                        ? "Reset your password."
+                        : "Choose a new password."}
               </h1>
-              <p className="mb-7 mt-3 text-sm leading-6 text-[#7a7f88]">Your thoughts stay private and your AI controls remain yours.</p>
+              <p className="mb-7 mt-3 text-sm leading-6 text-[#7a7f88]">
+                {authMode === "forgot-password" || authMode === "reset-password"
+                  ? "We will help you get back into your private space."
+                  : "Your thoughts stay private and your AI controls remain yours."}
+              </p>
               <form className="space-y-3" onSubmit={handleAuth}>
                 {authMode === "confirm" ? <>
                   <p className="text-sm leading-5 text-[#68787a]">
                     Enter the six-digit code sent to {authEmail}.
+                  </p>
+                  <input
+                    className="modern-control w-full text-center text-lg tracking-[0.25em]"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    placeholder="000000"
+                    value={verificationCode}
+                    onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                    minLength={6}
+                    maxLength={6}
+                    required
+                  />
+                </> : authMode === "reset-password" ? <>
+                  <p className="text-sm leading-5 text-[#68787a]">
+                    Enter the six-digit code sent to {authEmail}, then choose a new password.
                   </p>
                   <input
                     className="modern-control w-full text-center text-lg tracking-[0.25em]"
@@ -1109,7 +1167,7 @@ export function MindPalaceShell() {
                   onChange={(event) => setAuthName(event.target.value)}
                   required
                 /> : null}
-                {authMode !== "confirm" ? <input
+                {authMode !== "confirm" && authMode !== "reset-password" ? <input
                   className="modern-control w-full"
                   type="email"
                   placeholder="Email"
@@ -1117,10 +1175,20 @@ export function MindPalaceShell() {
                   onChange={(event) => setAuthEmail(event.target.value)}
                   required
                 /> : null}
-                {authMode !== "confirm" ? <input
+                {authMode === "sign-up" || authMode === "sign-in" ? <input
                   className="modern-control w-full"
                   type="password"
                   placeholder="Password"
+                  value={authPassword}
+                  onChange={(event) => setAuthPassword(event.target.value)}
+                  minLength={8}
+                  required
+                /> : null}
+                {authMode === "reset-password" ? <input
+                  className="modern-control w-full"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="New password"
                   value={authPassword}
                   onChange={(event) => setAuthPassword(event.target.value)}
                   minLength={8}
@@ -1134,6 +1202,10 @@ export function MindPalaceShell() {
                     ? "Working..."
                     : authMode === "confirm"
                       ? "Confirm email"
+                      : authMode === "forgot-password"
+                        ? "Send reset code"
+                        : authMode === "reset-password"
+                          ? "Update password"
                       : authMode === "sign-in"
                         ? "Sign in"
                         : "Create account"}
@@ -1148,6 +1220,18 @@ export function MindPalaceShell() {
               >
                 {isResendingCode ? "Sending..." : "Resend confirmation code"}
               </button> : null}
+              {authMode === "reset-password" ? <button
+                type="button"
+                className="mt-4 text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-[#587878]"
+                onClick={() => {
+                  setAuthMode("forgot-password");
+                  setVerificationCode("");
+                  setAuthPassword("");
+                  setAuthMessage("");
+                }}
+              >
+                Request a new reset code
+              </button> : null}
               {authMode === "confirm" ? <button
                 type="button"
                 className="mt-4 text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-[#587878]"
@@ -1158,6 +1242,26 @@ export function MindPalaceShell() {
                 }}
               >
                 Use a different email
+              </button> : authMode === "reset-password" ? <button
+                type="button"
+                className="mt-4 text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-[#587878]"
+                onClick={() => {
+                  setAuthMode("sign-in");
+                  setVerificationCode("");
+                  setAuthPassword("");
+                  setAuthMessage("");
+                }}
+              >
+                Return to sign in
+              </button> : authMode === "forgot-password" ? <button
+                type="button"
+                className="mt-4 text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-[#587878]"
+                onClick={() => {
+                  setAuthMode("sign-in");
+                  setAuthMessage("");
+                }}
+              >
+                Return to sign in
               </button> : <button
                 className="mt-4 text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-[#587878]"
                 onClick={() => {
@@ -1167,6 +1271,17 @@ export function MindPalaceShell() {
               >
                 {authMode === "sign-in" ? "Need an account? Sign up" : "Already have an account? Sign in"}
               </button>}
+              {authMode === "sign-in" ? <button
+                type="button"
+                className="mt-3 block text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-[#587878]"
+                onClick={() => {
+                  setAuthMode("forgot-password");
+                  setAuthPassword("");
+                  setAuthMessage("");
+                }}
+              >
+                Forgot password?
+              </button> : null}
             </section> : null}
 
           </aside>
