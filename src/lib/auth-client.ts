@@ -5,15 +5,8 @@ import { createAuthClient as createNextAuthClient } from "@neondatabase/auth/nex
 export const authClient = createNextAuthClient();
 
 export async function getJWTToken(): Promise<string | null> {
-  const response = await fetch("/api/auth/token", {
-    credentials: "include",
-    cache: "no-store",
+  const session = await authClient.getSession({
+    query: { disableCookieCache: true },
   });
-
-  if (!response.ok) {
-    return null;
-  }
-
-  const payload = (await response.json()) as { token?: string };
-  return payload.token ?? null;
+  return session.data?.session?.token ?? null;
 }

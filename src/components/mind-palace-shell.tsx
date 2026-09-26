@@ -168,17 +168,20 @@ export function MindPalaceShell() {
       pageOverride: number,
       filtersOverride: RecallFilters,
       includeSettings = false,
+      tokenOverride?: string,
     ) => {
       const requestSequence = refreshSequence.current + 1;
       refreshSequence.current = requestSequence;
-      const nextToken = await getApiToken();
+      const nextToken = tokenOverride ?? (await getApiToken());
       if (!nextToken) {
         setLoadState("idle");
         return;
       }
 
       setLoadState("loading");
-      setMessage("");
+      if (!tokenOverride) {
+        setMessage("");
+      }
 
       try {
         const [nextThoughts, nextSettings] = await Promise.all([
@@ -445,7 +448,7 @@ export function MindPalaceShell() {
     try {
       await restoreThought(token, thoughtId);
       setDeletedThoughts((current) => current.filter((thought) => thought.id !== thoughtId));
-      await refresh(recallPage, recallFilters);
+      await refresh(recallPage, recallFilters, false, token);
       void loadRemember();
       setLifecycleMessage("Thought restored.");
     } catch (error) {
@@ -624,8 +627,6 @@ export function MindPalaceShell() {
         manual_tags: splitTags(manualTags),
         use_with_ask_my_mind: useWithAsk,
       });
-      await refresh(recallPage, recallFilters);
-      void loadRemember();
       setBody("");
       setTitle("");
       setManualTags("");
@@ -635,6 +636,8 @@ export function MindPalaceShell() {
       setUseWithAsk(settings?.default_use_with_ask_my_mind ?? false);
       setMessage("Thought saved.");
       setIsCaptureOpen(false);
+      void refresh(recallPage, recallFilters, false, token);
+      void loadRemember();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to save thought.");
     } finally {

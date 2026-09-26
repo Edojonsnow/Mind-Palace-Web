@@ -86,6 +86,12 @@ development.
 ```bash
 npm run lint
 npm run build
+npm run e2e:list
 ```
+
+The authenticated MVP acceptance setup is documented in
+[`docs/MVP_ACCEPTANCE.md`](docs/MVP_ACCEPTANCE.md). It requires a disposable
+authenticated Playwright storage state; without one, the acceptance tests skip
+explicitly.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

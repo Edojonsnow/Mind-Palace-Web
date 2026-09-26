@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "generate:api": "openapi-typescript ../mind-palace-app/openapi.json -o src/generated/api.ts"
+    "generate:api": "openapi-typescript ../mind-palace-app/openapi.json -o src/generated/api.ts",
+    "e2e": "playwright test",
+    "e2e:list": "playwright test --list",
+    "e2e:auth": "node scripts/capture-auth-state.mjs"
   },
   "dependencies": {
     "@neondatabase/auth": "^0.5.0-beta",
@@ -18,6 +21,7 @@
     "three": "^0.186.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
