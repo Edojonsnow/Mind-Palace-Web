@@ -45,6 +45,7 @@ import {
   CompactLabelList,
   DEFAULT_RECALL_FILTERS,
   formatDate,
+  hasRecallFilterValues,
   isExportExpired,
   manualThoughtLabels,
   recallQuery,
@@ -156,8 +157,8 @@ export function MindPalaceShell() {
   );
   const showAskAction = loadState !== "ready" || hasSavedThoughts;
   const hasRecallFilters = useMemo(
-    () => Object.values(recallDraftFilters).some((value) => value !== "" && value !== "all"),
-    [recallDraftFilters],
+    () => hasRecallFilterValues(recallFilters) || hasRecallFilterValues(recallDraftFilters),
+    [recallDraftFilters, recallFilters],
   );
 
   const refresh = useCallback(

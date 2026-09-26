@@ -207,6 +207,10 @@ export function recallQuery(filters: RecallFilters, page: number): ThoughtListOp
   };
 }
 
+export function hasRecallFilterValues(filters: RecallFilters): boolean {
+  return Object.values(filters).some((value) => value !== "" && value !== "all");
+}
+
 export function activeRecallFilterLabels(filters: RecallFilters): string[] {
   return [
     filters.q.trim() ? `Search: ${filters.q.trim()}` : "",
