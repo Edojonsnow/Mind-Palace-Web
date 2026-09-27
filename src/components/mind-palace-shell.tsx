@@ -606,6 +606,7 @@ export function MindPalaceShell() {
 
     setIsSaving(true);
     setMessage("");
+    setIsCaptureOpen(false);
 
     try {
       let bookId = selectedBookId && selectedBookId !== "__new__" ? selectedBookId : undefined;
@@ -635,10 +636,10 @@ export function MindPalaceShell() {
       setNewBookAuthor("");
       setUseWithAsk(settings?.default_use_with_ask_my_mind ?? false);
       setMessage("Thought saved.");
-      setIsCaptureOpen(false);
       void refresh(recallPage, recallFilters, false, token);
       void loadRemember();
     } catch (error) {
+      setIsCaptureOpen(true);
       setMessage(error instanceof Error ? error.message : "Unable to save thought.");
     } finally {
       setIsSaving(false);

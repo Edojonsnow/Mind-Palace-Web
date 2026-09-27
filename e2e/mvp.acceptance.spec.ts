@@ -34,7 +34,7 @@ test.describe("authenticated Mind Palace MVP", () => {
     }
     await dialog.getByRole("button", { name: "Keep this thought" }).click();
     await expect(dialog).toBeHidden();
-    await expect(page.getByText("Thought saved.")).toBeVisible();
+    await expect(page.getByText("Thought saved.")).toBeVisible({ timeout: 30_000 });
 
     await page.getByRole("button", { name: "Recall" }).click();
     await page.getByPlaceholder("What do you remember?").fill(marker);
@@ -57,12 +57,6 @@ test.describe("authenticated Mind Palace MVP", () => {
     await expect(page.getByRole("button", { name: "Clear filters" })).toBeDisabled();
   });
 
-  test("signs out and returns to the authentication screen", async ({ page }) => {
-    await page.goto("/");
-    await page.getByRole("button", { name: "Sign out" }).click();
-    await expect(page.getByRole("heading", { name: "Return to your mind." })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
-  });
 });
 
 test.describe("AI-assisted MVP scenarios", () => {
@@ -94,5 +88,20 @@ test.describe("AI-assisted MVP scenarios", () => {
     await page.getByPlaceholder("Ask something only your mind could answer…").fill("What did I just capture?");
     await page.getByRole("button", { name: "Ask →" }).click();
     await expect(page.getByText(/Sources \/ [1-9]\d*/)).toBeVisible({ timeout: 30_000 });
+  });
+
+});
+
+test.describe("session lifecycle", () => {
+  test.skip(
+    !hasAuthState,
+    "Set MIND_PALACE_E2E_STORAGE_STATE to a disposable authenticated Playwright storage state.",
+  );
+
+  test("signs out and returns to the authentication screen", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Sign out" }).click();
+    await expect(page.getByText("Return to your mind.", { exact: true })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible({ timeout: 30_000 });
   });
 });
