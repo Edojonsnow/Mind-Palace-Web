@@ -7,6 +7,10 @@ const reuseExistingServer = process.env.MIND_PALACE_E2E_REUSE_SERVER === "true";
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
+  // The authenticated acceptance suite intentionally shares one disposable
+  // Neon Auth session. Keep it serial so sign-out can run only after the
+  // workflows that need that session.
+  workers: 1,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "line" : "list",

@@ -1,10 +1,11 @@
 # Authenticated MVP acceptance
 
-The Playwright suite in `e2e/mvp.acceptance.spec.ts` checks the real browser
-journey against a disposable authenticated account. It is intentionally
-separate from unit tests and backend `TestClient` tests: the browser suite
-exercises the Next.js UI, Neon Auth session cookie, FastAPI API, and the user
-visible state transitions together.
+The Playwright suites in `e2e/mvp.acceptance.spec.ts` and
+`e2e/trust.acceptance.spec.ts` check the real browser journey against a
+disposable authenticated account. They are intentionally separate from unit
+tests and backend `TestClient` tests: the browser suites exercise the Next.js
+UI, Neon Auth session cookie, FastAPI API, worker-backed transitions, and the
+user-visible state changes together.
 
 ## Environment
 
@@ -33,22 +34,25 @@ The `e2e:auth` command opens a visible browser so the test account can be
 signed in without putting credentials or confirmation codes in a script. This
 is a separate Playwright browser profile; an existing sign-in in regular
 Chrome is not shared with it. Complete sign-in in the opened Playwright
-window, wait until the private home is visible, then return to the terminal
-and press Enter to save the state.
+window. The helper saves the state and closes the browser automatically when
+the private home is visible.
 
 For a disposable account, the capture step can sign in automatically from
-environment variables. Keep these values out of the repository and shell
-scripts:
+the ignored `.env.local` file. The standalone helper loads this file before it
+opens the browser:
 
-```bash
-MIND_PALACE_E2E_EMAIL='test@example.com' \
-MIND_PALACE_E2E_PASSWORD='your-password' \
-MIND_PALACE_E2E_STORAGE_STATE=playwright/.auth/mind-palace.json \
-  npm run e2e:auth
+```ini
+# .env.local
+MIND_PALACE_E2E_EMAIL=test@example.com
+MIND_PALACE_E2E_PASSWORD=your-password
 ```
 
 The helper still verifies that the private home is visible before writing the
 storage state.
+
+The suite signs out in its final test. That intentionally revokes the
+disposable storage state, so refresh it with `npm run e2e:auth` before the
+next full authenticated run.
 
 The config starts the frontend automatically. To use an already-running
 frontend instead, add `MIND_PALACE_E2E_NO_WEBSERVER=true` and set
@@ -65,10 +69,21 @@ MIND_PALACE_E2E_AI=true \
 
 ## Coverage
 
-The deterministic authenticated suite covers the private home, thought capture
-with AI disabled, Recall search, active-filter clearing, and sign-out. The
-AI-gated scenario covers AI-enabled capture, Ask My Mind visibility, and a
-grounded source response.
+The deterministic authenticated suites cover:
+
+- private home, thought capture with AI disabled, Recall search, active-filter
+  clearing, and sign-out;
+- restoring a deleted thought during the recovery window;
+- export generation and browser download;
+- requesting and cancelling account deletion during the recovery window; and
+- disabling AI for a thought and verifying its public status becomes
+  `not_requested`.
+
+The backend lifecycle suite additionally verifies permanent purge after the
+recovery window, citation cleanup, account purge, and removal of AI artifacts
+when a thought is deleted or AI access is disabled. The AI-gated browser
+scenario covers AI-enabled capture, Ask My Mind visibility, and a grounded
+source response.
 
 If `MIND_PALACE_E2E_STORAGE_STATE` is absent, the suite skips instead of
 pretending the user is authenticated. A skipped run is setup evidence, not MVP

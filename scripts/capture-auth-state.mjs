@@ -1,7 +1,11 @@
 import { mkdir } from "node:fs/promises";
-import { once } from "node:events";
 import path from "node:path";
+import nextEnv from "@next/env";
 import { chromium } from "@playwright/test";
+
+const { loadEnvConfig } = nextEnv;
+
+loadEnvConfig(process.cwd());
 
 const baseURL = process.env.MIND_PALACE_E2E_BASE_URL ?? "http://localhost:3000";
 const outputPath = process.env.MIND_PALACE_E2E_STORAGE_STATE ?? "playwright/.auth/mind-palace.json";
@@ -25,21 +29,19 @@ if (email && password) {
   await page.getByRole("button", { name: "Sign in" }).click();
 } else {
   console.log("Complete sign-in and email confirmation in the opened browser.");
-  console.log("Return to this terminal and press Enter after the authenticated home is visible.");
-  process.stdin.resume();
-  await once(process.stdin, "data");
+  console.log("The authenticated session will be saved automatically once the home screen appears.");
 }
 
 await page.getByRole("heading", { name: "A thought is all it takes." }).waitFor({
   state: "visible",
-  timeout: 30_000,
+  timeout: 600_000,
 });
 
 await mkdir(path.dirname(outputPath), { recursive: true });
 const state = await context.storageState();
 if (state.cookies.length === 0 && state.origins.length === 0) {
   throw new Error(
-    "No authenticated storage was captured. Complete sign-in in the Playwright browser before pressing Enter.",
+    "No authenticated storage was captured. Complete sign-in and wait for the private home to appear.",
   );
 }
 await context.storageState({ path: outputPath });
