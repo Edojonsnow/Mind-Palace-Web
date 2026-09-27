@@ -14,6 +14,8 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
   if (contentType) requestHeaders.set("content-type", contentType);
   const accept = request.headers.get("accept");
   if (accept) requestHeaders.set("accept", accept);
+  const authorization = request.headers.get("authorization");
+  if (authorization) requestHeaders.set("authorization", authorization);
 
   const sessionCookie = (await cookies()).get(sessionCookieName)?.value;
   if (sessionCookie) requestHeaders.set(sessionCookieHeader, sessionCookie);
