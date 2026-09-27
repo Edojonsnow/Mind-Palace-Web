@@ -151,6 +151,10 @@ export function createThought(token: string, input: CreateThoughtInput): Promise
   });
 }
 
+export function getThought(token: string, thoughtId: string): Promise<Thought> {
+  return request<Thought>(`/thoughts/${thoughtId}`, token);
+}
+
 export function listBooks(token: string, query?: string): Promise<Book[]> {
   const path = query?.trim() ? `/books?q=${encodeURIComponent(query.trim())}` : "/books";
   return request<Book[]>(path, token);

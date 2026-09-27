@@ -10,6 +10,7 @@ type AskMyMindWorkspaceProps = {
   sources: AskSource[];
   onQuestionChange: (value: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onSourceOpen: (source: AskSource) => void;
 };
 
 export function AskMyMindWorkspace({
@@ -20,6 +21,7 @@ export function AskMyMindWorkspace({
   sources,
   onQuestionChange,
   onSubmit,
+  onSourceOpen,
 }: AskMyMindWorkspaceProps) {
   return (
     <div className="w-full max-w-5xl">
@@ -43,7 +45,23 @@ export function AskMyMindWorkspace({
         </div>
         <aside className="bg-[#f3f3f0]/70 p-5 sm:p-7">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8d929c]">Sources / {sources.length}</p>
-          <div className="mt-5 space-y-5">{sources.length === 0 ? <p className="text-sm leading-6 text-[#8b909a]">Citations appear here with the exact thoughts used.</p> : sources.map((source) => <article key={source.chunk_id}><span className="text-[10px] font-semibold tracking-[0.12em] text-[#587878]">{source.citation_label}</span><h2 className="mt-1 text-sm font-semibold text-[#30343b]">{source.title ?? source.source_title ?? "Untitled thought"}</h2><p className="mt-1 line-clamp-4 text-xs leading-5 text-[#737984]">{source.snippet}</p></article>)}</div>
+          <div className="mt-5 space-y-5">{sources.length === 0 ? <p className="text-sm leading-6 text-[#8b909a]">Citations appear here with the exact thoughts used.</p> : sources.map((source) => {
+            const sourceTitle = source.title ?? source.source_title ?? "Untitled thought";
+
+            return (
+              <button
+                key={source.chunk_id}
+                className="block w-full rounded-xl text-left outline-none transition hover:bg-black/[0.035] focus-visible:ring-2 focus-visible:ring-[#587878] focus-visible:ring-offset-2"
+                type="button"
+                aria-label={`Open thought: ${sourceTitle}`}
+                onClick={() => onSourceOpen(source)}
+              >
+                <span className="text-[10px] font-semibold tracking-[0.12em] text-[#587878]">{source.citation_label}</span>
+                <h2 className="mt-1 text-sm font-semibold text-[#30343b]">{sourceTitle}</h2>
+                <p className="mt-1 line-clamp-4 text-xs leading-5 text-[#737984]">{source.snippet}</p>
+              </button>
+            );
+          })}</div>
         </aside>
       </div>
     </div>

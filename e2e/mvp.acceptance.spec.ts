@@ -90,6 +90,13 @@ test.describe("AI-assisted MVP scenarios", () => {
     await page.getByPlaceholder("Ask something only your mind could answer…").fill("What did I just capture?");
     await page.getByRole("button", { name: "Ask →" }).click();
     await expect(page.getByText(/Sources \/ [1-9]\d*/)).toBeVisible({ timeout: 30_000 });
+
+    const sourceButton = page.getByRole("button", { name: /Open thought:/ }).first();
+    const sourceSnippet = await sourceButton.locator("p").innerText();
+    await sourceButton.click();
+    const preview = page.getByRole("dialog", { name: "Cited thought" });
+    await expect(preview).toBeVisible();
+    await expect(preview.getByText(sourceSnippet, { exact: true })).toBeVisible();
   });
 
 });

@@ -27,6 +27,7 @@ import {
   ExportRequest,
   getAccountDeletionRequest,
   getExportRequest,
+  getThought,
   listDeletedThoughts,
   listBooks,
   listThoughts,
@@ -67,6 +68,7 @@ import { TrustControlsPanel } from "@/components/trust-controls-panel";
 import { BooksWorkspace } from "@/components/books-workspace";
 import { ReminisceWorkspace } from "@/components/reminisce-workspace";
 import { ThoughtEditForm } from "@/components/thought-edit-form";
+import { ThoughtPreviewPanel } from "@/components/thought-preview-panel";
 
 async function getApiToken(): Promise<string | null> {
   return getJWTToken();
@@ -146,6 +148,10 @@ export function MindPalaceShell() {
   const [latestSources, setLatestSources] = useState<AskSource[]>([]);
   const [isAsking, setIsAsking] = useState(false);
   const [askMessage, setAskMessage] = useState("");
+  const [isThoughtPreviewOpen, setIsThoughtPreviewOpen] = useState(false);
+  const [previewThought, setPreviewThought] = useState<Thought | null>(null);
+  const [isPreviewThoughtLoading, setIsPreviewThoughtLoading] = useState(false);
+  const [previewThoughtError, setPreviewThoughtError] = useState("");
   const sessionUserId = session.data?.user?.id;
   const refreshSequence = useRef(0);
   const askSubmissionLock = useRef(false);
@@ -860,6 +866,28 @@ export function MindPalaceShell() {
     }
   }
 
+  async function handleOpenCitedThought(source: AskSource) {
+    setIsThoughtPreviewOpen(true);
+    setPreviewThought(null);
+    setPreviewThoughtError("");
+    setIsPreviewThoughtLoading(true);
+
+    const token = await getApiToken();
+    if (!token) {
+      setPreviewThoughtError("Your session has expired. Sign in again to view this thought.");
+      setIsPreviewThoughtLoading(false);
+      return;
+    }
+
+    try {
+      setPreviewThought(await getThought(token, source.thought_id));
+    } catch (error) {
+      setPreviewThoughtError(error instanceof Error ? error.message : "Unable to open this thought.");
+    } finally {
+      setIsPreviewThoughtLoading(false);
+    }
+  }
+
   if (!hasMounted) {
     return (
       <main className="flex min-h-dvh items-center justify-center bg-[#fffefa] px-4 text-[#1c1c1c]">
@@ -1042,6 +1070,7 @@ export function MindPalaceShell() {
                   sources={latestSources}
                   onQuestionChange={setQuestion}
                   onSubmit={handleAsk}
+                  onSourceOpen={(source) => void handleOpenCitedThought(source)}
                 />
               ) : workspaceMode === "organizing" ? (
                 <div className="mind-workspace-enter text-center">
@@ -1083,6 +1112,15 @@ export function MindPalaceShell() {
             onNewBookAuthorChange={setNewBookAuthor}
             onManualTagsChange={setManualTags}
             onUseWithAskChange={setUseWithAsk}
+          />
+        ) : null}
+
+        {isThoughtPreviewOpen && isAuthenticated ? (
+          <ThoughtPreviewPanel
+            thought={previewThought}
+            isLoading={isPreviewThoughtLoading}
+            errorMessage={previewThoughtError}
+            onClose={() => setIsThoughtPreviewOpen(false)}
           />
         ) : null}
 
