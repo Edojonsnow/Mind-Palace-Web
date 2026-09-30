@@ -31,7 +31,7 @@ test.describe("presentation safeguards", () => {
   test("reduced motion uses a static brain without delaying actions", async ({ page }, testInfo) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
-    await expect(page.locator("[data-status]")).toHaveCount(0);
+    await expect(page.locator('[aria-label^="Rotatable 3D brain"]')).toHaveCount(0);
     await page.locator("summary").filter({ hasText: "Explore your mind" }).click();
     await expect(page.locator('[data-status="unavailable"]')).toBeVisible();
     await expect(page.locator("canvas")).toHaveCount(0);
