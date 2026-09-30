@@ -1,18 +1,25 @@
 import type { RememberOverview } from "@/lib/api";
+import { ArrowUpRight } from "lucide-react";
 import { EMPTY_REMEMBER_CATEGORIES, ReminisceCategoryDetail, type RememberCategoryData } from "@/components/mind-palace-shell-helpers";
+import styles from "./reminisce-workspace.module.css";
 
-type ReminisceWorkspaceProps = {
-  overview: RememberOverview | null;
-  selectedCategory: RememberCategoryData["key"] | null;
-  onSelectCategory: (key: RememberCategoryData["key"]) => void;
-  onClearCategory: () => void;
-  onCategoryItemClick: (categoryKey: RememberCategoryData["key"], value: string) => void;
+type Props = {
+  overview: RememberOverview | null; selectedCategory: RememberCategoryData["key"] | null;
+  onSelectCategory: (key: RememberCategoryData["key"]) => void; onClearCategory: () => void;
+  onCategoryItemClick: (key: RememberCategoryData["key"], value: string) => void;
 };
-
-export function ReminisceWorkspace({ overview, selectedCategory, onSelectCategory, onClearCategory, onCategoryItemClick }: ReminisceWorkspaceProps) {
+export function ReminisceWorkspace({ overview, selectedCategory, onSelectCategory, onClearCategory, onCategoryItemClick }: Props) {
   const categories = overview?.categories ?? EMPTY_REMEMBER_CATEGORIES;
-
-  return (
-    <div className="mind-workspace-enter w-full max-w-6xl"><div className="grid gap-8 lg:grid-cols-[0.7fr_1.3fr] lg:gap-14"><header><p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#707070]">[ Reminisce / 04 ]</p><h1 className="mt-5 font-display text-5xl font-medium leading-[0.98] tracking-[-0.055em] text-[#1c1c1c] sm:text-7xl">Patterns, without the filing.</h1><p className="mt-6 max-w-sm text-sm leading-6 text-[#707070]">{overview?.thoughts_analyzed ?? 0} saved thoughts contribute to this view.</p></header><div className="grid gap-3 sm:grid-cols-2">{selectedCategory ? <ReminisceCategoryDetail category={categories.find((category) => category.key === selectedCategory) ?? categories[0]} onBack={onClearCategory} onItemClick={onCategoryItemClick} /> : categories.map((category, index) => <button key={category.key} className="reminisce-category-card rounded-[26px] border border-black/[0.08] bg-white/80 p-6 text-left shadow-[0_20px_60px_rgba(31,35,45,0.07)] backdrop-blur-xl hover:-translate-y-1 hover:border-[#b8b8b8] hover:bg-white hover:shadow-[0_28px_70px_rgba(31,31,31,0.12)] active:translate-y-0" type="button" aria-label={`Open ${category.label}`} onClick={() => onSelectCategory(category.key)}><span className="text-[10px] font-semibold tracking-[0.18em] text-[#9a9a9a]">{String(index + 1).padStart(2, "0")}</span><h2 className="mt-7 font-display text-2xl font-semibold tracking-[-0.035em] text-[#242424]">{category.label}</h2><p className="mt-5 text-sm text-[#8a8a8a]">{category.items.length > 0 ? `${category.items.length} ${category.label.toLowerCase()} identified` : "Still taking shape"}</p></button>)}</div></div></div>
-  );
+  const count = overview?.thoughts_analyzed ?? 0;
+  return <div className={`mind-workspace-enter ${styles.layout}`}>
+    <header><h1 className="text-display-lg">Patterns, without the filing.</h1><p className={styles.description}>{count} saved {count === 1 ? "thought contributes" : "thoughts contribute"} to this view.</p></header>
+    <div className={styles.categories}>{selectedCategory ? <ReminisceCategoryDetail category={categories.find(c => c.key === selectedCategory) ?? categories[0]} onBack={onClearCategory} onItemClick={onCategoryItemClick} /> : categories.map((category) => {
+      const n = category.items.length;
+      return <button key={category.key} className={styles.card} type="button" aria-label={`Open ${category.label}`} onClick={() => onSelectCategory(category.key)}>
+        <ArrowUpRight size={20} aria-hidden="true" className={styles.arrow} />
+        <h2>{category.label}</h2><p className={styles.count}>{n} {n === 1 ? category.key === "tags" ? "tag" : "book" : category.label.toLowerCase()} identified</p>
+        <p className={styles.helper}>{category.key === "tags" ? "Tags you add when saving gather here." : "Quotes you save from books appear here."}</p>
+      </button>;
+    })}</div>
+  </div>;
 }

@@ -3,7 +3,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 
-export type BrainAction = "save" | "ask" | "search" | "reminisce";
+export type BrainAction = "save" | "ask" | "reminisce";
 export type BrainScene = {
   highlight: (action: BrainAction | null) => void;
   rotate: (horizontal: number, vertical: number) => void;
@@ -11,21 +11,20 @@ export type BrainScene = {
   dispose: () => void;
 };
 
-const palette: Record<BrainAction, string> = {
-  save: "#555555", ask: "#777777", search: "#3f3f3f", reminisce: "#969696",
-};
-
 // Illustrative associations, not exclusive functional or diagnostic regions.
 function belongsTo(action: BrainAction, label: string, region: string) {
   switch (action) {
     case "save": return /hippocamp/i.test(label);
     case "ask": return /middle frontal|superior frontal|triangular part of inferior frontal/i.test(label);
-    case "search": return /hippocamp|angular gyrus|posterior dorsal part/i.test(label);
     case "reminisce": return region === "Occipital lobe";
   }
 }
 
 export function createBrainScene(host: HTMLElement, onReady: () => void, onError: () => void): BrainScene {
+  const token = (name: string) => getComputedStyle(host).getPropertyValue(name).trim();
+  const palette: Record<BrainAction, string> = {
+    save: token("--mp-lumen"), ask: token("--mp-echo"), reminisce: token("--mp-lumen"),
+  };
   const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "low-power" });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setClearColor(0x000000, 0);
@@ -44,21 +43,24 @@ export function createBrainScene(host: HTMLElement, onReady: () => void, onError
   controls.minPolarAngle = 0.25;
   controls.maxPolarAngle = Math.PI - 0.25;
   controls.update();
-  scene.add(new THREE.AmbientLight(0xffffff, 2));
-  const key = new THREE.DirectionalLight(0xffffff, 2.2);
+  scene.add(new THREE.AmbientLight(0xffffff, 1.1));
+  const key = new THREE.DirectionalLight(token("--mp-brain-key"), 3.2);
   key.position.set(-3, 5, 5);
   scene.add(key);
-  const fill = new THREE.DirectionalLight(0xe4eded, 0.7);
+  const fill = new THREE.DirectionalLight(token("--mp-echo"), 2.1);
   fill.position.set(4, -2, -3);
   scene.add(fill);
 
   const root = new THREE.Group();
   scene.add(root);
-  const baseColor = new THREE.Color("#e8e8e8");
+  const baseColor = new THREE.Color(token("--mp-brain"));
   const noEmission = new THREE.Color(0x000000);
   const surfaces: Array<{ material: THREE.MeshStandardMaterial; label: string; region: string; ghost?: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial> }> = [];
   const geometries = new Set<THREE.BufferGeometry>();
   const materials = new Set<THREE.Material>();
+  const edgeMaterials: THREE.MeshBasicMaterial[] = [];
+  const nodeMaterial = new THREE.PointsMaterial({ color: token("--mp-lumen"), size: .022, sizeAttenuation: true, transparent: true, opacity: .85 });
+  materials.add(nodeMaterial);
   const draco = new DRACOLoader();
   draco.setDecoderPath("/models/draco/");
   draco.setWorkerLimit(1);
@@ -95,6 +97,16 @@ export function createBrainScene(host: HTMLElement, onReady: () => void, onError
     remainingFrames = reducedMotion.matches ? 1 : 36;
     if (!frame && !disposed && !document.hidden && inView) frame = requestAnimationFrame(render);
   }
+  const theme = new MutationObserver(() => {
+    baseColor.set(token("--mp-brain"));
+    key.color.set(token("--mp-brain-key"));
+    fill.color.set(token("--mp-echo"));
+    nodeMaterial.color.set(token("--mp-lumen"));
+    edgeMaterials.forEach(material => material.color.set(token("--mp-brain-edge")));
+    for (const action of Object.keys(palette) as BrainAction[]) palette[action] = token(action === "ask" ? "--mp-echo" : "--mp-lumen");
+    invalidate();
+  });
+  theme.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   controls.addEventListener("change", invalidate);
   const resize = new ResizeObserver(() => {
     const { width, height } = host.getBoundingClientRect();
@@ -132,16 +144,13 @@ export function createBrainScene(host: HTMLElement, onReady: () => void, onError
       const region = String(mesh.userData.bx_region ?? "");
       const originalMaterials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
       originalMaterials.forEach((material) => material.dispose());
-      const material = new THREE.MeshStandardMaterial({ color: baseColor, roughness: 1, metalness: 0 });
-      // A near-flat paper wash retains a little form without glossy studio lighting.
-      material.onBeforeCompile = (shader) => {
-        shader.fragmentShader = shader.fragmentShader.replace("#include <opaque_fragment>", "outgoingLight = diffuseColor.rgb * (0.94 + 0.06 * max(dot(normal, normalize(vec3(-0.4, 0.7, 1.0))), 0.0)) + totalEmissiveRadiance;\n#include <opaque_fragment>");
-      };
+      const material = new THREE.MeshStandardMaterial({ color: baseColor, roughness: .38, metalness: .28 });
       mesh.material = material;
       materials.add(material);
       geometries.add(mesh.geometry);
       // Inverted normal hulls trace anatomical folds, rather than triangle wireframes.
-      const outlineMaterial = new THREE.MeshBasicMaterial({ color: "#666666", side: THREE.BackSide, transparent: true, opacity: 0.6, depthWrite: false });
+      const outlineMaterial = new THREE.MeshBasicMaterial({ color: token("--mp-brain-edge"), side: THREE.BackSide, transparent: true, opacity: .25, depthWrite: false });
+      edgeMaterials.push(outlineMaterial);
       outlineMaterial.onBeforeCompile = (shader) => {
         shader.vertexShader = shader.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\ntransformed += normal * 0.00028;");
       };
@@ -167,6 +176,22 @@ export function createBrainScene(host: HTMLElement, onReady: () => void, onError
     gltf.scene.position.sub(center);
     root.add(gltf.scene);
     root.scale.setScalar(3.1 / Math.max(size.x, size.y, size.z));
+    // Fixed decorative markers contain no user data; sample the cortical surface.
+    gltf.scene.updateWorldMatrix(true, true);
+    const cortex = meshes.filter(mesh => !/hippocamp|thalam|ventric/i.test(String(mesh.userData.bx_label ?? mesh.name)));
+    const positions: number[] = [];
+    for (let i = 0; i < 40 && cortex.length; i++) {
+      const mesh = cortex[i % cortex.length];
+      const attribute = mesh.geometry.getAttribute("position");
+      const point = new THREE.Vector3().fromBufferAttribute(attribute, Math.floor((i * .61803398875 % 1) * attribute.count));
+      mesh.localToWorld(point);
+      root.worldToLocal(point);
+      positions.push(point.x, point.y, point.z);
+    }
+    const nodesGeometry = new THREE.BufferGeometry();
+    nodesGeometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    geometries.add(nodesGeometry);
+    root.add(new THREE.Points(nodesGeometry, nodeMaterial));
     invalidate();
     onReady();
   }, undefined, () => { if (!disposed) onError(); });
@@ -188,6 +213,7 @@ export function createBrainScene(host: HTMLElement, onReady: () => void, onError
       cancelAnimationFrame(frame);
       resize.disconnect();
       visibility.disconnect();
+      theme.disconnect();
       document.removeEventListener("visibilitychange", invalidate);
       reducedMotion.removeEventListener("change", invalidate);
       renderer.domElement.removeEventListener("webglcontextlost", contextLost);

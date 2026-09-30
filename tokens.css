@@ -1,0 +1,72 @@
+/* Hallmark · personal library · studied image DNA · pre-emit critique: P4 H4 E4 S4 R4 V4 */
+:root, [data-theme="dark"] {
+  color-scheme: dark;
+  --mp-bg: #17181c; --mp-bg-raised: #202126;
+  --mp-surface: #27292f; --mp-surface-2: #303239; --mp-surface-3: #3e4149;
+  --mp-line: rgba(237,232,255,.08); --mp-line-strong: rgba(237,232,255,.22);
+  --mp-control-line: #75728c;
+  --mp-scrim: rgba(5,6,10,.72);
+  --mp-text: #f1f0ed; --mp-text-2: #c4c3cc; --mp-text-3: #b0aeb8;
+  --mp-note: #282a30; --mp-note-text: #f1f0ed; --mp-note-muted: #b9b7c0;
+  --mp-note-journal: #393343; --mp-note-journal-text: #f0e5fa; --mp-note-journal-muted: #d0bfdc;
+  --mp-note-quote: #493d28; --mp-note-quote-text: #ffedbb; --mp-note-quote-muted: #ddc898;
+  --mp-note-book: #2d3e35; --mp-note-book-text: #e5f3e9; --mp-note-book-muted: #bed0c3;
+  --mp-note-elevation: 0 6px 24px rgba(0,0,0,.22);
+  --mp-lumen: #f5b95c; --mp-lumen-hover: #ffcb7e; --mp-lumen-press: #e0a044;
+  --mp-lumen-text: #f5b95c; --mp-on-lumen: #1a1206;
+  --mp-lumen-soft: rgba(245,185,92,.12);
+  --mp-lumen-grad: linear-gradient(135deg,#ffd08a 0%,#f5b95c 45%,#e58f3a 100%);
+  --mp-echo: #9a8cff; --mp-echo-hover: #b0a5ff; --mp-on-echo: #0f0b2b;
+  --mp-echo-soft: rgba(154,140,255,.14);
+  --mp-vault: #5cc6ae; --mp-vault-soft: rgba(92,198,174,.14);
+  --mp-danger: #ff8585; --mp-danger-soft: rgba(255,107,107,.14);
+  --mp-e1: inset 0 1px 0 rgba(255,255,255,.05),0 0 0 1px var(--mp-line);
+  --mp-e2: var(--mp-e1),0 12px 28px -14px rgba(0,0,0,.65);
+  --mp-e3: 0 0 0 1px var(--mp-line-strong),0 48px 96px -24px rgba(0,0,0,.75);
+  --mp-brain: #262a44; --mp-brain-edge: #8676b6; --mp-brain-key: #ffd08a;
+}
+[data-theme="light"] {
+  color-scheme: light;
+  --mp-bg: #eff0f3; --mp-bg-raised: #f7f7f9;
+  --mp-surface: #ffffff; --mp-surface-2: #e7e8ed; --mp-surface-3: #dcdee5;
+  --mp-line: rgba(23,21,43,.09); --mp-line-strong: rgba(23,21,43,.24);
+  --mp-control-line: #81766a;
+  --mp-scrim: rgba(23,21,43,.45);
+  --mp-text: #27272e; --mp-text-2: #555660; --mp-text-3: #666773;
+  --mp-note: #ffffff; --mp-note-text: #27272e; --mp-note-muted: #666773;
+  --mp-note-journal: #eae4f3; --mp-note-journal-text: #393048; --mp-note-journal-muted: #675a76;
+  --mp-note-quote: #f6e6a5; --mp-note-quote-text: #433817; --mp-note-quote-muted: #6d5c27;
+  --mp-note-book: #dceade; --mp-note-book-text: #253d2e; --mp-note-book-muted: #516a59;
+  --mp-note-elevation: 0 6px 24px rgba(34,34,48,.10);
+  --mp-lumen: #efa93a; --mp-lumen-hover: #f5b95c; --mp-lumen-press: #d9932a;
+  --mp-lumen-text: #80520d; --mp-on-lumen: #1a1206;
+  --mp-lumen-soft: rgba(239,169,58,.16);
+  --mp-lumen-grad: linear-gradient(135deg,#ffd08a,#efa93a 50%,#e28a2e);
+  --mp-echo: #5b4bd6; --mp-echo-hover: #4b3cc2; --mp-on-echo: #fffaf2;
+  --mp-echo-soft: rgba(91,75,214,.10);
+  --mp-vault: #166f5e; --mp-vault-soft: rgba(28,124,105,.12);
+  --mp-danger: #b52e2e; --mp-danger-soft: rgba(194,59,59,.10);
+  --mp-e1: 0 0 0 1px var(--mp-line),0 1px 2px rgba(60,40,10,.05);
+  --mp-e2: var(--mp-e1),0 14px 32px -18px rgba(60,40,10,.22);
+  --mp-e3: 0 0 0 1px var(--mp-line-strong),0 40px 80px -28px rgba(40,25,5,.35);
+  --mp-brain: #55526b; --mp-brain-edge: #77648b; --mp-brain-key: #ffd08a;
+}
+:root {
+  --font-ui: var(--font-geist),Arial,Helvetica,sans-serif;
+  --font-writing: var(--font-instrument),Georgia,'Times New Roman',serif;
+  --font-caption: var(--font-geist-mono),'Courier New',monospace;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px;
+  --space-14: 56px; --space-18: 72px; --space-24: 96px;
+  --r-xs: 8px; --r-sm: 8px; --r-md: 8px; --r-lg: 12px; --r-xl: 16px; --r-pill: 999px;
+  --dur-1: 120ms; --dur-2: 200ms; --dur-3: 320ms; --dur-4: 560ms;
+  --ease-out: cubic-bezier(.22,1,.36,1); --ease-in-out: cubic-bezier(.65,0,.35,1);
+  --text-display-xl: 3rem; --text-display-lg: 2.5rem;
+  --text-title: 1.75rem; --text-quote: 1.375rem; --text-body: 1rem;
+  --page-max: 1240px; --reading-max: 68ch;
+  --background: var(--mp-bg); --foreground: var(--mp-text);
+  --mp-primary: var(--mp-lumen-text); --mp-secondary: var(--mp-text-2);
+  --mp-accent: var(--mp-lumen-soft); --mp-subtle: var(--mp-surface-2);
+  --mp-muted: var(--mp-text-3); --mp-border: var(--mp-line);
+  --mp-deep: var(--mp-lumen-press);
+}

@@ -9,13 +9,13 @@ type CreatedThought = {
 
 async function openAuthenticatedHome(page: Page) {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "A thought is all it takes." })).toBeVisible({
+  await expect(page.getByRole("search")).toBeVisible({
     timeout: 30_000,
   });
 }
 
 async function captureThought(page: Page, body: string): Promise<CreatedThought> {
-  await page.getByRole("button", { name: "Save a thought" }).click();
+  await page.getByRole("button", { name: "Save a thought", exact: true }).filter({ visible: true }).first().click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
   await dialog.getByPlaceholder("Start anywhere. You do not need to organize it.").fill(body);
@@ -106,7 +106,7 @@ test.describe("authenticated trust workflows", () => {
   test("disabling AI removes a thought from Ask eligibility", async ({ page }) => {
     const marker = `Trust AI disable ${Date.now()}`;
     await openAuthenticatedHome(page);
-    await page.getByRole("button", { name: "Save a thought" }).click();
+    await page.getByRole("button", { name: "Save a thought", exact: true }).filter({ visible: true }).first().click();
     const dialog = page.getByRole("dialog");
     await dialog.getByPlaceholder("Start anywhere. You do not need to organize it.").fill(marker);
     await dialog.getByRole("checkbox").check();

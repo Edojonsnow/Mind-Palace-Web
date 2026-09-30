@@ -1,0 +1,12 @@
+.layout { display: grid; grid-template-columns: minmax(0,.9fr) minmax(0,1.1fr); gap: 72px; width: 100%; max-width: var(--page-max); }
+.layout h1 { max-width: 460px; }
+.description { margin-top: 20px; color: var(--mp-text-2); max-width: 45ch; font-size: .9375rem; }
+.categories { display: flex; flex-direction: column; }
+.card { position: relative; width: 100%; padding: 24px 40px 24px 0; text-align: left; color: var(--mp-text); background: transparent; border-bottom: 1px solid var(--mp-line-strong); border-radius: 0; }
+.card:first-child { border-top: 1px solid var(--mp-line-strong); }
+.card h2 { font: 500 1.125rem var(--font-ui); }
+.arrow { position: absolute; right: 8px; top: 24px; color: var(--mp-text-3); }
+.count { color: var(--mp-lumen-text); font-size: .875rem; margin-top: 8px; }
+.helper { font-size: .875rem; color: var(--mp-text-3); margin-top: 8px; }
+.card:hover { background: var(--mp-surface-2); }
+@media(max-width:767px) { .layout { grid-template-columns: minmax(0,1fr); gap: 32px; } }

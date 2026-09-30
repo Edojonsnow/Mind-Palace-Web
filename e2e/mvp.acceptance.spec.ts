@@ -12,11 +12,11 @@ test.describe("authenticated Mind Palace MVP", () => {
   test("renders the private home and primary actions", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page.getByRole("heading", { name: "A thought is all it takes." })).toBeVisible({
+    await expect(page.getByRole("search")).toBeVisible({
       timeout: 30_000,
     });
-    await expect(page.getByRole("button", { name: "Save a thought" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Recall" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Save a thought", exact: true }).filter({ visible: true }).first()).toBeVisible();
+    await expect(page.getByLabel("Search your mind", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "View thoughts" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Privacy & data" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
@@ -25,7 +25,7 @@ test.describe("authenticated Mind Palace MVP", () => {
   test("captures a thought with AI disabled and finds it in Recall", async ({ page }) => {
     const marker = `Acceptance capture ${Date.now()}`;
     await page.goto("/");
-    await page.getByRole("button", { name: "Save a thought" }).click();
+    await page.getByRole("button", { name: "Save a thought", exact: true }).filter({ visible: true }).first().click();
 
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
@@ -38,8 +38,7 @@ test.describe("authenticated Mind Palace MVP", () => {
     await expect(dialog).toBeHidden();
     await expect(page.getByText("Thought saved.")).toBeVisible({ timeout: 30_000 });
 
-    await page.getByRole("button", { name: "Recall" }).click();
-    await page.getByPlaceholder("What do you remember?").fill(marker);
+    await page.getByLabel("Search your mind", { exact: true }).fill(marker);
     await page.getByRole("button", { name: "Search memory" }).click();
     await expect(page.getByText(marker)).toBeVisible();
     await expect(page.getByText("Organizing...", { exact: true })).toHaveCount(0);
@@ -47,16 +46,15 @@ test.describe("authenticated Mind Palace MVP", () => {
 
   test("applies and clears Recall filters", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Recall" }).click();
-
+    await page.locator("summary").filter({ hasText: "Filters" }).click();
     await page.getByLabel("Tag").fill("acceptance-filter");
-    await page.getByRole("button", { name: "Search memory" }).click();
-    await expect(page.getByText("Active filters")).toBeVisible();
+    await page.getByRole("button", { name: "Apply filters" }).click();
+    await expect(page.getByLabel("Active search and filters")).toBeVisible();
     await expect(page.getByText("Tag: acceptance-filter")).toBeVisible();
 
-    await page.getByRole("button", { name: "Clear filters" }).click();
-    await expect(page.getByText("Active filters")).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Clear filters" })).toBeDisabled();
+    await page.getByRole("button", { name: "Clear all" }).click();
+    await expect(page.getByLabel("Active search and filters")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Reset", exact: true })).toBeDisabled();
   });
 
 });
@@ -70,7 +68,7 @@ test.describe("AI-assisted MVP scenarios", () => {
   test("captures an AI-enabled thought and exposes Ask My Mind", async ({ page }) => {
     const marker = `Acceptance AI capture ${Date.now()}`;
     await page.goto("/");
-    await page.getByRole("button", { name: "Save a thought" }).click();
+    await page.getByRole("button", { name: "Save a thought", exact: true }).filter({ visible: true }).first().click();
 
     const dialog = page.getByRole("dialog");
     await dialog.getByPlaceholder("Start anywhere. You do not need to organize it.").fill(marker);
@@ -78,13 +76,11 @@ test.describe("AI-assisted MVP scenarios", () => {
     await dialog.getByRole("button", { name: "Keep this thought" }).click();
     await expect(dialog).toBeHidden();
 
-    await page.getByRole("button", { name: "Recall" }).click();
-    await page.getByPlaceholder("What do you remember?").fill(marker);
+    await page.getByLabel("Search your mind", { exact: true }).fill(marker);
     await page.getByRole("button", { name: "Search memory" }).click();
     await expect(page.getByText(marker)).toBeVisible();
     await expect(page.getByText("Organizing...", { exact: true })).toHaveCount(0, { timeout: 60_000 });
 
-    await page.getByRole("button", { name: "Return to my mind" }).click();
     await expect(page.getByRole("button", { name: "Ask my mind" })).toBeVisible();
     await page.getByRole("button", { name: "Ask my mind" }).click();
     await page.getByPlaceholder("Ask something only your mind could answer…").fill("What did I just capture?");
@@ -94,7 +90,7 @@ test.describe("AI-assisted MVP scenarios", () => {
     const sourceButton = page.getByRole("button", { name: /Open thought:/ }).first();
     const sourceSnippet = await sourceButton.locator("p").innerText();
     await sourceButton.click();
-    const preview = page.getByRole("dialog", { name: "Cited thought" });
+    const preview = page.getByRole("dialog", { name: "Thought preview" });
     await expect(preview).toBeVisible();
     await expect(preview.getByText(sourceSnippet, { exact: true })).toBeVisible();
   });

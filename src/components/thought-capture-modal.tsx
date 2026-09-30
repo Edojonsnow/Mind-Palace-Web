@@ -3,6 +3,8 @@ import type { FormEvent } from "react";
 import type { Book, ThoughtType } from "@/lib/api";
 import { parseThoughtType } from "@/components/mind-palace-shell-helpers";
 import styles from "./thought-capture-modal.module.css";
+import { LockKeyhole, Sparkles } from "lucide-react";
+import { ValidatedForm, useModalFocus } from "./ui";
 
 type ThoughtCaptureModalProps = {
   body: string;
@@ -33,19 +35,21 @@ export function ThoughtCaptureModal({
   onThoughtTypeChange, onBookChange, onNewBookTitleChange, onNewBookAuthorChange,
   onManualTagsChange, onUseWithAskChange,
 }: ThoughtCaptureModalProps) {
+  const panel = useModalFocus(onClose);
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 ${styles.backdrop}`} role="dialog" aria-modal="true" aria-labelledby="capture-title">
       <button className="absolute inset-0 cursor-default" type="button" aria-label="Close thought composer" onClick={onClose} />
-      <section className={`capture-panel-enter relative z-10 flex max-h-[92dvh] w-full max-w-4xl flex-col overflow-hidden ${styles.panel}`}>
+      <section ref={panel} className={`capture-panel-enter relative z-10 flex max-h-[92dvh] w-full max-w-4xl flex-col overflow-hidden ${styles.panel}`}>
         <header className={styles.header}>
           <div className={styles.meta}><span className={styles.metaDot} /><p>Private capture · saved after submission</p></div>
           <button className={styles.closeButton} type="button" onClick={onClose}>Close</button>
         </header>
-        <form className="min-h-0 overflow-y-auto" onSubmit={onSubmit}>
+        <ValidatedForm className="min-h-0 overflow-y-auto" onSubmit={onSubmit} onKeyDown={event => { if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && !isSaving) { event.preventDefault(); event.currentTarget.requestSubmit(); } }}>
           <div className={styles.hero}>
-            <p className={styles.eyebrow}>Capture a thought</p>
+
             <h1 id="capture-title" className={styles.title}>Put it down while it’s here.</h1>
-            <textarea autoFocus className={styles.bodyInput} placeholder="Start anywhere. You do not need to organize it." value={body} onChange={(event) => onBodyChange(event.target.value)} required />
+            <label className="sr-only" htmlFor="capture-body">Your thought</label>
+            <textarea id="capture-body" autoFocus className={styles.bodyInput} placeholder="Start anywhere. You do not need to organize it." value={body} onChange={(event) => onBodyChange(event.target.value)} required />
           </div>
           <div className={styles.fields}>
             <div className={styles.fieldGrid}>
@@ -54,9 +58,9 @@ export function ThoughtCaptureModal({
             </div>
             {thoughtType === "book_excerpt" ? <div className={styles.fieldGrid}><label className={styles.field}><span className={styles.fieldLabel}>Book</span><select className={`${styles.control} ${styles.selectControl}`} value={selectedBookId} onChange={(event) => onBookChange(event.target.value)} required><option value="">Select a saved book</option>{books.map((book) => <option key={book.id} value={book.id}>{book.title} · {book.author}</option>)}<option value="__new__">+ Add a new book</option></select></label>{selectedBookId === "__new__" ? <div className={styles.fieldGrid}><label className={styles.field}><span className={styles.fieldLabel}>Book title</span><input className={styles.control} value={newBookTitle} onChange={(event) => onNewBookTitleChange(event.target.value)} required /></label><label className={styles.field}><span className={styles.fieldLabel}>Author</span><input className={styles.control} value={newBookAuthor} onChange={(event) => onNewBookAuthorChange(event.target.value)} required /></label></div> : null}</div> : null}
             <div className={styles.fieldGrid}><label className={styles.field}><span className={styles.fieldLabel}>Context, if useful</span><input className={styles.control} placeholder="Tags separated by commas" value={manualTags} onChange={(event) => onManualTagsChange(event.target.value)} /></label><label className={styles.consent}><span>Let Ask My Mind use this</span><input type="checkbox" checked={useWithAsk} onChange={(event) => onUseWithAskChange(event.target.checked)} /></label></div>
-            <div className={styles.formFooter}><p className={styles.privacyNote}>AI access is off unless you enable it. Your original thought remains visible only inside your account.</p><button className={styles.submit} type="submit" disabled={!body.trim() || isSaving}>{isSaving ? "Keeping it…" : "Keep this thought →"}</button></div>
+            <div className={styles.formFooter}><p className={styles.privacyNote} data-ai={useWithAsk}>{useWithAsk ? <Sparkles size={18} aria-hidden="true" /> : <LockKeyhole size={18} aria-hidden="true" />}{useWithAsk ? "Ask My Mind can read this thought to answer your questions." : "AI access is off unless you enable it. Your original thought remains visible only inside your account."}</p><button className={styles.submit} type="submit" disabled={!body.trim() || isSaving}>{isSaving ? "Keeping it…" : "Keep this thought →"}</button></div>
           </div>
-        </form>
+        </ValidatedForm>
       </section>
     </div>
   );

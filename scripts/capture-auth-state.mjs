@@ -32,7 +32,7 @@ if (email && password) {
   console.log("The authenticated session will be saved automatically once the home screen appears.");
 }
 
-await page.getByRole("heading", { name: "A thought is all it takes." }).waitFor({
+await page.getByRole("search").waitFor({
   state: "visible",
   timeout: 600_000,
 });

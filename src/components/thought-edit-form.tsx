@@ -1,4 +1,5 @@
 import type { FormEvent } from "react";
+import { ValidatedForm } from "./ui";
 
 import type { Book, ThoughtType } from "@/lib/api";
 import { parseThoughtType } from "@/components/mind-palace-shell-helpers";
@@ -50,29 +51,29 @@ export function ThoughtEditForm({
   onCancel,
 }: ThoughtEditFormProps) {
   return (
-    <form className="mt-3 grid gap-3" onSubmit={onSubmit}>
-      <label className="grid gap-1 text-xs text-[#68787a]">
+    <ValidatedForm className="mp-edit mt-3 grid gap-3" onSubmit={onSubmit}>
+      <label className="grid gap-1 text-xs text-[var(--mp-text-3)]">
         Title
         <input
-          className="h-10 rounded-xl border border-[#e0e7e6] bg-[#fffefa] px-3 text-sm text-[#172033] outline-none focus:border-[#345f60]"
+          className="modern-control"
           value={title}
           onChange={(event) => onTitleChange(event.target.value)}
         />
       </label>
-      <label className="grid gap-1 text-xs text-[#68787a]">
+      <label className="grid gap-1 text-xs text-[var(--mp-text-3)]">
         Thought
         <textarea
-          className="min-h-28 resize-y rounded-xl border border-[#e0e7e6] bg-[#fffefa] p-3 text-sm leading-6 text-[#172033] outline-none focus:border-[#345f60]"
+          className="min-h-28 resize-y rounded-xl border border-[var(--mp-line-strong)] bg-[var(--mp-surface)] p-3 text-sm leading-6 text-[var(--mp-text)] outline-none focus:border-[var(--mp-lumen-text)]"
           value={body}
           onChange={(event) => onBodyChange(event.target.value)}
           required
         />
       </label>
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="grid gap-1 text-xs text-[#68787a]">
+        <label className="grid gap-1 text-xs text-[var(--mp-text-3)]">
           Type
           <select
-            className="h-10 rounded-xl border border-[#e0e7e6] bg-[#fffefa] px-3 text-sm text-[#172033] outline-none focus:border-[#345f60]"
+            className="modern-control"
             value={thoughtType}
             onChange={(event) =>
               onThoughtTypeChange(parseThoughtType(event.target.value))
@@ -84,10 +85,10 @@ export function ThoughtEditForm({
             <option value="book_excerpt">Book excerpt</option>
           </select>
         </label>
-        <label className="grid gap-1 text-xs text-[#68787a]">
+        <label className="grid gap-1 text-xs text-[var(--mp-text-3)]">
           Manual tags
           <input
-            className="h-10 rounded-xl border border-[#e0e7e6] bg-[#fffefa] px-3 text-sm text-[#172033] outline-none focus:border-[#345f60]"
+            className="modern-control"
             placeholder="e.g. work, ideas"
             value={manualTags}
             onChange={(event) => onManualTagsChange(event.target.value)}
@@ -96,10 +97,10 @@ export function ThoughtEditForm({
       </div>
       {thoughtType === "book_excerpt" ? (
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="grid gap-1 text-xs text-[#68787a]">
+          <label className="grid gap-1 text-xs text-[var(--mp-text-3)]">
             Book
             <select
-              className="h-10 rounded-xl border border-[#e0e7e6] bg-[#fffefa] px-3 text-sm text-[#172033] outline-none focus:border-[#345f60]"
+              className="modern-control"
               value={bookId}
               onChange={(event) => onBookIdChange(event.target.value)}
               required
@@ -115,19 +116,19 @@ export function ThoughtEditForm({
           </label>
           {bookId === "__new__" ? (
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="grid gap-1 text-xs text-[#68787a]">
+              <label className="grid gap-1 text-xs text-[var(--mp-text-3)]">
                 Book title
                 <input
-                  className="h-10 rounded-xl border border-[#e0e7e6] bg-[#fffefa] px-3 text-sm text-[#172033] outline-none focus:border-[#345f60]"
+                  className="modern-control"
                   value={bookTitle}
                   onChange={(event) => onBookTitleChange(event.target.value)}
                   required
                 />
               </label>
-              <label className="grid gap-1 text-xs text-[#68787a]">
+              <label className="grid gap-1 text-xs text-[var(--mp-text-3)]">
                 Author
                 <input
-                  className="h-10 rounded-xl border border-[#e0e7e6] bg-[#fffefa] px-3 text-sm text-[#172033] outline-none focus:border-[#345f60]"
+                  className="modern-control"
                   value={bookAuthor}
                   onChange={(event) => onBookAuthorChange(event.target.value)}
                   required
@@ -137,7 +138,7 @@ export function ThoughtEditForm({
           ) : null}
         </div>
       ) : null}
-      <label className="flex items-center gap-2 text-xs text-[#68787a]">
+      <label className="flex items-center gap-2 text-xs text-[var(--mp-text-3)]">
         <input
           type="checkbox"
           checked={useWithAsk}
@@ -147,7 +148,7 @@ export function ThoughtEditForm({
       </label>
       <div className="flex flex-wrap items-center gap-2">
         <button
-          className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#345f60] px-3 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="mp-button mp-button-primary"
           type="submit"
           disabled={isUpdating || !body.trim()}
         >
@@ -155,7 +156,7 @@ export function ThoughtEditForm({
           {isUpdating ? "Saving..." : "Save changes"}
         </button>
         <button
-          className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#e0e7e6] px-3 text-xs text-[#345f60] disabled:cursor-not-allowed disabled:opacity-50"
+          className="mp-button mp-button-secondary"
           type="button"
           onClick={onCancel}
           disabled={isUpdating}
@@ -164,6 +165,6 @@ export function ThoughtEditForm({
           Cancel
         </button>
       </div>
-    </form>
+    </ValidatedForm>
   );
 }

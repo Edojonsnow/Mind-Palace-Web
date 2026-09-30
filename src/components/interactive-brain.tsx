@@ -5,9 +5,9 @@ import { Brain, RotateCcw } from "lucide-react";
 import type { BrainAction, BrainScene } from "@/lib/brain-scene";
 import styles from "./mind-map-home.module.css";
 
-type Props = { activeAction: BrainAction | null; onReady: () => void };
+type Props = { activeAction: BrainAction | null };
 
-export function InteractiveBrain({ activeAction, onReady }: Props) {
+export function InteractiveBrain({ activeAction }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const controller = useRef<BrainScene | null>(null);
   const active = useRef(activeAction);
@@ -23,10 +23,16 @@ export function InteractiveBrain({ activeAction, onReady }: Props) {
     const fail = () => {
       if (cancelled) return;
       setStatus("unavailable");
-      onReady();
       controller.current?.dispose();
       controller.current = null;
     };
+    const media = matchMedia("(prefers-reduced-motion: reduce)");
+    const reduced = () => { if (media.matches) fail(); };
+    media.addEventListener("change", reduced);
+    if (media.matches) {
+      const frame = requestAnimationFrame(fail);
+      return () => { cancelled = true; cancelAnimationFrame(frame); media.removeEventListener("change", reduced); };
+    }
     import("@/lib/brain-scene").then(({ createBrainScene }) => {
       if (cancelled || !host.current) return;
       try {
@@ -34,12 +40,11 @@ export function InteractiveBrain({ activeAction, onReady }: Props) {
           if (cancelled) return;
           setStatus("ready");
           controller.current?.highlight(active.current);
-          onReady();
         }, fail);
       } catch { fail(); }
     }).catch(fail);
-    return () => { cancelled = true; controller.current?.dispose(); controller.current = null; };
-  }, [onReady]);
+    return () => { cancelled = true; media.removeEventListener("change", reduced); controller.current?.dispose(); controller.current = null; };
+  }, []);
 
   return (
     <div className={styles.brainInteractive} data-status={status}>

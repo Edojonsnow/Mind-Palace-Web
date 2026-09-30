@@ -1,6 +1,7 @@
 "use client";
 
-import { Pencil } from "lucide-react";
+import { LockKeyhole, LogOut } from "lucide-react";
+import { ThemeToggle, ValidatedForm, Skeleton } from "./ui";
 import {
   FormEvent,
   useCallback,
@@ -43,25 +44,19 @@ import {
 } from "@/lib/api";
 import { authClient, getJWTToken } from "@/lib/auth-client";
 import {
-  CompactLabelList,
   DEFAULT_RECALL_FILTERS,
-  formatDate,
   hasRecallFilterValues,
   isExportExpired,
-  manualThoughtLabels,
   recallQuery,
   splitTags,
   type LabelFilterKey,
   type LoadState,
   type RecallFilters,
   type RememberCategoryData,
-  type ThoughtLabel,
   type WorkspaceMode,
 } from "@/components/mind-palace-shell-helpers";
 import { MindMapHome } from "@/components/mind-map-home";
 import homeStyles from "@/components/mind-map-home.module.css";
-import { RecallSearchPanel } from "@/components/recall-search-panel";
-import recallStyles from "@/components/recall-workspace.module.css";
 import { AskMyMindWorkspace } from "@/components/ask-my-mind-workspace";
 import { ThoughtCaptureModal } from "@/components/thought-capture-modal";
 import { TrustControlsPanel } from "@/components/trust-controls-panel";
@@ -96,6 +91,7 @@ export function MindPalaceShell() {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isResendingCode, setIsResendingCode] = useState(false);
   const [thoughts, setThoughts] = useState<Thought[]>([]);
+  const [libraryTotal, setLibraryTotal] = useState(0);
   const [recallFilters, setRecallFilters] = useState<RecallFilters>(DEFAULT_RECALL_FILTERS);
   const [recallDraftFilters, setRecallDraftFilters] =
     useState<RecallFilters>(DEFAULT_RECALL_FILTERS);
@@ -123,6 +119,11 @@ export function MindPalaceShell() {
   const [organizingThoughtId, setOrganizingThoughtId] = useState<string | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("idle");
   const [message, setMessage] = useState("");
+  useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(() => setMessage(""), 3500);
+    return () => clearTimeout(timer);
+  }, [message]);
   const [body, setBody] = useState("");
   const [title, setTitle] = useState("");
   const [manualTags, setManualTags] = useState("");
@@ -157,7 +158,7 @@ export function MindPalaceShell() {
   const askSubmissionLock = useRef(false);
   const isAuthenticated = Boolean(session.data?.user) && authMode === "sign-in";
 
-  const hasSavedThoughts = recallTotal > 0 || thoughts.length > 0;
+  const hasSavedThoughts = libraryTotal > 0 || thoughts.length > 0;
   const hasProcessingThoughts = thoughts.some(
     (thought) =>
       thought.use_with_ask_my_mind &&
@@ -178,13 +179,14 @@ export function MindPalaceShell() {
     ) => {
       const requestSequence = refreshSequence.current + 1;
       refreshSequence.current = requestSequence;
+      const isLibraryRequest = !hasRecallFilterValues(filtersOverride);
+      setLoadState("loading");
       const nextToken = tokenOverride ?? (await getApiToken());
       if (!nextToken) {
         setLoadState("idle");
         return;
       }
 
-      setLoadState("loading");
       if (!tokenOverride) {
         setMessage("");
       }
@@ -198,6 +200,9 @@ export function MindPalaceShell() {
           return;
         }
         setThoughts(nextThoughts.items);
+        if (isLibraryRequest) {
+          setLibraryTotal(nextThoughts.total);
+        }
         setRecallPage(nextThoughts.page);
         setRecallTotal(nextThoughts.total);
         setRecallTotalPages(nextThoughts.totalPages);
@@ -440,6 +445,7 @@ export function MindPalaceShell() {
     setLifecycleState("idle");
     setLifecycleMessage("");
     setLoadState("idle");
+    setLibraryTotal(0);
     setMessage("");
   }
 
@@ -665,10 +671,6 @@ export function MindPalaceShell() {
     setMessage("");
   }
 
-  function editThoughtFromSearch(thought: Thought) {
-    startEditingThought(thought);
-  }
-
   function cancelEditingThought() {
     setEditingThoughtId(null);
     setEditTitle("");
@@ -722,20 +724,40 @@ export function MindPalaceShell() {
 
   function handleRecallSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setThoughts([]);
+    cancelEditingThought();
     setRecallFilters(recallDraftFilters);
     setRecallPage(1);
     void refresh(1, recallDraftFilters);
   }
 
-  function handleLabelClick(label: ThoughtLabel) {
+  function openLibrary() {
+    setSelectedRememberCategory(null);
+    setWorkspaceMode("hub");
+    void refresh(recallPage, recallFilters);
+  }
+
+  function clearSearchQuery() {
+    setThoughts([]);
+    const nextFilters = { ...recallFilters, q: "" };
+    setRecallDraftFilters((current) => ({ ...current, q: "" }));
+    setRecallFilters(nextFilters);
+    setRecallPage(1);
+    cancelEditingThought();
+    void refresh(1, nextFilters);
+  }
+
+  function handleLabelClick(label: { filterKey: LabelFilterKey; value: string }) {
+    setThoughts([]);
     const nextFilters = {
       ...DEFAULT_RECALL_FILTERS,
       [label.filterKey]: label.value,
     };
+    cancelEditingThought();
     setRecallDraftFilters(nextFilters);
     setRecallFilters(nextFilters);
     setRecallPage(1);
-    setWorkspaceMode("search");
+    setWorkspaceMode("hub");
     void refresh(1, nextFilters);
   }
 
@@ -747,18 +769,15 @@ export function MindPalaceShell() {
       tags: "tag",
       books: "book",
     };
-    const labelByCategory: Record<RememberCategoryData["key"], string> = {
-      tags: "Tag",
-      books: "Book",
-    };
     handleLabelClick({
-      label: `${labelByCategory[categoryKey]}: ${value}`,
       value,
       filterKey: filterKeyByCategory[categoryKey],
     });
   }
 
   function handleRecallReset() {
+    setThoughts([]);
+    cancelEditingThought();
     setRecallDraftFilters(DEFAULT_RECALL_FILTERS);
     setRecallFilters(DEFAULT_RECALL_FILTERS);
     setRecallPage(1);
@@ -770,6 +789,7 @@ export function MindPalaceShell() {
       return;
     }
     setRecallPage(nextPage);
+    setThoughts([]);
     void refresh(nextPage, recallFilters);
   }
 
@@ -890,8 +910,8 @@ export function MindPalaceShell() {
 
   if (!hasMounted) {
     return (
-      <main className="flex min-h-dvh items-center justify-center bg-[#fffefa] px-4 text-[#1c1c1c]">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7d828b]">
+      <main className="flex min-h-dvh items-center justify-center bg-[var(--mp-surface)] px-4 text-[var(--mp-text)]">
+        <p className="text-[12px] font-semibold uppercase tracking-normal text-[var(--mp-text-3)]">
           Restoring your private space…
         </p>
       </main>
@@ -899,31 +919,36 @@ export function MindPalaceShell() {
   }
 
   return (
-    <main className="min-h-screen bg-[#fffefa] text-[#1c1c1c]">
+    <main className="min-h-screen bg-transparent text-[var(--mp-text)]">
       <div className="flex min-h-screen w-full flex-col">
         {isAuthenticated ? (
           <section className={workspaceMode === "hub" ? homeStyles.shell : homeStyles.workspaceShell}>
-            {workspaceMode === "hub" ? <div className={homeStyles.brand}>mind palace<span>A place for what stays with you.</span></div> : <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.035),transparent_38%),linear-gradient(to_bottom,rgba(255,254,250,0.16),rgba(241,241,239,0.58))]" />}
+            {workspaceMode === "hub" ? <div className={homeStyles.brand}><div className="mp-wordmark">mind palace</div><span>A place for what stays with you.</span></div> : null}
             <div className={homeStyles.utilities}>
+              <ThemeToggle />
               <button
-                className="h-10 rounded-full border border-black/10 bg-white/75 px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#1c1c1c] backdrop-blur-xl hover:bg-white"
+                className="mp-button mp-button-secondary"
                 type="button"
+                aria-label="Privacy & data"
+                title="Privacy & data"
                 onClick={() => setIsTrustControlsOpen(true)}
               >
-                Privacy &amp; data
+                <LockKeyhole size={16} aria-hidden="true" /><span className={homeStyles.utilityLabel}>Privacy &amp; data</span>
               </button>
               <button
-                className={`h-10 rounded-full bg-[#1f1f1f] px-4 text-[11px] font-semibold uppercase tracking-[0.12em] ${workspaceMode === "hub" ? "text-white" : "text-white"} hover:bg-black`}
+                className="mp-button mp-button-ghost"
                 type="button"
+                aria-label="Sign out"
+                title="Sign out"
                 onClick={() => void handleSignOut()}
               >
-                Sign out
+                <LogOut size={18} className={homeStyles.signOutIcon} aria-hidden="true" /><span className={homeStyles.utilityLabel}>Sign out</span>
               </button>
             </div>
 
             {message ? (
-              <div className="pointer-events-none fixed inset-x-0 top-5 z-[60] flex justify-center px-4">
-                <div className="capture-panel-enter rounded-full border border-black/10 bg-[#1f1f1f] px-5 py-3 text-xs font-medium text-white shadow-xl">
+              <div className="mp-toast" role="status" aria-live="polite">
+                <div>
                   {message}
                 </div>
               </div>
@@ -931,136 +956,88 @@ export function MindPalaceShell() {
 
             {workspaceMode !== "hub" ? (
               <button
-                className="absolute left-4 top-4 z-30 h-10 rounded-full border border-black/10 bg-white/75 px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#31343b] backdrop-blur-xl hover:bg-white sm:left-7 sm:top-6"
+                className={`${homeStyles.back} mp-button mp-button-ghost`}
                 type="button"
-                onClick={() => {
-                  setSelectedRememberCategory(null);
-                  setWorkspaceMode("hub");
-                }}
+                onClick={openLibrary}
               >
                 ← Return to my mind
               </button>
             ) : null}
 
-            <div className={workspaceMode === "hub" ? homeStyles.content : "relative z-10 mx-auto flex w-full max-w-7xl flex-1 items-center justify-center py-10 sm:py-12"}>
+            <div className={workspaceMode === "hub" ? homeStyles.content : "relative z-10 mx-auto w-full max-w-6xl py-4"}>
               {workspaceMode === "hub" ? (
                 <MindMapHome
+                  name={session.data?.user?.name ?? ""}
+                  thoughts={thoughts}
+                  total={recallTotal}
+                  page={recallPage}
+                  totalPages={recallTotalPages}
+                  loadState={loadState}
+                  draftFilters={recallDraftFilters}
+                  activeFilters={recallFilters}
+                  hasFilters={hasRecallFilters}
+                  onDraftFiltersChange={setRecallDraftFilters}
+                  onSearchSubmit={handleRecallSubmit}
+                  onClearQuery={clearSearchQuery}
+                  onResetFilters={handleRecallReset}
+                  onPageChange={handleRecallPageChange}
                   showAskAction={showAskAction}
                   onSaveThought={() => setIsCaptureOpen(true)}
                   onAskMind={() => setWorkspaceMode("ask")}
-                  onSearchThoughts={() => setWorkspaceMode("search")}
                   onReminisce={revealReminisce}
+                  onBooks={() => setWorkspaceMode("books")}
+                  onOpenThought={(thought) => {
+                    setPreviewThought(thought);
+                    setPreviewThoughtError("");
+                    setIsPreviewThoughtLoading(false);
+                    setIsThoughtPreviewOpen(true);
+                  }}
+                  onEditThought={startEditingThought}
+                  isUpdating={isUpdating}
+                  organizingThoughtId={organizingThoughtId}
+                  onOrganizeThought={(thoughtId) => void handleOrganizeThought(thoughtId)}
+                  onTagSelect={(tag) => handleLabelClick({ value: tag, filterKey: "tag" })}
+                  onRefresh={() => void refresh(recallPage, recallFilters)}
+                  editingThoughtId={editingThoughtId}
+                  editor={editingThoughtId ? (
+                    <ThoughtEditForm
+                      title={editTitle}
+                      body={editBody}
+                      thoughtType={editThoughtType}
+                      books={books}
+                      bookId={editBookId}
+                      bookTitle={editBookTitle}
+                      bookAuthor={editBookAuthor}
+                      manualTags={editManualTags}
+                      useWithAsk={editUseWithAsk}
+                      isUpdating={isUpdating}
+                      onSubmit={(event) => { if (editingThoughtId) void handleUpdateThought(event, editingThoughtId); }}
+                      onTitleChange={setEditTitle}
+                      onBodyChange={setEditBody}
+                      onThoughtTypeChange={(nextType) => { setEditThoughtType(nextType); if (nextType !== "book_excerpt") setEditBookId(""); }}
+                      onBookIdChange={setEditBookId}
+                      onBookTitleChange={setEditBookTitle}
+                      onBookAuthorChange={setEditBookAuthor}
+                      onManualTagsChange={setEditManualTags}
+                      onUseWithAskChange={setEditUseWithAsk}
+                      onCancel={cancelEditingThought}
+                    />
+                  ) : null}
                 />
               ) : workspaceMode === "books" ? (
                 <BooksWorkspace
                   books={books}
                   onBookSelect={(bookId) => {
+                    setThoughts([]);
+                    cancelEditingThought();
                     const nextFilters = { ...DEFAULT_RECALL_FILTERS, book_id: bookId };
                     setRecallDraftFilters(nextFilters);
                     setRecallFilters(nextFilters);
                     setRecallPage(1);
-                    setWorkspaceMode("search");
+                    setWorkspaceMode("hub");
                     void refresh(1, nextFilters);
                   }}
                 />
-              ) : workspaceMode === "search" ? (
-                <div className="mind-workspace-enter w-full max-w-6xl">
-                  <div className={recallStyles.layout}>
-                    <aside className={recallStyles.sidebar}>
-                      <h1 className={recallStyles.title}>Find what you remember.</h1>
-                      <p className={recallStyles.description}>Search the words you remember, then narrow by context. Your thoughts stay exactly where you left them.</p>
-                      <div className={recallStyles.searchCard}>
-                      <RecallSearchPanel
-                        draftFilters={recallDraftFilters}
-                        activeFilters={recallFilters}
-                        hasFilters={hasRecallFilters}
-                        onDraftFiltersChange={setRecallDraftFilters}
-                        onSubmit={handleRecallSubmit}
-                        onReset={handleRecallReset}
-                      />
-                      </div>
-                    </aside>
-
-                    <section className={recallStyles.results}>
-                      <div className={recallStyles.resultsHeader}>
-                        <h2 className={recallStyles.resultsTitle}>Your thoughts</h2>
-                        <span className={recallStyles.resultsCount}>{recallTotal} {recallTotal === 1 ? "thought" : "thoughts"}</span>
-                      </div>
-                      <div className={recallStyles.resultList}>
-                        {loadState === "loading" ? (
-                          <p className={recallStyles.emptyState}>Searching your memory…</p>
-                        ) : thoughts.length === 0 ? (
-                          <p className={recallStyles.emptyState}>No thoughts match this view yet.</p>
-                        ) : thoughts.map((thought, index) => (
-                          <article key={thought.id} className={recallStyles.resultItem}>
-                            <span className={recallStyles.resultNumber}>{String(index + 1).padStart(2, "0")}</span>
-                            <div>
-                              <div className={recallStyles.resultMeta}><span>{thought.thought_type}</span><span>·</span><span>{formatDate(thought.created_at)}</span>{thought.use_with_ask_my_mind && (thought.ai_processing_status === "pending" || thought.ai_processing_status === "processing") ? <><span>·</span><span>Organizing...</span></> : null}</div>
-                              {editingThoughtId === thought.id ? (
-                                <ThoughtEditForm
-                                  title={editTitle}
-                                  body={editBody}
-                                  thoughtType={editThoughtType}
-                                  books={books}
-                                  bookId={editBookId}
-                                  bookTitle={editBookTitle}
-                                  bookAuthor={editBookAuthor}
-                                  manualTags={editManualTags}
-                                  useWithAsk={editUseWithAsk}
-                                  isUpdating={isUpdating}
-                                  onSubmit={(event) => void handleUpdateThought(event, thought.id)}
-                                  onTitleChange={setEditTitle}
-                                  onBodyChange={setEditBody}
-                                  onThoughtTypeChange={(nextType) => { setEditThoughtType(nextType); if (nextType !== "book_excerpt") setEditBookId(""); }}
-                                  onBookIdChange={setEditBookId}
-                                  onBookTitleChange={setEditBookTitle}
-                                  onBookAuthorChange={setEditBookAuthor}
-                                  onManualTagsChange={setEditManualTags}
-                                  onUseWithAskChange={setEditUseWithAsk}
-                                  onCancel={cancelEditingThought}
-                                />
-                              ) : (
-                                <>
-                                  <div className="mt-1 flex items-start justify-between gap-3">
-                                    <h2 className={recallStyles.resultTitle}>{thought.title || "Untitled thought"}</h2>
-                                    <button
-                                      className={recallStyles.editButton}
-                                      type="button"
-                                      aria-label="Edit thought"
-                                      title="Edit thought"
-                                      onClick={() => editThoughtFromSearch(thought)}
-                                      disabled={isUpdating}
-                                    >
-                                      <Pencil size={15} aria-hidden="true" />
-                                    </button>
-                                  </div>
-                                  <p className={recallStyles.resultBody}>{thought.body}</p>
-                                  <CompactLabelList labels={manualThoughtLabels(thought)} maxVisible={4} onLabelClick={handleLabelClick} />
-                                  {thought.ai_processing_status === "failed" && thought.use_with_ask_my_mind ? (
-                                    <button
-                                      className="mt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#b15b4d] disabled:opacity-50"
-                                      type="button"
-                                      onClick={() => void handleOrganizeThought(thought.id)}
-                                      disabled={organizingThoughtId !== null}
-                                    >
-                                      {organizingThoughtId === thought.id ? "Retrying organization..." : "Retry organization"}
-                                    </button>
-                                  ) : null}
-                                </>
-                              )}
-                            </div>
-                          </article>
-                        ))}
-                      </div>
-                      {recallTotal > 0 ? (
-                        <div className={recallStyles.pagination}>
-                          <span>{recallTotal} {recallTotal === 1 ? "thought" : "thoughts"}</span>
-                          {recallTotalPages > 1 ? <div className="flex items-center gap-3"><button type="button" disabled={recallPage === 1 || loadState === "loading"} onClick={() => handleRecallPageChange(recallPage - 1)}>← Previous</button><span>{recallPage} / {recallTotalPages}</span><button type="button" disabled={recallPage === recallTotalPages || loadState === "loading"} onClick={() => handleRecallPageChange(recallPage + 1)}>Next →</button></div> : null}
-                        </div>
-                      ) : null}
-                    </section>
-                  </div>
-                </div>
               ) : workspaceMode === "ask" ? (
                 <AskMyMindWorkspace
                   messages={chatMessages}
@@ -1074,8 +1051,7 @@ export function MindPalaceShell() {
                 />
               ) : workspaceMode === "organizing" ? (
                 <div className="mind-workspace-enter text-center">
-                  <div className="mx-auto h-52 w-52 animate-pulse rounded-full bg-[radial-gradient(circle_at_34%_28%,#d8d8d8_0%,#777777_34%,#2f2f2f_68%,#111111_100%)] shadow-[0_35px_90px_rgba(17,17,17,0.24)]" />
-                  <p className="mt-8 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#777c86]">Rearranging the view…</p>
+                  <Skeleton label="Rearranging the view" />
                 </div>
               ) : (
                 <ReminisceWorkspace
@@ -1148,14 +1124,14 @@ export function MindPalaceShell() {
         ) : null}
 
         <section
-          className={`mx-auto w-full max-w-7xl flex-1 gap-6 px-4 py-6 sm:px-6 lg:px-8 ${isAuthenticated ? "hidden" : "grid place-items-center"}`}
+          className={`mp-auth mx-auto w-full max-w-7xl flex-1 gap-6 px-4 py-6 sm:px-6 lg:px-8 ${isAuthenticated ? "hidden" : "grid place-items-center"}`}
         >
           <aside className={`flex w-full flex-col gap-4 ${isAuthenticated ? "" : "max-w-md"}`}>
-            {session.isPending ? <section className="rounded-[30px] border border-black/[0.08] bg-white p-8 shadow-[0_30px_100px_rgba(31,35,45,0.08)]">
-              <div className="text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7d828b]">Restoring your private space…</div>
-            </section> : !isAuthenticated ? <section className="rounded-[30px] border border-black/[0.08] bg-white p-7 shadow-[0_30px_100px_rgba(31,35,45,0.1)] sm:p-9">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#587878]">[ Private memory ]</p>
-              <h1 className="mt-4 font-display text-4xl font-medium tracking-[-0.05em] text-[#202329]">
+            {session.isPending ? <section className="rounded-[30px] border border-[var(--mp-line)] bg-[var(--mp-surface)] p-8 shadow-e1">
+              <div className="text-center text-[12px] font-semibold uppercase tracking-normal text-[var(--mp-text-3)]">Restoring your private space…</div>
+            </section> : !isAuthenticated ? <section className="mp-auth-card">
+              <div className="mb-8 flex items-center justify-between gap-4"><span className="mp-wordmark">mind palace</span><ThemeToggle /></div>
+              <h1 className="mt-4 font-display text-4xl font-medium tracking-normal text-[var(--mp-text)]">
                 {authMode === "sign-in"
                   ? "Return to your mind."
                   : authMode === "sign-up"
@@ -1166,21 +1142,22 @@ export function MindPalaceShell() {
                         ? "Reset your password."
                         : "Choose a new password."}
               </h1>
-              <p className="mb-7 mt-3 text-sm leading-6 text-[#7a7f88]">
+              <p className="mb-7 mt-3 text-sm leading-6 text-[var(--mp-text-3)]">
                 {authMode === "forgot-password" || authMode === "reset-password"
                   ? "We will help you get back into your private space."
                   : "Your thoughts stay private and your AI controls remain yours."}
               </p>
-              <form className="space-y-3" onSubmit={handleAuth}>
+              <ValidatedForm className="space-y-3" onSubmit={handleAuth}>
                 {authMode === "confirm" ? <>
-                  <p className="text-sm leading-5 text-[#68787a]">
+                  <p className="text-sm leading-5 text-[var(--mp-text-3)]">
                     Enter the six-digit code sent to {authEmail}.
                   </p>
                   <input
-                    className="modern-control w-full text-center text-lg tracking-[0.25em]"
+                    className="modern-control w-full text-center text-lg tracking-normal"
                     inputMode="numeric"
                     autoComplete="one-time-code"
                     placeholder="000000"
+                    aria-label="Confirmation code"
                     value={verificationCode}
                     onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
                     minLength={6}
@@ -1188,14 +1165,15 @@ export function MindPalaceShell() {
                     required
                   />
                 </> : authMode === "reset-password" ? <>
-                  <p className="text-sm leading-5 text-[#68787a]">
+                  <p className="text-sm leading-5 text-[var(--mp-text-3)]">
                     Enter the six-digit code sent to {authEmail}, then choose a new password.
                   </p>
                   <input
-                    className="modern-control w-full text-center text-lg tracking-[0.25em]"
+                    className="modern-control w-full text-center text-lg tracking-normal"
                     inputMode="numeric"
                     autoComplete="one-time-code"
                     placeholder="000000"
+                    aria-label="Reset code"
                     value={verificationCode}
                     onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
                     minLength={6}
@@ -1205,6 +1183,8 @@ export function MindPalaceShell() {
                 </> : authMode === "sign-up" ? <input
                   className="modern-control w-full"
                   placeholder="Name"
+                  aria-label="Name"
+                  autoComplete="name"
                   value={authName}
                   onChange={(event) => setAuthName(event.target.value)}
                   required
@@ -1213,6 +1193,8 @@ export function MindPalaceShell() {
                   className="modern-control w-full"
                   type="email"
                   placeholder="Email"
+                  aria-label="Email"
+                  autoComplete="email"
                   value={authEmail}
                   onChange={(event) => setAuthEmail(event.target.value)}
                   required
@@ -1221,6 +1203,8 @@ export function MindPalaceShell() {
                   className="modern-control w-full"
                   type="password"
                   placeholder="Password"
+                  aria-label="Password"
+                  autoComplete={authMode === "sign-up" ? "new-password" : "current-password"}
                   value={authPassword}
                   onChange={(event) => setAuthPassword(event.target.value)}
                   minLength={8}
@@ -1231,13 +1215,14 @@ export function MindPalaceShell() {
                   type="password"
                   autoComplete="new-password"
                   placeholder="New password"
+                  aria-label="New password"
                   value={authPassword}
                   onChange={(event) => setAuthPassword(event.target.value)}
                   minLength={8}
                   required
                 /> : null}
                 <button
-                  className="mt-2 h-12 w-full rounded-full bg-[#24272d] px-5 text-xs font-semibold uppercase tracking-[0.12em] text-white hover:bg-black disabled:opacity-50"
+                  className="mp-button mp-button-primary mt-2 w-full"
                   disabled={isAuthenticating}
                 >
                   {isAuthenticating
@@ -1252,11 +1237,12 @@ export function MindPalaceShell() {
                         ? "Sign in"
                         : "Create account"}
                 </button>
-              </form>
-              {authMessage ? <p className="mt-4 text-xs leading-5 text-[#68787a]">{authMessage}</p> : null}
+              </ValidatedForm>
+              <p className="mp-trust-line"><LockKeyhole size={16} aria-hidden="true" />Your thoughts belong to you.</p>
+              {authMessage ? <p className="mt-4 text-xs leading-5 text-[var(--mp-text-3)]">{authMessage}</p> : null}
               {authMode === "confirm" ? <button
                 type="button"
-                className="mt-4 text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-[#587878] disabled:opacity-50"
+                className="mt-4 text-left text-[12px] font-semibold uppercase tracking-normal text-[var(--mp-lumen-text)] disabled:opacity-50"
                 onClick={() => void handleResendVerificationCode()}
                 disabled={isResendingCode}
               >
@@ -1264,7 +1250,7 @@ export function MindPalaceShell() {
               </button> : null}
               {authMode === "reset-password" ? <button
                 type="button"
-                className="mt-4 text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-[#587878]"
+                className="mt-4 text-left text-[12px] font-semibold uppercase tracking-normal text-[var(--mp-lumen-text)]"
                 onClick={() => {
                   setAuthMode("forgot-password");
                   setVerificationCode("");
@@ -1276,7 +1262,7 @@ export function MindPalaceShell() {
               </button> : null}
               {authMode === "confirm" ? <button
                 type="button"
-                className="mt-4 text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-[#587878]"
+                className="mt-4 text-left text-[12px] font-semibold uppercase tracking-normal text-[var(--mp-lumen-text)]"
                 onClick={() => {
                   setAuthMode("sign-up");
                   setVerificationCode("");
@@ -1286,7 +1272,7 @@ export function MindPalaceShell() {
                 Use a different email
               </button> : authMode === "reset-password" ? <button
                 type="button"
-                className="mt-4 text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-[#587878]"
+                className="mt-4 text-left text-[12px] font-semibold uppercase tracking-normal text-[var(--mp-lumen-text)]"
                 onClick={() => {
                   setAuthMode("sign-in");
                   setVerificationCode("");
@@ -1297,7 +1283,7 @@ export function MindPalaceShell() {
                 Return to sign in
               </button> : authMode === "forgot-password" ? <button
                 type="button"
-                className="mt-4 text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-[#587878]"
+                className="mt-4 text-left text-[12px] font-semibold uppercase tracking-normal text-[var(--mp-lumen-text)]"
                 onClick={() => {
                   setAuthMode("sign-in");
                   setAuthMessage("");
@@ -1305,7 +1291,7 @@ export function MindPalaceShell() {
               >
                 Return to sign in
               </button> : <button
-                className="mt-4 text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-[#587878]"
+                className="mt-4 text-left text-[12px] font-semibold uppercase tracking-normal text-[var(--mp-lumen-text)]"
                 onClick={() => {
                   setAuthMode(authMode === "sign-in" ? "sign-up" : "sign-in");
                   setAuthMessage("");
@@ -1315,7 +1301,7 @@ export function MindPalaceShell() {
               </button>}
               {authMode === "sign-in" ? <button
                 type="button"
-                className="mt-3 block text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-[#587878]"
+                className="mt-3 block text-left text-[12px] font-semibold uppercase tracking-normal text-[var(--mp-lumen-text)]"
                 onClick={() => {
                   setAuthMode("forgot-password");
                   setAuthPassword("");

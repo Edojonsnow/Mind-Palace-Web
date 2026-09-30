@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-30T05:43:45Z",
+  "title": "Design System: Mind Palace",
+  "extensions": {
+    "sources": ["tokens.css", "src/app/globals.css", "src/components/mind-map-home.module.css"],
+    "colorMeta": {
+      "amber": {"role": "primary", "displayName": "Warm amber", "purpose": "Search, capture, active navigation and important text."},
+      "cool-canvas": {"role": "neutral", "displayName": "Cool light canvas"},
+      "graphite": {"role": "neutral", "displayName": "Graphite canvas"},
+      "journal-light": {"role": "content", "displayName": "Journal lilac"},
+      "quote-light": {"role": "content", "displayName": "Quote yellow"},
+      "book-light": {"role": "content", "displayName": "Book sage"}
+    },
+    "typographyMeta": {
+      "search": {"displayName": "Search heading", "purpose": "Upright serif; 32px below 768px."},
+      "title": {"displayName": "Thought title", "purpose": "Upright serif, wraps naturally."},
+      "body": {"displayName": "Ordinary thought body", "purpose": "Geist; journal bodies use 20px serif and quotes use 28px serif."}
+    },
+    "shadows": [
+      {"name": "note-hover-dark", "value": "0 6px 24px rgba(0,0,0,.22)", "purpose": "Thought hover only."},
+      {"name": "note-hover-light", "value": "0 6px 24px rgba(34,34,48,.10)", "purpose": "Thought hover only."}
+    ],
+    "motion": [
+      {"name": "ease-out", "value": "cubic-bezier(.22,1,.36,1)", "purpose": "Existing brief control transitions."},
+      {"name": "press", "value": "translateY(1px)", "purpose": "Capture/search pressed state; removed for reduced motion."}
+    ],
+    "breakpoints": [
+      {"name": "two-columns", "value": "1199px"},
+      {"name": "mobile-navigation", "value": "767px"},
+      {"name": "one-column", "value": "559px"}
+    ],
+    "gradients": {
+      "primary-dark": "linear-gradient(135deg,#ffd08a 0%,#f5b95c 45%,#e58f3a 100%)",
+      "primary-light": "linear-gradient(135deg,#ffd08a,#efa93a 50%,#e28a2e)"
+    },
+    "themeBinding": "Runtime components consume --mp-* theme tokens from tokens.css; frontmatter colors document both themes, not a second runtime source.",
+    "review": "Unified library checked in both themes at desktop and mobile widths using synthetic API data. Browser interactions covered search, filters, clear/reset, inline editing, empty results, and pagination. Automated suites and authenticated backend verification remain deferred."
+  },
+  "components": [
+    {
+      "name": "Gradient command",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Search and capture command treatment.",
+      "html": "<button class=\"ds-primary\" type=\"button\">Save a thought</button>",
+      "css": ".ds-primary{min-height:44px;padding:8px 16px;border:0;border-radius:var(--r-xs);background:var(--mp-lumen-grad);color:var(--mp-on-lumen);font:500 14px var(--font-ui);cursor:pointer;white-space:nowrap}.ds-primary:hover{filter:brightness(1.06)}.ds-primary:active{transform:translateY(1px)}.ds-primary:focus-visible{outline:2px solid var(--mp-lumen-text);outline-offset:3px}.ds-primary:disabled{opacity:.55;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-primary:active{transform:none}}"
+    },
+    {
+      "name": "Library search",
+      "kind": "input",
+      "description": "Unframed search with an explicit label and bottom rule.",
+      "html": "<label class=\"ds-search\">Search your mind<input type=\"search\" placeholder=\"A word, a person, a thought...\"></label>",
+      "css": ".ds-search{display:block;color:var(--mp-lumen-text);font:400 44px/1.2 var(--font-writing);padding-bottom:20px;border-bottom:1px solid var(--mp-line-strong)}.ds-search input{display:block;width:100%;min-height:44px;margin-top:8px;padding:8px 0;border:0;background:transparent;color:var(--mp-text);font:400 18px/1.5 var(--font-ui);caret-color:var(--mp-lumen-text)}.ds-search input::placeholder{color:var(--mp-text-3)}.ds-search input:focus-visible{outline:2px solid var(--mp-lumen-text);outline-offset:4px}"
+    },
+    {
+      "name": "Library navigation",
+      "kind": "nav",
+      "description": "Compact rail command with a current-view treatment.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Mind Palace\"><span aria-current=\"page\">Your thoughts</span><button type=\"button\">Ask my mind</button><button type=\"button\">View thoughts</button><button type=\"button\">Books</button></nav>",
+      "css": ".ds-nav{display:grid;gap:4px;width:192px;font:400 14px/1.4 var(--font-ui)}.ds-nav span,.ds-nav button{display:flex;align-items:center;min-height:44px;padding:12px;border:0;border-radius:var(--r-xs);white-space:nowrap}.ds-nav span{background:var(--mp-lumen-soft);color:var(--mp-lumen-text)}.ds-nav button{background:transparent;color:var(--mp-text-2);font:inherit;cursor:pointer;text-align:left}.ds-nav button:hover{background:var(--mp-surface-2);color:var(--mp-text)}.ds-nav button:focus-visible{outline:2px solid var(--mp-lumen-text);outline-offset:3px}"
+    },
+    {
+      "name": "Thought card",
+      "kind": "card",
+      "refersTo": "thought-card",
+      "description": "Individual saved content, not a page-section container. The empty body is populated only by real user content.",
+      "html": "<article class=\"ds-thought\"><span>Thought</span><h2></h2><p></p></article>",
+      "css": ".ds-thought{padding:20px;border-radius:var(--r-xs);background:var(--mp-note);color:var(--mp-note-text)}.ds-thought>span{color:var(--mp-note-muted);font:400 12px/1.5 var(--font-ui)}.ds-thought h2{margin:12px 0;font:400 26px/1.2 var(--font-writing);overflow-wrap:anywhere}.ds-thought p{font:400 15px/1.65 var(--font-ui);white-space:pre-wrap;overflow-wrap:anywhere}.ds-thought:hover{box-shadow:var(--mp-note-elevation)}"
+    },
+    {
+      "name": "Manual tag",
+      "kind": "chip",
+      "description": "Underlined filter action rather than a filled badge.",
+      "html": "<button class=\"ds-tag\" type=\"button\">Tag</button>",
+      "css": ".ds-tag{min-height:44px;max-width:100%;padding:0;border:0;background:transparent;color:var(--mp-note-muted);font:400 12px var(--font-ui);text-decoration:underline;text-underline-offset:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}.ds-tag:focus-visible{outline:2px solid var(--mp-lumen-text);outline-offset:3px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Personal Library",
+    "overview": "A content-first personal library inspired by the supplied reference's layout and contrast, not copied assets. Real saved thoughts take priority over oversized action tiles and illustrative anatomy.",
+    "keyCharacteristics": ["Staggered real content", "Compact navigation", "Type-specific surfaces", "Upright serif and sans", "Amber search and capture"],
+    "rules": [],
+    "dos": ["Do derive card color from the actual saved thought type.", "Do keep actual saved content and predictable commands primary."],
+    "donts": ["Don't insert fake notes, decorative stock images, or invented metrics into production.", "Don't imply end-to-end encryption; the cloud MVP remains server-readable."]
+  }
+}
