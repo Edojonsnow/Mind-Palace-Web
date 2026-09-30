@@ -1,7 +1,8 @@
 # Authenticated MVP acceptance
 
-The Playwright suites in `e2e/mvp.acceptance.spec.ts` and
-`e2e/trust.acceptance.spec.ts` check the real browser journey against a
+The Playwright suites in `e2e/mvp.acceptance.spec.ts`,
+`e2e/profile-live.acceptance.spec.ts`, and `e2e/trust.acceptance.spec.ts`
+check the real browser journey against a
 disposable authenticated account. They are intentionally separate from unit
 tests and backend `TestClient` tests: the browser suites exercise the Next.js
 UI, Neon Auth session cookie, FastAPI API, worker-backed transitions, and the
@@ -74,6 +75,8 @@ The deterministic authenticated suites cover:
 - private home, thought capture with AI disabled, Recall search, active-filter
   clearing, and sign-out;
 - restoring a deleted thought during the recovery window;
+- Profile and AI preference persistence across reload, immediate consent
+  changes, and restoration of the test account's original profile values;
 - export generation and browser download;
 - requesting and cancelling account deletion during the recovery window; and
 - disabling AI for a thought and verifying its public status becomes
@@ -84,6 +87,15 @@ recovery window, citation cleanup, account purge, and removal of AI artifacts
 when a thought is deleted or AI access is disabled. The AI-gated browser
 scenario covers AI-enabled capture, Ask My Mind visibility, and a grounded
 source response.
+
+`e2e/profile.acceptance.spec.ts` uses synthetic API fixtures for independent
+saves, active-session reuse with near-expiry refresh, opt-in defaults,
+duplicate-submission prevention, failure/retry states,
+the password-recovery entry point, and mobile/desktop layouts in both themes.
+These checks do not prove live Neon email delivery or OpenAI personalization.
+The backend Profile tests separately verify that only consented preferences
+reach answer generation, email/avatar are excluded, source retrieval remains
+unchanged, users are isolated, and export/purge include profile data.
 
 If `MIND_PALACE_E2E_STORAGE_STATE` is absent, the suite skips instead of
 pretending the user is authenticated. A skipped run is setup evidence, not MVP

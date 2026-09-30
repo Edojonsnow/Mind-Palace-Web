@@ -1,6 +1,6 @@
 "use client";
 
-import { LockKeyhole, LogOut } from "lucide-react";
+import { LockKeyhole, LogOut, UserRound } from "lucide-react";
 import { ThemeToggle, ValidatedForm, Skeleton } from "./ui";
 import {
   FormEvent,
@@ -41,6 +41,8 @@ import {
   updateThought,
   UserSettings,
   RememberOverview,
+  Profile,
+  getProfile,
 } from "@/lib/api";
 import { authClient, getJWTToken } from "@/lib/auth-client";
 import {
@@ -64,6 +66,7 @@ import { BooksWorkspace } from "@/components/books-workspace";
 import { ReminisceWorkspace } from "@/components/reminisce-workspace";
 import { ThoughtEditForm } from "@/components/thought-edit-form";
 import { ThoughtPreviewPanel } from "@/components/thought-preview-panel";
+import { ProfileWorkspace } from "@/components/profile-workspace";
 
 async function getApiToken(): Promise<string | null> {
   return getJWTToken();
@@ -99,6 +102,7 @@ export function MindPalaceShell() {
   const [recallTotal, setRecallTotal] = useState(0);
   const [recallTotalPages, setRecallTotalPages] = useState(0);
   const [settings, setSettings] = useState<UserSettings | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
   const [rememberOverview, setRememberOverview] = useState<RememberOverview | null>(null);
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("hub");
@@ -250,6 +254,16 @@ export function MindPalaceShell() {
     }
   }, []);
 
+  const loadProfile = useCallback(async (signal: AbortSignal) => {
+    try {
+      const token = await getApiToken();
+      if (!token || signal.aborted) return;
+      const nextProfile = await getProfile(token, signal);
+      if (!signal.aborted) setProfile(nextProfile);
+    }
+    catch { /* Profile loading must not block the library. The workspace offers retry. */ }
+  }, []);
+
   const loadTrustControls = useCallback(async () => {
     const token = await getApiToken();
     if (!token) {
@@ -294,14 +308,19 @@ export function MindPalaceShell() {
     if (session.isPending || !sessionUserId || authMode !== "sign-in") {
       return;
     }
+    const profileController = new AbortController();
     const refreshId = window.setTimeout(() => {
       void refresh(1, DEFAULT_RECALL_FILTERS, true);
       void loadTrustControls();
       void loadRemember();
       void loadBooks();
+      void loadProfile(profileController.signal);
     }, 0);
-    return () => window.clearTimeout(refreshId);
-  }, [authMode, loadBooks, loadRemember, loadTrustControls, refresh, session.isPending, sessionUserId]);
+    return () => {
+      window.clearTimeout(refreshId);
+      profileController.abort();
+    };
+  }, [authMode, loadBooks, loadProfile, loadRemember, loadTrustControls, refresh, session.isPending, sessionUserId]);
 
   useEffect(() => {
     if (
@@ -435,6 +454,7 @@ export function MindPalaceShell() {
     setRecallTotal(0);
     setRecallTotalPages(0);
     setSettings(null);
+    setProfile(null);
     setBooks([]);
     setRememberOverview(null);
     setWorkspaceMode("hub");
@@ -447,6 +467,19 @@ export function MindPalaceShell() {
     setLoadState("idle");
     setLibraryTotal(0);
     setMessage("");
+  }
+
+  async function handleProfilePasswordReset() {
+    const email = session.data?.user?.email;
+    if (!email) throw new Error("No email address is available for password recovery.");
+    const result = await authClient.emailOtp.requestPasswordReset({ email });
+    if (result.error) throw new Error(result.error.message ?? "Unable to send the reset code.");
+    await handleSignOut();
+    setAuthEmail(email);
+    setAuthPassword("");
+    setVerificationCode("");
+    setAuthMode("reset-password");
+    setAuthMessage("Check your email for the password reset code.");
   }
 
   async function handleRestoreThought(thoughtId: string) {
@@ -926,6 +959,9 @@ export function MindPalaceShell() {
             {workspaceMode === "hub" ? <div className={homeStyles.brand}><div className="mp-wordmark">mind palace</div><span>A place for what stays with you.</span></div> : null}
             <div className={homeStyles.utilities}>
               <ThemeToggle />
+              <button className="mp-button mp-button-secondary" type="button" aria-label="Profile" title="Profile" onClick={() => setWorkspaceMode("profile")}>
+                <UserRound size={16} aria-hidden="true" /><span className={homeStyles.utilityLabel}>Profile</span>
+              </button>
               <button
                 className="mp-button mp-button-secondary"
                 type="button"
@@ -967,7 +1003,7 @@ export function MindPalaceShell() {
             <div className={workspaceMode === "hub" ? homeStyles.content : "relative z-10 mx-auto w-full max-w-6xl py-4"}>
               {workspaceMode === "hub" ? (
                 <MindMapHome
-                  name={session.data?.user?.name ?? ""}
+                  name={profile?.display_name ?? session.data?.user?.name ?? ""}
                   thoughts={thoughts}
                   total={recallTotal}
                   page={recallPage}
@@ -1023,6 +1059,18 @@ export function MindPalaceShell() {
                       onCancel={cancelEditingThought}
                     />
                   ) : null}
+                />
+              ) : workspaceMode === "profile" ? (
+                <ProfileWorkspace
+                  key={sessionUserId}
+                  fallbackName={session.data?.user?.name ?? ""}
+                  fallbackEmail={session.data?.user?.email ?? ""}
+                  sessionToken={session.data?.session?.token}
+                  sessionExpiresAt={session.data?.session?.expiresAt?.toString()}
+                  onProfileUpdated={setProfile}
+                  onPrivacy={() => setIsTrustControlsOpen(true)}
+                  onSignOut={() => void handleSignOut()}
+                  onPasswordReset={handleProfilePasswordReset}
                 />
               ) : workspaceMode === "books" ? (
                 <BooksWorkspace

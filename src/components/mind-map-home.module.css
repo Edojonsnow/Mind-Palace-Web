@@ -125,8 +125,8 @@
   .back { padding: 0; font-size: .875rem; }
   .shell .utilities { top: var(--space-4); left: auto; }
   .shell .utilities button { width: 40px; padding: 0; }
-  .shell .utilityLabel { display: none; }
-  .shell .signOutIcon { display: block; }
+  .utilityLabel { display: none; }
+  .signOutIcon { display: block; }
   .home { display: flex; flex-direction: column; gap: var(--space-4); }
   .rail { display: contents; }
   .navigation { display: flex; flex-wrap: wrap; gap: 0 var(--space-2); order: 0; }

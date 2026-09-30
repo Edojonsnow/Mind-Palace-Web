@@ -44,6 +44,25 @@ export type AskConversation = Omit<Schemas["ChatConversationRead"], "messages"> 
 };
 
 export type UserSettings = Schemas["UserSettingsRead"];
+export type Profile = Schemas["ProfileRead"];
+export type AIPreferences = Schemas["AIPreferencesRead"];
+export type AIPreferencesInput = Partial<Schemas["AIPreferencesUpdate"]>;
+
+export function getProfile(token: string, signal?: AbortSignal): Promise<Profile> {
+  return request<Profile>("/profile", token, { signal });
+}
+
+export function updateProfile(token: string, input: Schemas["ProfileUpdate"]): Promise<Profile> {
+  return request<Profile>("/profile", token, { method: "PATCH", body: JSON.stringify(input) });
+}
+
+export function getAIPreferences(token: string): Promise<AIPreferences> {
+  return request<AIPreferences>("/profile/ai-preferences", token);
+}
+
+export function updateAIPreferences(token: string, input: AIPreferencesInput): Promise<AIPreferences> {
+  return request<AIPreferences>("/profile/ai-preferences", token, { method: "PATCH", body: JSON.stringify(input) });
+}
 
 export type RememberItem = Schemas["RememberItem"];
 

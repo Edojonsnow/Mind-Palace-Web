@@ -140,7 +140,7 @@ export function isExportExpired(exportRequest: ExportRequest): boolean {
 
 export type LoadState = "idle" | "loading" | "ready" | "error";
 export type ArchiveFilter = "all" | "active" | "archived";
-export type WorkspaceMode = "hub" | "organizing" | "reminisce" | "ask" | "books";
+export type WorkspaceMode = "hub" | "organizing" | "reminisce" | "ask" | "books" | "profile";
 
 export type RecallFilters = {
   q: string;

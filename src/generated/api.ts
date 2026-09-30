@@ -160,6 +160,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Profile Route */
+        get: operations["get_profile_route_profile_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Profile Route */
+        patch: operations["update_profile_route_profile_patch"];
+        trace?: never;
+    };
+    "/profile/ai-preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Ai Preferences Route */
+        get: operations["get_ai_preferences_route_profile_ai_preferences_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Ai Preferences Route */
+        patch: operations["update_ai_preferences_route_profile_ai_preferences_patch"];
+        trace?: never;
+    };
     "/remember": {
         parameters: {
             query?: never;
@@ -304,6 +340,56 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AIPreferencesRead */
+        AIPreferencesRead: {
+            /** Interests */
+            interests?: string[];
+            /** Personal Goals */
+            personal_goals?: string[];
+            /**
+             * Response Detail
+             * @default balanced
+             * @enum {string}
+             */
+            response_detail: "concise" | "balanced" | "detailed";
+            /** Updated At */
+            updated_at?: string | null;
+            /**
+             * Use Profile Context
+             * @default false
+             */
+            use_profile_context: boolean;
+            /**
+             * Writing Style
+             * @default natural
+             * @enum {string}
+             */
+            writing_style: "natural" | "conversational" | "formal";
+        };
+        /** AIPreferencesUpdate */
+        AIPreferencesUpdate: {
+            /** Interests */
+            interests?: string[];
+            /** Personal Goals */
+            personal_goals?: string[];
+            /**
+             * Response Detail
+             * @default balanced
+             * @enum {string}
+             */
+            response_detail: "concise" | "balanced" | "detailed";
+            /**
+             * Use Profile Context
+             * @default false
+             */
+            use_profile_context: boolean;
+            /**
+             * Writing Style
+             * @default natural
+             * @enum {string}
+             */
+            writing_style: "natural" | "conversational" | "formal";
+        };
         /**
          * AIProcessingStatus
          * @enum {string}
@@ -484,6 +570,22 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** ProfileRead */
+        ProfileRead: {
+            /** Avatar Url */
+            avatar_url: string | null;
+            /** Display Name */
+            display_name: string | null;
+            /** Email */
+            email: string | null;
+        };
+        /** ProfileUpdate */
+        ProfileUpdate: {
+            /** Avatar Url */
+            avatar_url?: string | null;
+            /** Display Name */
+            display_name?: string | null;
         };
         /** RememberCategory */
         RememberCategory: {
@@ -709,7 +811,9 @@ export interface operations {
     get_account_deletion_route_account_deletion_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -724,12 +828,23 @@ export interface operations {
                     "application/json": components["schemas"]["AccountDeletionRequestRead"] | null;
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     request_account_deletion_route_account_deletion_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -744,12 +859,23 @@ export interface operations {
                     "application/json": components["schemas"]["AccountDeletionRequestRead"];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     cancel_account_deletion_route_account_deletion_delete: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -762,12 +888,23 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     ask_my_mind_route_ask_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -800,7 +937,9 @@ export interface operations {
     get_conversation_route_ask__conversation_id__get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
             path: {
                 conversation_id: string;
             };
@@ -833,7 +972,9 @@ export interface operations {
             query?: {
                 q?: string | null;
             };
-            header?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -862,7 +1003,9 @@ export interface operations {
     create_book_route_books_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -895,7 +1038,9 @@ export interface operations {
     create_export_route_exports_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -910,12 +1055,23 @@ export interface operations {
                     "application/json": components["schemas"]["ExportRequestRead"];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     get_export_route_exports__export_id__get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
             path: {
                 export_id: string;
             };
@@ -946,7 +1102,9 @@ export interface operations {
     download_export_route_exports__export_id__download_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
             path: {
                 export_id: string;
             };
@@ -1018,10 +1176,144 @@ export interface operations {
             };
         };
     };
+    get_profile_route_profile_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_profile_route_profile_patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_ai_preferences_route_profile_ai_preferences_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIPreferencesRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_ai_preferences_route_profile_ai_preferences_patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIPreferencesUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIPreferencesRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_remember_overview_route_remember_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1036,12 +1328,23 @@ export interface operations {
                     "application/json": components["schemas"]["RememberOverview"];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     get_settings_route_settings_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1056,12 +1359,23 @@ export interface operations {
                     "application/json": components["schemas"]["UserSettingsRead"];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     update_settings_route_settings_patch: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1110,7 +1424,9 @@ export interface operations {
                 page?: number;
                 page_size?: number;
             };
-            header?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1139,7 +1455,9 @@ export interface operations {
     create_thought_route_thoughts_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1172,7 +1490,9 @@ export interface operations {
     list_deleted_thoughts_route_thoughts_deleted_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1187,12 +1507,23 @@ export interface operations {
                     "application/json": components["schemas"]["ThoughtRead"][];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     get_thought_route_thoughts__thought_id__get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
             path: {
                 thought_id: string;
             };
@@ -1223,7 +1554,9 @@ export interface operations {
     delete_thought_route_thoughts__thought_id__delete: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
             path: {
                 thought_id: string;
             };
@@ -1252,7 +1585,9 @@ export interface operations {
     update_thought_route_thoughts__thought_id__patch: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
             path: {
                 thought_id: string;
             };
@@ -1287,7 +1622,9 @@ export interface operations {
     retry_ai_processing_route_thoughts__thought_id__organize_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
             path: {
                 thought_id: string;
             };
@@ -1318,7 +1655,9 @@ export interface operations {
     restore_thought_route_thoughts__thought_id__restore_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
             path: {
                 thought_id: string;
             };
