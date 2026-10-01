@@ -16,6 +16,8 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
   if (accept) requestHeaders.set("accept", accept);
   const authorization = request.headers.get("authorization");
   if (authorization) requestHeaders.set("authorization", authorization);
+  const idempotencyKey = request.headers.get("idempotency-key");
+  if (idempotencyKey) requestHeaders.set("idempotency-key", idempotencyKey);
 
   const sessionCookie = (await cookies()).get(sessionCookieName)?.value;
   if (sessionCookie) requestHeaders.set(sessionCookieHeader, sessionCookie);

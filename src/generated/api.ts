@@ -903,6 +903,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
+                "idempotency-key"?: string | null;
                 "X-Neon-Auth-Session-Cookie"?: string | null;
             };
             path?: never;
@@ -1039,6 +1040,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
+                "idempotency-key"?: string | null;
                 "X-Neon-Auth-Session-Cookie"?: string | null;
             };
             path?: never;
@@ -1456,6 +1458,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
+                "idempotency-key"?: string | null;
                 "X-Neon-Auth-Session-Cookie"?: string | null;
             };
             path?: never;
@@ -1623,6 +1626,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
+                "idempotency-key"?: string | null;
                 "X-Neon-Auth-Session-Cookie"?: string | null;
             };
             path: {

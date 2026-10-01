@@ -163,9 +163,10 @@ export async function listThoughts(
   };
 }
 
-export function createThought(token: string, input: CreateThoughtInput): Promise<Thought> {
+export function createThought(token: string, input: CreateThoughtInput, actionKey = crypto.randomUUID()): Promise<Thought> {
   return request<Thought>("/thoughts", token, {
     method: "POST",
+    headers: { "Idempotency-Key": actionKey },
     body: JSON.stringify(input),
   });
 }
@@ -209,9 +210,10 @@ export function getRememberOverview(token: string): Promise<RememberOverview> {
   return request<RememberOverview>("/remember", token);
 }
 
-export function organizeThought(token: string, thoughtId: string): Promise<Thought> {
+export function organizeThought(token: string, thoughtId: string, actionKey = crypto.randomUUID()): Promise<Thought> {
   return request<Thought>(`/thoughts/${thoughtId}/organize`, token, {
     method: "POST",
+    headers: { "Idempotency-Key": actionKey },
   });
 }
 
@@ -228,9 +230,11 @@ export function updateSettings(
 export function askMyMind(
   token: string,
   input: { question: string; conversation_id?: string },
+  actionKey = crypto.randomUUID(),
 ): Promise<AskResponse> {
   return request<AskResponse>("/ask", token, {
     method: "POST",
+    headers: { "Idempotency-Key": actionKey },
     body: JSON.stringify(input),
   });
 }
@@ -250,8 +254,8 @@ export function restoreThought(token: string, thoughtId: string): Promise<Though
   return request<Thought>(`/thoughts/${thoughtId}/restore`, token, { method: "POST" });
 }
 
-export function createExportRequest(token: string): Promise<ExportRequest> {
-  return request<ExportRequest>('/exports', token, { method: "POST" });
+export function createExportRequest(token: string, actionKey = crypto.randomUUID()): Promise<ExportRequest> {
+  return request<ExportRequest>('/exports', token, { method: "POST", headers: { "Idempotency-Key": actionKey } });
 }
 
 export function getExportRequest(token: string, exportId: string): Promise<ExportRequest> {

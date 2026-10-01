@@ -45,6 +45,7 @@ import {
   getProfile,
 } from "@/lib/api";
 import { authClient, getJWTToken } from "@/lib/auth-client";
+import { createActionKeys } from "@/lib/action-keys";
 import {
   DEFAULT_RECALL_FILTERS,
   hasRecallFilterValues,
@@ -158,6 +159,7 @@ export function MindPalaceShell() {
   const [isPreviewThoughtLoading, setIsPreviewThoughtLoading] = useState(false);
   const [previewThoughtError, setPreviewThoughtError] = useState("");
   const sessionUserId = session.data?.user?.id;
+  const actionKeys = useMemo(() => createActionKeys(sessionUserId), [sessionUserId]);
   const refreshSequence = useRef(0);
   const askSubmissionLock = useRef(false);
   const isAuthenticated = Boolean(session.data?.user) && authMode === "sign-in";
@@ -449,6 +451,7 @@ export function MindPalaceShell() {
 
   async function handleSignOut() {
     await authClient.signOut();
+    actionKeys.clear();
     setThoughts([]);
     setRecallPage(1);
     setRecallTotal(0);
@@ -527,7 +530,8 @@ export function MindPalaceShell() {
     setIsCreatingExport(true);
     setLifecycleMessage("");
     try {
-      setExportRequest(await createExportRequest(token));
+      setExportRequest(await createExportRequest(token, actionKeys.get("export", {})));
+      actionKeys.complete("export");
       setLifecycleMessage("Export requested. This may take a moment.");
     } catch (error) {
       setLifecycleMessage(error instanceof Error ? error.message : "Unable to create export.");
@@ -663,7 +667,7 @@ export function MindPalaceShell() {
         bookId = book.id;
         setBooks((current) => [...current.filter((item) => item.id !== book.id), book]);
       }
-      await createThought(token, {
+      const input = {
         title: title.trim() || undefined,
         body: body.trim(),
         thought_type: thoughtType,
@@ -672,7 +676,9 @@ export function MindPalaceShell() {
         book_author: thoughtType === "book_excerpt" && selectedBookId === "__new__" ? newBookAuthor.trim() : undefined,
         manual_tags: splitTags(manualTags),
         use_with_ask_my_mind: useWithAsk,
-      });
+      };
+      await createThought(token, input, actionKeys.get("capture", input));
+      actionKeys.complete("capture");
       setBody("");
       setTitle("");
       setManualTags("");
@@ -855,7 +861,10 @@ export function MindPalaceShell() {
     setOrganizingThoughtId(thoughtId);
     setMessage("");
     try {
-      await organizeThought(token, thoughtId);
+      const scope = `organize:${thoughtId}`;
+      const version = thoughts.find((thought) => thought.id === thoughtId)?.updated_at;
+      await organizeThought(token, thoughtId, actionKeys.get(scope, { version }));
+      actionKeys.complete(scope);
       await refresh(recallPage, recallFilters);
       void loadRemember();
       setMessage("Organization restarted.");
@@ -897,10 +906,12 @@ export function MindPalaceShell() {
     setAskMessage("");
 
     try {
-      const response = await askMyMind(token, {
+      const input = {
         question: trimmedQuestion,
         ...(conversationId ? { conversation_id: conversationId } : {}),
-      });
+      };
+      const response = await askMyMind(token, input, actionKeys.get("ask", input));
+      actionKeys.complete("ask");
       const assistantMessage: AskMessage = {
         id: `local-assistant-${response.created_at}`,
         role: "assistant",
@@ -912,6 +923,8 @@ export function MindPalaceShell() {
       setLatestSources(response.sources);
       setChatMessages((current) => [...current, assistantMessage]);
     } catch (error) {
+      setChatMessages((current) => current.filter((message) => message.id !== userMessage.id));
+      setQuestion(trimmedQuestion);
       setAskMessage(error instanceof Error ? error.message : "Unable to ask your mind.");
     } finally {
       askSubmissionLock.current = false;
