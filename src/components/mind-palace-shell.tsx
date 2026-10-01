@@ -206,6 +206,7 @@ export function MindPalaceShell() {
           return;
         }
         setThoughts(nextThoughts.items);
+        if (nextThoughts.searchNotice) setMessage(nextThoughts.searchNotice);
         if (isLibraryRequest) {
           setLibraryTotal(nextThoughts.total);
         }

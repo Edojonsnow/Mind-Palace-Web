@@ -72,4 +72,43 @@ test.describe("request retries", () => {
     expect(keys[1]).toBe(keys[0]);
     await expect(page.getByRole("log", { name: "Conversation" }).getByText("A question to retry")).toHaveCount(1);
   });
+
+  test("Ask keeps a rate-limited question and its action key for retry", async ({ page }) => {
+    const keys: string[] = [];
+    await page.route("**/api/backend/ask", route => {
+      keys.push(route.request().headers()["idempotency-key"]);
+      return keys.length === 1
+        ? route.fulfill({ status: 429, headers: { "Retry-After": "1" }, json: { detail: "Questions limit reached. Try again in 1 seconds." } })
+        : route.fulfill({ json: {
+          conversation_id: "00000000-0000-0000-0000-000000000001", answer: "Retry admitted",
+          sources: [], created_at: "2026-10-01T12:00:00Z",
+        } });
+    });
+    await page.goto("/");
+    await page.getByRole("button", { name: "Ask my mind", exact: true }).click();
+    const question = page.locator("#ask-question");
+    await question.fill("A limited question");
+    await page.getByRole("button", { name: /^Ask\s/ }).click();
+    await expect(question).toHaveValue("A limited question");
+    await expect(page.getByText("Questions limit reached. Try again in 1 seconds.", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: /^Ask\s/ }).click();
+    await expect(page.getByText("Retry admitted", { exact: true })).toBeVisible();
+    expect(keys).toHaveLength(2);
+    expect(keys[1]).toBe(keys[0]);
+    await expect(page.getByRole("log", { name: "Conversation" }).getByText("A limited question")).toHaveCount(1);
+  });
+
+  test("Recall explains text fallback when semantic search is limited", async ({ page }) => {
+    await page.route("**/api/backend/thoughts?**", route => {
+      if (!new URL(route.request().url()).searchParams.get("q")) return route.fallback();
+      return route.fulfill({ json: [], headers: {
+        "X-Search-Fallback": "rate-limit", "Retry-After": "60",
+        "x-total-count": "0", "x-total-pages": "1",
+      } });
+    });
+    await page.goto("/");
+    await page.getByRole("searchbox", { name: "Search your mind" }).fill("Tennis");
+    await page.getByRole("button", { name: "Search memory", exact: true }).click();
+    await expect(page.getByText("AI search is temporarily unavailable. Showing text matches instead.", { exact: true })).toBeVisible();
+  });
 });

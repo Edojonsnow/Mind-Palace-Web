@@ -29,6 +29,7 @@ export type ThoughtListResponse = {
   page: number;
   pageSize: number;
   totalPages: number;
+  searchNotice?: string;
 };
 
 export type AskSource = Schemas["AskSource"];
@@ -160,6 +161,9 @@ export async function listThoughts(
     page: Number(response.headers.get("X-Page") ?? options.page ?? 1),
     pageSize: Number(response.headers.get("X-Page-Size") ?? options.page_size ?? data.length),
     totalPages: Number(response.headers.get("X-Total-Pages") ?? 1),
+    ...(response.headers.has("X-Search-Fallback") ? {
+      searchNotice: "AI search is temporarily unavailable. Showing text matches instead.",
+    } : {}),
   };
 }
 

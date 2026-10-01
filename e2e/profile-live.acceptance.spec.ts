@@ -5,6 +5,8 @@ test.describe("authenticated profile persistence", () => {
   test.skip(!process.env.MIND_PALACE_E2E_STORAGE_STATE, "Authenticated storage state is required.");
 
   test("persists account and preferences across reload and restores original data", async ({ page }) => {
+    // Multiple live Neon round trips and cleanup share this test's total budget.
+    test.slow();
     await page.goto("/");
     await expect(page.getByRole("search")).toBeVisible();
     const sessionResponse = await page.request.get("/api/auth/get-session?disableCookieCache=true");
