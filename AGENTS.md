@@ -35,6 +35,20 @@ Project rules:
 - Do not log thought bodies, chat messages, prompts, API tokens, or AI responses.
 - Keep backend calls in `src/lib/api.ts` or a nearby API boundary.
 
+## Design Skill Precedence
+
+For frontend design work:
+
+- Hallmark owns visual direction, macrostructure, anti-AI-slop rules, and redesign decisions.
+- Impeccable owns implementation refinement, accessibility, responsive behavior,
+  typography, spacing, motion, interaction states, and performance.
+- When the skills appear to conflict, preserve the project's `DESIGN.md` and
+  Hallmark's anti-AI-slop constraints.
+- Do not run both skills independently on the same task. Use Hallmark as the
+  lead and Impeccable as the implementation and polish specialist.
+- Preserve existing routes, product behavior, and content unless the user
+  explicitly requests a functional change.
+
 ## Commit Messages
 
 - For fixes and updates, use these body headers exactly:
