@@ -108,6 +108,15 @@ export function MindPalaceShell() {
   const [aiUsage, setAIUsage] = useState<AIUsage | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
+  const [booksLoadState, setBooksLoadState] = useState<LoadState>("idle");
+  const [activeBookId, setActiveBookId] = useState<string | null>(null);
+  const [bookThoughts, setBookThoughts] = useState<Thought[]>([]);
+  const [bookLoadState, setBookLoadState] = useState<LoadState>("idle");
+  const [bookPage, setBookPage] = useState(1);
+  const [bookTotalPages, setBookTotalPages] = useState(1);
+  const [bookError, setBookError] = useState("");
+  const [bookSearch, setBookSearch] = useState("");
+  const bookRequestSequence = useRef(0);
   const [rememberOverview, setRememberOverview] = useState<RememberOverview | null>(null);
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("hub");
   const [selectedRememberCategory, setSelectedRememberCategory] =
@@ -256,13 +265,52 @@ export function MindPalaceShell() {
     const token = await getApiToken();
     if (!token) {
       setBooks([]);
+      setBooksLoadState("idle");
       return;
     }
 
+    setBooksLoadState("loading");
     try {
       setBooks(await listBooks(token));
+      setBooksLoadState("ready");
     } catch {
       setBooks([]);
+      setBooksLoadState("error");
+    }
+  }, []);
+
+  const loadBookThoughts = useCallback(async (bookId: string, page = 1) => {
+    const requestSequence = bookRequestSequence.current + 1;
+    bookRequestSequence.current = requestSequence;
+    const token = await getApiToken();
+    if (!token) {
+      setBookThoughts([]);
+      setBookLoadState("idle");
+      return;
+    }
+
+    setBookLoadState("loading");
+    setBookError("");
+    try {
+      const result = await listThoughts(token, {
+        book_id: bookId,
+        page,
+        page_size: 20,
+      });
+      if (requestSequence !== bookRequestSequence.current) {
+        return;
+      }
+      setBookThoughts(result.items);
+      setBookPage(result.page);
+      setBookTotalPages(result.totalPages);
+      setBookLoadState("ready");
+    } catch (error) {
+      if (requestSequence !== bookRequestSequence.current) {
+        return;
+      }
+      setBookThoughts([]);
+      setBookLoadState("error");
+      setBookError(error instanceof Error ? error.message : "Unable to load this book.");
     }
   }, []);
 
@@ -715,6 +763,10 @@ export function MindPalaceShell() {
       setMessage("Thought saved.");
       void refresh(recallPage, recallFilters, false, token);
       void loadRemember();
+      void loadBooks();
+      if (activeBookId) {
+        void loadBookThoughts(activeBookId, bookPage);
+      }
     } catch (error) {
       setIsCaptureOpen(true);
       setMessage(error instanceof Error ? error.message : "Unable to save thought.");
@@ -801,6 +853,50 @@ export function MindPalaceShell() {
     setSelectedRememberCategory(null);
     setWorkspaceMode("hub");
     void refresh(recallPage, recallFilters);
+  }
+
+  function openBooksWorkspace() {
+    setWorkspaceMode("books");
+    setActiveBookId(null);
+    setBookThoughts([]);
+    setBookLoadState("idle");
+    setBookPage(1);
+    setBookTotalPages(1);
+    setBookError("");
+    setBookSearch("");
+  }
+
+  function handleBookSelect(bookId: string) {
+    setActiveBookId(bookId);
+    void loadBookThoughts(bookId, 1);
+  }
+
+  function handleBackToBooks() {
+    setActiveBookId(null);
+    setBookThoughts([]);
+    setBookLoadState("idle");
+    setBookPage(1);
+    setBookTotalPages(1);
+    setBookError("");
+  }
+
+  function handleBookPageChange(page: number) {
+    if (!activeBookId || page < 1 || page > bookTotalPages || bookLoadState === "loading") {
+      return;
+    }
+    void loadBookThoughts(activeBookId, page);
+  }
+
+  function openBookExcerptCapture(bookId?: string) {
+    setThoughtType("book_excerpt");
+    setSelectedBookId(bookId ?? "");
+    setBody("");
+    setTitle("");
+    setManualTags("");
+    setNewBookTitle("");
+    setNewBookAuthor("");
+    setUseWithAsk(settings?.default_use_with_ask_my_mind ?? false);
+    setIsCaptureOpen(true);
   }
 
   function clearSearchQuery() {
@@ -1063,7 +1159,7 @@ export function MindPalaceShell() {
                   onSaveThought={() => setIsCaptureOpen(true)}
                   onAskMind={() => setWorkspaceMode("ask")}
                   onReminisce={revealReminisce}
-                  onBooks={() => setWorkspaceMode("books")}
+                  onBooks={openBooksWorkspace}
                   onOpenThought={(thought) => {
                     setPreviewThought(thought);
                     setPreviewThoughtError("");
@@ -1117,16 +1213,26 @@ export function MindPalaceShell() {
               ) : workspaceMode === "books" ? (
                 <BooksWorkspace
                   books={books}
-                  onBookSelect={(bookId) => {
-                    setThoughts([]);
-                    cancelEditingThought();
-                    const nextFilters = { ...DEFAULT_RECALL_FILTERS, book_id: bookId };
-                    setRecallDraftFilters(nextFilters);
-                    setRecallFilters(nextFilters);
-                    setRecallPage(1);
-                    setWorkspaceMode("hub");
-                    void refresh(1, nextFilters);
+                  activeBook={activeBookId ? books.find((book) => book.id === activeBookId) ?? null : null}
+                  thoughts={bookThoughts}
+                  booksLoadState={booksLoadState}
+                  bookLoadState={bookLoadState}
+                  bookPage={bookPage}
+                  bookTotalPages={bookTotalPages}
+                  errorMessage={bookError}
+                  query={bookSearch}
+                  onQueryChange={setBookSearch}
+                  onBookSelect={handleBookSelect}
+                  onBackToBooks={handleBackToBooks}
+                  onSaveExcerpt={() => openBookExcerptCapture(activeBookId ?? undefined)}
+                  onBookPageChange={handleBookPageChange}
+                  onOpenThought={(thought) => {
+                    setPreviewThought(thought);
+                    setPreviewThoughtError("");
+                    setIsPreviewThoughtLoading(false);
+                    setIsThoughtPreviewOpen(true);
                   }}
+                  onRetryBooks={() => void loadBooks()}
                 />
               ) : workspaceMode === "ask" ? (
                 <AskMyMindWorkspace
