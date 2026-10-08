@@ -231,6 +231,23 @@ export interface paths {
         patch: operations["update_settings_route_settings_patch"];
         trace?: never;
     };
+    "/settings/ai-usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Ai Usage Route */
+        get: operations["get_ai_usage_route_settings_ai_usage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/thoughts": {
         parameters: {
             query?: never;
@@ -395,6 +412,31 @@ export interface components {
          * @enum {string}
          */
         AIProcessingStatus: "not_requested" | "pending" | "processing" | "ready" | "failed";
+        /** AIUsageRead */
+        AIUsageRead: {
+            /** Ask Count */
+            ask_count: number;
+            /** Daily Limit */
+            daily_limit: number;
+            /** Organization Count */
+            organization_count: number;
+            /** Remaining Units */
+            remaining_units: number;
+            /**
+             * Resets At
+             * Format: date-time
+             */
+            resets_at: string;
+            /** Search Count */
+            search_count: number;
+            /** Units Used */
+            units_used: number;
+            /**
+             * Usage Date
+             * Format: date
+             */
+            usage_date: string;
+        };
         /** AccountDeletionRequestRead */
         AccountDeletionRequestRead: {
             /** Completed At */
@@ -613,6 +655,12 @@ export interface components {
             /** Thoughts Analyzed */
             thoughts_analyzed: number;
         };
+        /**
+         * SearchMode
+         * @description Retrieval strategy requested by the Recall client.
+         * @enum {string}
+         */
+        SearchMode: "keyword" | "semantic";
         /**
          * SourceType
          * @enum {string}
@@ -1407,6 +1455,37 @@ export interface operations {
             };
         };
     };
+    get_ai_usage_route_settings_ai_usage_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIUsageRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_thoughts_route_thoughts_get: {
         parameters: {
             query?: {
@@ -1423,6 +1502,7 @@ export interface operations {
                 is_archived?: boolean | null;
                 created_from?: string | null;
                 created_to?: string | null;
+                search_mode?: components["schemas"]["SearchMode"];
                 page?: number;
                 page_size?: number;
             };

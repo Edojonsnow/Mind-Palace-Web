@@ -1,10 +1,8 @@
-import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Brain, ChevronDown, LayoutGrid, LockKeyhole, MessageCircleQuestion, NotebookPen, Pencil, Plus, RefreshCw, Search, Tag, X } from "lucide-react";
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import type { Thought } from "@/lib/api";
-import type { BrainAction } from "@/lib/brain-scene";
+import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, LayoutGrid, LockKeyhole, MessageCircleQuestion, NotebookPen, Pencil, Plus, RefreshCw, Search, Tag, X } from "lucide-react";
+import { useEffect, useRef, type FormEvent, type ReactNode } from "react";
+import type { AIUsage, Thought } from "@/lib/api";
 import { formatDate, hasRecallFilterValues, type LoadState, type RecallFilters } from "./mind-palace-shell-helpers";
 import { RecallSearchPanel } from "./recall-search-panel";
-import { InteractiveBrain } from "./interactive-brain";
 import styles from "./mind-map-home.module.css";
 
 type MindMapHomeProps = {
@@ -14,6 +12,7 @@ type MindMapHomeProps = {
   loadState: LoadState;
   page: number;
   totalPages: number;
+  aiUsage: AIUsage | null;
   draftFilters: RecallFilters;
   activeFilters: RecallFilters;
   hasFilters: boolean;
@@ -71,13 +70,11 @@ function ThoughtCard({ thought, onOpen, onEdit, onTag, isUpdating, isOrganizing,
 }
 
 export function MindMapHome({
-  name, thoughts, total, loadState, page, totalPages, draftFilters, activeFilters, hasFilters,
+  name, thoughts, total, loadState, page, totalPages, aiUsage, draftFilters, activeFilters, hasFilters,
   onDraftFiltersChange, onSearchSubmit, onClearQuery, onResetFilters, onPageChange,
   editingThoughtId, editor, isUpdating, organizingThoughtId, onOrganizeThought,
   showAskAction, onSaveThought, onAskMind, onReminisce, onBooks, onOpenThought, onEditThought, onTagSelect, onRefresh,
 }: MindMapHomeProps) {
-  const [brainOpen, setBrainOpen] = useState(false);
-  const [activeAction, setActiveAction] = useState<BrainAction | null>(null);
   const search = useRef<HTMLInputElement>(null);
   const editorPanel = useRef<HTMLElement>(null);
   const firstName = name.trim().split(/\s+/)[0] || "you";
@@ -101,25 +98,43 @@ export function MindMapHome({
           <span className={styles.currentView}><LayoutGrid size={18} aria-hidden="true" />Your thoughts</span>
           {actions.filter(action => action.action !== "ask" || showAskAction).map(action => {
             const Icon = action.icon;
-            return <button className={styles.navAction} data-action={action.action} key={action.action} type="button" onClick={action.handler}
-              onPointerEnter={() => setActiveAction(action.action)} onPointerLeave={() => setActiveAction(null)} onFocus={() => setActiveAction(action.action)} onBlur={() => setActiveAction(null)}>
+            return <button className={styles.navAction} data-action={action.action} key={action.action} type="button" onClick={action.handler}>
               <Icon size={18} aria-hidden="true" />{action.label}<ArrowUpRight size={14} className={styles.navArrow} aria-hidden="true" />
             </button>;
           })}
           <button className={styles.navAction} type="button" onClick={onBooks}><BookOpen size={18} aria-hidden="true" />Books<ArrowUpRight size={14} className={styles.navArrow} aria-hidden="true" /></button>
         </nav>
-        <button className={styles.captureAction} type="button" onClick={onSaveThought} onPointerEnter={() => setActiveAction("save")} onPointerLeave={() => setActiveAction(null)}><Plus size={18} aria-hidden="true" />Save a thought</button>
-        <details className={styles.mindDisclosure} onToggle={event => setBrainOpen(event.currentTarget.open)}>
-          <summary><Brain size={17} aria-hidden="true" />Explore your mind<ChevronDown size={15} aria-hidden="true" /></summary>
-          {brainOpen ? <div className={styles.brainView}><InteractiveBrain activeAction={activeAction} /></div> : null}
-          <div className={styles.credits}><p>Illustrative anatomy, not a map of your saved thoughts.</p><p><a href="https://github.com/itayinbarr/brainproject" target="_blank" rel="noreferrer">Brain Project</a> · Z-Anatomy / BodyParts3D © DBCLS. <a href="/models/brain/ATTRIBUTION.md">Credits &amp; CC BY-SA 4.0</a>.</p></div>
-        </details>
+        <button className={styles.captureAction} type="button" onClick={onSaveThought}><Plus size={18} aria-hidden="true" />Save a thought</button>
         <div className={styles.personal}><span className={styles.avatar} aria-hidden="true">{firstName.charAt(0).toUpperCase()}</span><div><span>Hello, {firstName}.</span><p>Your personal library</p></div></div>
       </aside>
       <div className={styles.library}>
         <h1 className="sr-only">Your thoughts</h1>
         <form className={styles.searchForm} onSubmit={onSearchSubmit} role="search">
           <label htmlFor="library-search" className={styles.searchLabel}>Search your mind</label>
+          <fieldset className={styles.searchModes}>
+            <legend>Search mode</legend>
+            <label className={styles.searchMode}>
+              <input
+                type="radio"
+                name="search-mode"
+                value="keyword"
+                checked={draftFilters.search_mode === "keyword"}
+                onChange={() => onDraftFiltersChange(current => ({ ...current, search_mode: "keyword" }))}
+              />
+              <span>Search words</span>
+            </label>
+            <label className={styles.searchMode}>
+              <input
+                type="radio"
+                name="search-mode"
+                value="semantic"
+                checked={draftFilters.search_mode === "semantic"}
+                onChange={() => onDraftFiltersChange(current => ({ ...current, search_mode: "semantic" }))}
+              />
+              <span>Search by meaning</span>
+            </label>
+          </fieldset>
+          {aiUsage ? <p className={styles.searchAllowance} aria-live="polite">AI allowance: <strong>{aiUsage.remaining_units}</strong> of {aiUsage.daily_limit} units remaining today</p> : null}
           <div className={styles.searchRow}>
             <input id="library-search" ref={search} type="search" value={draftFilters.q}
               onChange={event => onDraftFiltersChange(current => ({ ...current, q: event.target.value }))}

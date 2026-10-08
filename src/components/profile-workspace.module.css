@@ -6,6 +6,18 @@
 .avatar img { width: 100%; height: 100%; object-fit: cover; }
 .section { border-top: 1px solid var(--mp-line); padding: 28px 0; }
 .section h2 { font-size: 19px; font-weight: 500; margin-bottom: 20px; }
+.sectionHeading { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; }
+.sectionHeading h2 { margin-bottom: 8px; }
+.sectionIntro { color: var(--mp-text-3); font-size: 14px; line-height: 1.6; max-width: 62ch; }
+.resetTime { flex: 0 0 auto; color: var(--mp-text-3); font-size: 13px; white-space: nowrap; }
+.usageSummary { display: flex; align-items: baseline; gap: 8px; margin-top: 24px; }
+.usageSummary strong { color: var(--mp-lumen-text); font-size: 28px; font-weight: 500; }
+.usageSummary span { color: var(--mp-text-2); font-size: 14px; }
+.usageBar { height: 8px; margin-top: 12px; overflow: hidden; border-radius: var(--r-pill); background: var(--mp-surface-3); }
+.usageBar span { display: block; height: 100%; border-radius: inherit; background: var(--mp-lumen-grad); }
+.usageBreakdown { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
+.usageBreakdown div { display: flex; justify-content: space-between; gap: 12px; padding-top: 12px; border-top: 1px solid var(--mp-line); color: var(--mp-text-3); font-size: 13px; }
+.usageBreakdown dd { color: var(--mp-text); font-variant-numeric: tabular-nums; }
 .fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
 .fields label { display: flex; flex-direction: column; gap: 8px; min-width: 0; font-size: 14px; color: var(--mp-text-2); }
 .field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
@@ -21,4 +33,4 @@
 .securityActions { display: flex; flex-wrap: wrap; gap: 12px; }
 .error { color: var(--mp-danger); font-size: 14px; margin-top: 16px; }
 .error button { margin-top: 12px; }
-@media (max-width: 560px) { .workspace { margin-top: 12px; } .fields { grid-template-columns: minmax(0, 1fr); } .header h1 { font-size: 30px; } }
+@media (max-width: 560px) { .workspace { margin-top: 12px; } .fields { grid-template-columns: minmax(0, 1fr); } .header h1 { font-size: 30px; } .sectionHeading { display: block; } .resetTime { margin-top: 12px; } .usageBreakdown { grid-template-columns: minmax(0, 1fr); } }

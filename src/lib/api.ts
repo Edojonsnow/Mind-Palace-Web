@@ -4,9 +4,11 @@ type Schemas = components["schemas"];
 
 export type ThoughtType = Schemas["ThoughtType"];
 export type Thought = Schemas["ThoughtRead"];
+export type SearchMode = Schemas["SearchMode"];
 
 export type ThoughtListOptions = {
   q?: string;
+  search_mode?: SearchMode;
   thought_type?: string;
   source_type?: string;
   book_id?: string;
@@ -29,6 +31,7 @@ export type ThoughtListResponse = {
   page: number;
   pageSize: number;
   totalPages: number;
+  searchMode?: SearchMode;
   searchNotice?: string;
 };
 
@@ -48,6 +51,7 @@ export type UserSettings = Schemas["UserSettingsRead"];
 export type Profile = Schemas["ProfileRead"];
 export type AIPreferences = Schemas["AIPreferencesRead"];
 export type AIPreferencesInput = Partial<Schemas["AIPreferencesUpdate"]>;
+export type AIUsage = Schemas["AIUsageRead"];
 
 export function getProfile(token: string, signal?: AbortSignal): Promise<Profile> {
   return request<Profile>("/profile", token, { signal });
@@ -63,6 +67,10 @@ export function getAIPreferences(token: string): Promise<AIPreferences> {
 
 export function updateAIPreferences(token: string, input: AIPreferencesInput): Promise<AIPreferences> {
   return request<AIPreferences>("/profile/ai-preferences", token, { method: "PATCH", body: JSON.stringify(input) });
+}
+
+export function getAIUsage(token: string): Promise<AIUsage> {
+  return request<AIUsage>("/settings/ai-usage", token);
 }
 
 export type RememberItem = Schemas["RememberItem"];
@@ -154,6 +162,15 @@ export async function listThoughts(
   }
   const path = params.size > 0 ? `/thoughts?${params.toString()}` : "/thoughts";
   const { data, response } = await requestWithResponse<Thought[]>(path, token);
+  const fallback = response.headers.get("X-Search-Fallback");
+  const effectiveMode = response.headers.get("X-Search-Mode");
+  const searchMode: SearchMode = effectiveMode === "semantic" ? "semantic" : "keyword";
+  const searchNotice =
+    fallback === "quota"
+      ? "Search by meaning has reached its daily limit. Showing keyword matches instead."
+      : fallback
+        ? "Search by meaning is temporarily unavailable. Showing keyword matches instead."
+        : undefined;
 
   return {
     items: data,
@@ -161,9 +178,8 @@ export async function listThoughts(
     page: Number(response.headers.get("X-Page") ?? options.page ?? 1),
     pageSize: Number(response.headers.get("X-Page-Size") ?? options.page_size ?? data.length),
     totalPages: Number(response.headers.get("X-Total-Pages") ?? 1),
-    ...(response.headers.has("X-Search-Fallback") ? {
-      searchNotice: "AI search is temporarily unavailable. Showing text matches instead.",
-    } : {}),
+    searchMode,
+    ...(searchNotice ? { searchNotice } : {}),
   };
 }
 

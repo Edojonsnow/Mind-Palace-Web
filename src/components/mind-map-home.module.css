@@ -11,21 +11,22 @@
 .navAction[data-action=ask] > svg:first-child { color: var(--mp-echo); }
 .navArrow { margin-inline-start: auto; opacity: 0; }
 .captureAction { display: flex; align-items: center; justify-content: center; gap: var(--space-2); width: 100%; min-height: 44px; margin-top: var(--space-6); border-radius: var(--r-xs); background: var(--mp-lumen-grad); color: var(--mp-on-lumen); font: 500 .875rem var(--font-ui); white-space: nowrap; }
-.mindDisclosure { margin-top: var(--space-8); padding-top: var(--space-5); border-top: 1px solid var(--mp-line-strong); }
-.mindDisclosure summary { min-height: 44px; display: flex; align-items: center; gap: var(--space-2); color: var(--mp-text-2); font-size: .8125rem; cursor: pointer; list-style: none; white-space: nowrap; }
-.mindDisclosure summary::-webkit-details-marker { display: none; }
-.mindDisclosure summary > svg:last-child { margin-inline-start: auto; }
-.mindDisclosure[open] summary > svg:last-child { transform: rotate(180deg); }
-.brainView { width: 100%; max-width: 280px; margin-inline: auto; padding-bottom: var(--space-8); }
-.credits { font-size: .75rem; line-height: 1.6; color: var(--mp-text-3); padding-block: var(--space-3); }
-.credits p + p { margin-top: var(--space-2); }
-.credits a { text-decoration: underline; text-underline-offset: 3px; }
 .personal { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-10); font-size: .8125rem; }
 .personal p { margin-top: var(--space-1); color: var(--mp-text-3); font-size: .75rem; }
 .avatar { display: grid; place-items: center; width: 32px; height: 32px; flex: 0 0 auto; border-radius: var(--r-pill); background: var(--mp-lumen-soft); color: var(--mp-lumen-text); font: 500 .875rem var(--font-ui); }
 .library { min-width: 0; }
 .searchForm { border-bottom: 1px solid var(--mp-line-strong); padding-bottom: var(--space-5); }
 .searchLabel { display: block; color: var(--mp-lumen-text); font: 400 2.75rem/1.2 var(--font-writing); margin-bottom: var(--space-2); }
+.searchModes { display: inline-flex; align-items: stretch; margin: 0 0 var(--space-3); padding: 0; border: 1px solid var(--mp-control-line); border-radius: var(--r-xs); overflow: hidden; }
+.searchModes legend { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.searchMode { position: relative; display: flex; min-height: 36px; color: var(--mp-text-2); font: 400 .75rem/1.2 var(--font-ui); cursor: pointer; }
+.searchMode + .searchMode { border-left: 1px solid var(--mp-control-line); }
+.searchMode input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.searchMode span { display: inline-flex; align-items: center; padding-inline: var(--space-3); white-space: nowrap; }
+.searchMode input:checked + span { background: var(--mp-lumen-soft); color: var(--mp-lumen-text); font-weight: 500; }
+.searchMode input:focus-visible + span { outline: 2px solid var(--mp-lumen-text); outline-offset: -3px; }
+.searchAllowance { margin: 0 0 var(--space-3); color: var(--mp-text-3); font: 400 .75rem/1.4 var(--font-ui); }
+.searchAllowance strong { color: var(--mp-lumen-text); font-weight: 500; }
 .searchRow { display: flex; align-items: center; gap: var(--space-3); }
 .searchRow input { min-width: 0; flex: 1; min-height: 44px; padding: var(--space-2) 0; border: 0; border-radius: 0; background: transparent; color: var(--mp-text); font: 400 1.125rem/1.5 var(--font-ui); caret-color: var(--mp-lumen-text); }
 .searchRow input::placeholder { opacity: 1; color: var(--mp-text-3); }
@@ -94,18 +95,7 @@
   .libraryHeader button:hover { text-decoration: underline; text-underline-offset: 4px; }
 }
 .captureAction:active,.searchSubmit:active,.newThought:active { transform: translateY(1px); }
-.navAction:focus-visible,.captureAction:focus-visible,.searchSubmit:focus-visible,.clearSearch:focus-visible,.newThought:focus-visible,.openThought:focus-visible,.editButton:focus-visible,.cardTags button:focus-visible,.mindDisclosure summary:focus-visible { outline: 2px solid var(--mp-lumen-text); outline-offset: 3px; }
-.brainInteractive { position: relative; width: 100%; aspect-ratio: 1; }
-.brainCanvas { position: relative; z-index: 1; width: 100%; height: 100%; cursor: grab; touch-action: none; }
-.brainCanvas canvas { width: 100%; height: 100%; display: block; }
-.brainCanvas:active { cursor: grabbing; }
-.brainCanvas:focus-visible { outline-offset: -12px; }
-.brainFallback { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-3); pointer-events: none; color: var(--mp-text-3); }
-.brainFallback svg { width: 48%; height: 48%; stroke-width: .5; }
-.brainFallback span { font-size: .75rem; text-align: center; }
-.brainTools { position: absolute; z-index: 3; left: 0; right: 0; bottom: -20px; display: flex; align-items: center; justify-content: center; gap: var(--space-2); color: var(--mp-text-3); font-size: .75rem; }
-.brainTools button { display: grid; place-items: center; width: 44px; min-height: 44px; border-radius: var(--r-xs); }
-.brainTools button:hover { background: var(--mp-surface-2); }
+.navAction:focus-visible,.captureAction:focus-visible,.searchSubmit:focus-visible,.clearSearch:focus-visible,.newThought:focus-visible,.openThought:focus-visible,.editButton:focus-visible,.cardTags button:focus-visible { outline: 2px solid var(--mp-lumen-text); outline-offset: 3px; }
 .shell,.workspaceShell { position: relative; width: 100%; min-height: 100dvh; padding: 112px var(--space-8) var(--space-10); background: transparent; color: var(--mp-text); }
 .brand { position: absolute; left: var(--space-8); top: var(--space-6); }
 .brand > span { display: none; }
@@ -134,10 +124,6 @@
   .currentView,.captureAction,.personal { display: none; }
   .navAction { width: auto; gap: var(--space-2); padding: var(--space-2); font-size: .8125rem; }
   .navArrow { display: none; }
-  .mindDisclosure { order: 2; margin-top: var(--space-2); padding-top: 0; border: 0; }
-  .mindDisclosure summary { font-size: .75rem; justify-content: flex-end; }
-  .mindDisclosure summary > svg:last-child { margin-inline-start: 0; }
-  .mindDisclosure .credits { max-width: 360px; margin-inline: auto; }
   .searchLabel { font-size: 2rem; }
   .searchRow input { font-size: .9375rem; }
   .thoughtGrid { columns: 2; column-gap: var(--space-3); }

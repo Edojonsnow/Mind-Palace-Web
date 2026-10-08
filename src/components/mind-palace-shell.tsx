@@ -21,6 +21,7 @@ import {
   cancelAccountDeletion,
   createBook,
   createThought,
+  getAIUsage,
   getSettings,
   getRememberOverview,
   createExportRequest,
@@ -42,6 +43,7 @@ import {
   UserSettings,
   RememberOverview,
   Profile,
+  AIUsage,
   getProfile,
 } from "@/lib/api";
 import { authClient, getJWTToken } from "@/lib/auth-client";
@@ -103,6 +105,7 @@ export function MindPalaceShell() {
   const [recallTotal, setRecallTotal] = useState(0);
   const [recallTotalPages, setRecallTotalPages] = useState(0);
   const [settings, setSettings] = useState<UserSettings | null>(null);
+  const [aiUsage, setAIUsage] = useState<AIUsage | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
   const [rememberOverview, setRememberOverview] = useState<RememberOverview | null>(null);
@@ -198,9 +201,12 @@ export function MindPalaceShell() {
       }
 
       try {
-        const [nextThoughts, nextSettings] = await Promise.all([
+        const [nextThoughts, nextSettings, nextUsage] = await Promise.all([
           listThoughts(nextToken, recallQuery(filtersOverride, pageOverride)),
           includeSettings ? getSettings(nextToken) : Promise.resolve(null),
+          filtersOverride.search_mode === "semantic" && filtersOverride.q.trim()
+            ? getAIUsage(nextToken).catch(() => null)
+            : Promise.resolve(null),
         ]);
         if (requestSequence !== refreshSequence.current) {
           return;
@@ -216,6 +222,9 @@ export function MindPalaceShell() {
         if (nextSettings) {
           setSettings(nextSettings);
           setUseWithAsk(nextSettings.default_use_with_ask_my_mind);
+        }
+        if (nextUsage) {
+          setAIUsage(nextUsage);
         }
         setLoadState("ready");
       } catch (error) {
@@ -254,6 +263,20 @@ export function MindPalaceShell() {
       setBooks(await listBooks(token));
     } catch {
       setBooks([]);
+    }
+  }, []);
+
+  const loadAIUsage = useCallback(async () => {
+    const token = await getApiToken();
+    if (!token) {
+      setAIUsage(null);
+      return;
+    }
+
+    try {
+      setAIUsage(await getAIUsage(token));
+    } catch {
+      setAIUsage(null);
     }
   }, []);
 
@@ -317,13 +340,14 @@ export function MindPalaceShell() {
       void loadTrustControls();
       void loadRemember();
       void loadBooks();
+      void loadAIUsage();
       void loadProfile(profileController.signal);
     }, 0);
     return () => {
       window.clearTimeout(refreshId);
       profileController.abort();
     };
-  }, [authMode, loadBooks, loadProfile, loadRemember, loadTrustControls, refresh, session.isPending, sessionUserId]);
+  }, [authMode, loadAIUsage, loadBooks, loadProfile, loadRemember, loadTrustControls, refresh, session.isPending, sessionUserId]);
 
   useEffect(() => {
     if (
@@ -458,6 +482,7 @@ export function MindPalaceShell() {
     setRecallTotal(0);
     setRecallTotalPages(0);
     setSettings(null);
+    setAIUsage(null);
     setProfile(null);
     setBooks([]);
     setRememberOverview(null);
@@ -748,6 +773,7 @@ export function MindPalaceShell() {
         use_with_ask_my_mind: editUseWithAsk,
       });
       await refresh(recallPage, recallFilters);
+      void loadAIUsage();
       void loadRemember();
       cancelEditingThought();
       setMessage(
@@ -923,6 +949,7 @@ export function MindPalaceShell() {
       setConversationId(response.conversation_id);
       setLatestSources(response.sources);
       setChatMessages((current) => [...current, assistantMessage]);
+      void loadAIUsage();
     } catch (error) {
       setChatMessages((current) => current.filter((message) => message.id !== userMessage.id));
       setQuestion(trimmedQuestion);
@@ -1022,6 +1049,7 @@ export function MindPalaceShell() {
                   total={recallTotal}
                   page={recallPage}
                   totalPages={recallTotalPages}
+                  aiUsage={aiUsage}
                   loadState={loadState}
                   draftFilters={recallDraftFilters}
                   activeFilters={recallFilters}

@@ -8,6 +8,7 @@ import { useState } from "react";
 import type {
   ExportRequest,
   RememberOverview,
+  SearchMode,
   ThoughtListOptions,
   ThoughtType,
 } from "@/lib/api";
@@ -144,6 +145,7 @@ export type WorkspaceMode = "hub" | "organizing" | "reminisce" | "ask" | "books"
 
 export type RecallFilters = {
   q: string;
+  search_mode: SearchMode;
   thought_type: string;
   tag: string;
   book: string;
@@ -153,6 +155,7 @@ export type RecallFilters = {
 
 export const DEFAULT_RECALL_FILTERS: RecallFilters = {
   q: "",
+  search_mode: "keyword",
   thought_type: "",
   tag: "",
   book: "",
@@ -169,6 +172,7 @@ export const EMPTY_REMEMBER_CATEGORIES: RememberOverview["categories"] = [
 export function recallQuery(filters: RecallFilters, page: number): ThoughtListOptions {
   return {
     q: filters.q.trim() || undefined,
+    search_mode: filters.search_mode,
     thought_type: filters.thought_type || undefined,
     tag: filters.tag.trim() || undefined,
     book: filters.book.trim() || undefined,
@@ -180,12 +184,15 @@ export function recallQuery(filters: RecallFilters, page: number): ThoughtListOp
 }
 
 export function hasRecallFilterValues(filters: RecallFilters): boolean {
-  return Object.values(filters).some((value) => value !== "" && value !== "all");
+  return Object.entries(filters).some(([key, value]) =>
+    key !== "search_mode" && value !== "" && value !== "all",
+  );
 }
 
 export function activeRecallFilterLabels(filters: RecallFilters): string[] {
   return [
     filters.q.trim() ? `Search: ${filters.q.trim()}` : "",
+    filters.q.trim() && filters.search_mode === "semantic" ? "Mode: meaning" : "",
     filters.thought_type ? `Type: ${formatStatus(filters.thought_type)}` : "",
     filters.tag.trim() ? `Tag: ${filters.tag.trim()}` : "",
     filters.book.trim() ? `Book: ${filters.book.trim()}` : filters.book_id ? "Book: selected" : "",

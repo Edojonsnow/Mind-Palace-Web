@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { KeyRound, LockKeyhole, LogOut, Save } from "lucide-react";
-import { getAIPreferences, getProfile, updateAIPreferences, updateProfile, type AIPreferences, type AIPreferencesInput, type Profile } from "@/lib/api";
+import { getAIPreferences, getAIUsage, getProfile, updateAIPreferences, updateProfile, type AIPreferences, type AIPreferencesInput, type AIUsage, type Profile } from "@/lib/api";
 import { getJWTToken } from "@/lib/auth-client";
 import { ValidatedForm } from "./ui";
 import styles from "./profile-workspace.module.css";
@@ -20,9 +20,19 @@ function preferenceLines(value: string): string[] {
   return value.split("\n").map(item => item.trim()).filter(Boolean);
 }
 
+function formatResetTime(value: string): string {
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
 export function ProfileWorkspace({ fallbackName, fallbackEmail, sessionToken, sessionExpiresAt, onProfileUpdated, onPrivacy, onSignOut, onPasswordReset }: Props) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [preferences, setPreferences] = useState<AIPreferences | null>(null);
+  const [usage, setUsage] = useState<AIUsage | null>(null);
   const [name, setName] = useState(fallbackName);
   const [avatar, setAvatar] = useState("");
   const [writingStyle, setWritingStyle] = useState<NonNullable<AIPreferencesInput["writing_style"]>>("natural");
@@ -53,10 +63,15 @@ export function ProfileWorkspace({ fallbackName, fallbackEmail, sessionToken, se
     setLoadError("");
     try {
       const token = await requiredToken();
-      const [account, ai] = await Promise.all([getProfile(token), getAIPreferences(token)]);
+      const [account, ai, nextUsage] = await Promise.all([
+        getProfile(token),
+        getAIPreferences(token),
+        getAIUsage(token).catch(() => null),
+      ]);
       if (!mounted.current) return;
       setProfile(account);
       setPreferences(ai);
+      setUsage(nextUsage);
       setName(account.display_name ?? fallbackName);
       setAvatar(account.avatar_url ?? "");
       setWritingStyle(ai.writing_style ?? "natural");
@@ -168,6 +183,40 @@ export function ProfileWorkspace({ fallbackName, fallbackEmail, sessionToken, se
             </div>
             <div className={styles.actions}><button className="mp-button mp-button-secondary" disabled={isSavingPreferences}><Save size={16} aria-hidden="true" />{isSavingPreferences ? "Saving..." : "Save AI preferences"}</button><span role="status">{preferenceStatus}</span></div>
           </ValidatedForm>
+        </section>
+        <section className={styles.section} aria-labelledby="ai-usage-title">
+          <div className={styles.sectionHeading}>
+            <div>
+              <h2 id="ai-usage-title">AI usage</h2>
+              <p className={styles.sectionIntro}>Your shared daily allowance for Ask My Mind, meaning search, and organization.</p>
+            </div>
+            {usage ? <p className={styles.resetTime}>Resets {formatResetTime(usage.resets_at)}</p> : null}
+          </div>
+          {usage ? (
+            <>
+              <div className={styles.usageSummary}>
+                <strong>{usage.remaining_units}</strong>
+                <span>of {usage.daily_limit} units remaining today</span>
+              </div>
+              <div
+                className={styles.usageBar}
+                role="progressbar"
+                aria-label="AI units used today"
+                aria-valuemin={0}
+                aria-valuemax={usage.daily_limit}
+                aria-valuenow={usage.units_used}
+              >
+                <span style={{ width: `${Math.min(100, (usage.units_used / usage.daily_limit) * 100)}%` }} />
+              </div>
+              <dl className={styles.usageBreakdown}>
+                <div><dt>Ask My Mind</dt><dd>{usage.ask_count}</dd></div>
+                <div><dt>Meaning searches</dt><dd>{usage.search_count}</dd></div>
+                <div><dt>Organization</dt><dd>{usage.organization_count}</dd></div>
+              </dl>
+            </>
+          ) : (
+            <p className={styles.status}>AI usage is temporarily unavailable.</p>
+          )}
         </section>
         <section className={styles.section} aria-labelledby="security-title"><h2 id="security-title">Security &amp; data</h2><div className={styles.securityActions}>
           <button className="mp-button mp-button-secondary" type="button" onClick={() => void resetPassword()} disabled={isResettingPassword}><KeyRound size={16} aria-hidden="true" />{isResettingPassword ? "Sending code..." : "Reset password"}</button>
