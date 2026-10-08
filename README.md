@@ -64,6 +64,22 @@ NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
 
 The backend must allow this frontend origin through `BACKEND_CORS_ORIGINS`.
 
+## Authentication abuse protection
+
+The Next.js Neon Auth proxy can use the backend's shared Redis limiter for
+public authentication actions. For staging and production, configure these
+private server-side variables in Vercel and use the same token in the backend:
+
+```bash
+AUTH_RATE_LIMITS_ENABLED=true
+AUTH_RATE_LIMIT_API_URL=https://<render-api-host>
+AUTH_RATE_LIMIT_TOKEN=<random-shared-secret>
+```
+
+The limiter covers sign-up, sign-in, verification-code attempts, and password
+reset actions. The token must never be prefixed with `NEXT_PUBLIC_` or exposed
+to browser code. Local development keeps this disabled by default.
+
 ## Authentication
 
 Neon Auth handles sign-up, sign-in, session cookies, and token refresh through
