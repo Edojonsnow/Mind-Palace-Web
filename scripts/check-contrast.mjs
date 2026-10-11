@@ -21,9 +21,17 @@ for(const [i,t] of blocks.entries()) {
     const r=ratio(composite(t[`--mp-${fg}`],background),background);
     if(r<min) { console.error(`${i===0?'dark':'light'}: ${fg}/${bg} ${r.toFixed(2)} < ${min}`);failed=true; }
   }
-  for(const accent of ['lumen','echo']) {
-    for(const hex of t[`--mp-${accent}-grad`].match(/#[\da-f]{6}/gi)) {
-      const r=ratio(rgb(t[`--mp-on-${accent}`]),rgb(hex));
+  for(const gradientToken of Object.keys(t).filter(key => key.endsWith('-grad'))) {
+    const accent = gradientToken.slice('--mp-'.length, -'-grad'.length);
+    const stops = t[gradientToken].match(/#[\da-f]{6}/gi);
+    const onColor = t[`--mp-on-${accent}`];
+    if(!stops?.length || !onColor) {
+      console.error(`${i===0?'dark':'light'} ${gradientToken}: missing gradient stops or --mp-on-${accent}`);
+      failed=true;
+      continue;
+    }
+    for(const hex of stops) {
+      const r=ratio(rgb(onColor),rgb(hex));
       if(r<4.5) { console.error(`${i===0?'dark':'light'} ${accent} gradient stop ${hex}: ${r.toFixed(2)}`);failed=true; }
     }
   }
