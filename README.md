@@ -64,6 +64,12 @@ NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
 
 The backend must allow this frontend origin through `BACKEND_CORS_ORIGINS`.
 
+For staging, configure the values in `.env.staging.example` in Vercel's
+Preview environment or a custom staging environment. Use the Render staging
+API URL and the Neon Auth base URL for the staging branch. Keep the cookie
+secret and authentication rate-limit token separate from development and
+production, and use the same rate-limit token in Vercel and the Render API.
+
 ## Authentication abuse protection
 
 The Next.js Neon Auth proxy can use the backend's shared Redis limiter for
