@@ -4,7 +4,7 @@
   --mp-bg: #17181c; --mp-bg-raised: #202126;
   --mp-surface: #27292f; --mp-surface-2: #303239; --mp-surface-3: #3e4149;
   --mp-line: rgba(237,232,255,.08); --mp-line-strong: rgba(237,232,255,.22);
-  --mp-control-line: #75728c;
+  --mp-control-line: #8d89a2;
   --mp-scrim: rgba(5,6,10,.72);
   --mp-text: #f1f0ed; --mp-text-2: #c4c3cc; --mp-text-3: #b0aeb8;
   --mp-note: #282a30; --mp-note-text: #f1f0ed; --mp-note-muted: #b9b7c0;
@@ -16,10 +16,10 @@
   --mp-lumen-text: #f5b95c; --mp-on-lumen: #1a1206;
   --mp-lumen-soft: rgba(245,185,92,.12);
   --mp-lumen-grad: linear-gradient(135deg,#ffd08a 0%,#f5b95c 45%,#e58f3a 100%);
-  --mp-echo: #9a8cff; --mp-echo-hover: #b0a5ff; --mp-on-echo: #0f0b2b;
+  --mp-echo: #b0a5ff; --mp-echo-hover: #c0b7ff; --mp-on-echo: #0f0b2b;
   --mp-echo-soft: rgba(154,140,255,.14);
   --mp-vault: #5cc6ae; --mp-vault-soft: rgba(92,198,174,.14);
-  --mp-danger: #ff8585; --mp-danger-soft: rgba(255,107,107,.14);
+  --mp-danger: #ff9494; --mp-danger-soft: rgba(255,107,107,.14);
   --mp-e1: inset 0 1px 0 rgba(255,255,255,.05),0 0 0 1px var(--mp-line);
   --mp-e2: var(--mp-e1),0 12px 28px -14px rgba(0,0,0,.65);
   --mp-e3: 0 0 0 1px var(--mp-line-strong),0 48px 96px -24px rgba(0,0,0,.75);
@@ -32,7 +32,7 @@
   --mp-line: rgba(23,21,43,.09); --mp-line-strong: rgba(23,21,43,.24);
   --mp-control-line: #81766a;
   --mp-scrim: rgba(23,21,43,.45);
-  --mp-text: #27272e; --mp-text-2: #555660; --mp-text-3: #666773;
+  --mp-text: #27272e; --mp-text-2: #555660; --mp-text-3: #5d5e6b;
   --mp-note: #ffffff; --mp-note-text: #27272e; --mp-note-muted: #666773;
   --mp-note-journal: #eae4f3; --mp-note-journal-text: #393048; --mp-note-journal-muted: #675a76;
   --mp-note-quote: #f6e6a5; --mp-note-quote-text: #433817; --mp-note-quote-muted: #6d5c27;
