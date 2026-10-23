@@ -1,16 +1,19 @@
 import type { FormEvent } from "react";
 
-import type { Book, ThoughtType } from "@/lib/api";
+import type { Book, Collection, ThoughtType } from "@/lib/api";
 import { parseThoughtType } from "@/components/mind-palace-shell-helpers";
 import styles from "./thought-capture-modal.module.css";
 import { LockKeyhole, Sparkles } from "lucide-react";
 import { ValidatedForm, useModalFocus } from "./ui";
+import { ThoughtCollectionPicker } from "./thought-collection-picker";
 
 type ThoughtCaptureModalProps = {
   body: string;
   title: string;
   thoughtType: ThoughtType;
   books: Book[];
+  collections: Collection[];
+  selectedCollectionIds: string[];
   selectedBookId: string;
   newBookTitle: string;
   newBookAuthor: string;
@@ -23,6 +26,7 @@ type ThoughtCaptureModalProps = {
   onTitleChange: (value: string) => void;
   onThoughtTypeChange: (value: ThoughtType) => void;
   onBookChange: (value: string) => void;
+  onCollectionIdsChange: (value: string[]) => void;
   onNewBookTitleChange: (value: string) => void;
   onNewBookAuthorChange: (value: string) => void;
   onManualTagsChange: (value: string) => void;
@@ -30,9 +34,9 @@ type ThoughtCaptureModalProps = {
 };
 
 export function ThoughtCaptureModal({
-  body, title, thoughtType, books, selectedBookId, newBookTitle, newBookAuthor,
+  body, title, thoughtType, books, collections, selectedCollectionIds, selectedBookId, newBookTitle, newBookAuthor,
   manualTags, useWithAsk, isSaving, onClose, onSubmit, onBodyChange, onTitleChange,
-  onThoughtTypeChange, onBookChange, onNewBookTitleChange, onNewBookAuthorChange,
+  onThoughtTypeChange, onBookChange, onCollectionIdsChange, onNewBookTitleChange, onNewBookAuthorChange,
   onManualTagsChange, onUseWithAskChange,
 }: ThoughtCaptureModalProps) {
   const panel = useModalFocus(onClose);
@@ -58,6 +62,7 @@ export function ThoughtCaptureModal({
             </div>
             {thoughtType === "book_excerpt" ? <div className={styles.fieldGrid}><label className={styles.field}><span className={styles.fieldLabel}>Book</span><select className={`${styles.control} ${styles.selectControl}`} value={selectedBookId} onChange={(event) => onBookChange(event.target.value)} required><option value="">Select a saved book</option>{books.map((book) => <option key={book.id} value={book.id}>{book.title} · {book.author}</option>)}<option value="__new__">+ Add a new book</option></select></label>{selectedBookId === "__new__" ? <div className={styles.fieldGrid}><label className={styles.field}><span className={styles.fieldLabel}>Book title</span><input className={styles.control} value={newBookTitle} onChange={(event) => onNewBookTitleChange(event.target.value)} required /></label><label className={styles.field}><span className={styles.fieldLabel}>Author</span><input className={styles.control} value={newBookAuthor} onChange={(event) => onNewBookAuthorChange(event.target.value)} required /></label></div> : null}</div> : null}
             <div className={styles.fieldGrid}><label className={styles.field}><span className={styles.fieldLabel}>Context, if useful</span><input className={styles.control} placeholder="Tags separated by commas" value={manualTags} onChange={(event) => onManualTagsChange(event.target.value)} /></label><label className={styles.consent}><span>Let Ask My Mind use this</span><input type="checkbox" checked={useWithAsk} onChange={(event) => onUseWithAskChange(event.target.checked)} /></label></div>
+            <ThoughtCollectionPicker collections={collections} selectedIds={selectedCollectionIds} onChange={onCollectionIdsChange} />
             <div className={styles.formFooter}><p className={styles.privacyNote} data-ai={useWithAsk}>{useWithAsk ? <Sparkles size={18} aria-hidden="true" /> : <LockKeyhole size={18} aria-hidden="true" />}{useWithAsk ? "Ask My Mind can read this thought to answer your questions." : "AI access is off unless you enable it. Your original thought remains visible only inside your account."}</p><button className={styles.submit} type="submit" disabled={!body.trim() || isSaving}>{isSaving ? "Keeping it…" : "Keep this thought →"}</button></div>
           </div>
         </ValidatedForm>

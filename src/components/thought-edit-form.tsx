@@ -1,15 +1,18 @@
 import type { FormEvent } from "react";
 import { ValidatedForm } from "./ui";
 
-import type { Book, ThoughtType } from "@/lib/api";
+import type { Book, Collection, ThoughtType } from "@/lib/api";
 import { parseThoughtType } from "@/components/mind-palace-shell-helpers";
 import { Check, X } from "lucide-react";
+import { ThoughtCollectionPicker } from "./thought-collection-picker";
 
 type ThoughtEditFormProps = {
   title: string;
   body: string;
   thoughtType: ThoughtType;
   books: Book[];
+  collections: Collection[];
+  selectedCollectionIds: string[];
   bookId: string;
   bookTitle: string;
   bookAuthor: string;
@@ -21,6 +24,7 @@ type ThoughtEditFormProps = {
   onBodyChange: (value: string) => void;
   onThoughtTypeChange: (value: ThoughtType) => void;
   onBookIdChange: (value: string) => void;
+  onCollectionIdsChange: (value: string[]) => void;
   onBookTitleChange: (value: string) => void;
   onBookAuthorChange: (value: string) => void;
   onManualTagsChange: (value: string) => void;
@@ -32,7 +36,7 @@ export function ThoughtEditForm({
   title,
   body,
   thoughtType,
-  books,
+  books, collections, selectedCollectionIds,
   bookId,
   bookTitle,
   bookAuthor,
@@ -43,7 +47,7 @@ export function ThoughtEditForm({
   onTitleChange,
   onBodyChange,
   onThoughtTypeChange,
-  onBookIdChange,
+  onBookIdChange, onCollectionIdsChange,
   onBookTitleChange,
   onBookAuthorChange,
   onManualTagsChange,
@@ -138,6 +142,7 @@ export function ThoughtEditForm({
           ) : null}
         </div>
       ) : null}
+      <ThoughtCollectionPicker collections={collections} selectedIds={selectedCollectionIds} onChange={onCollectionIdsChange} />
       <label className="flex items-center gap-2 text-xs text-[var(--mp-text-3)]">
         <input
           type="checkbox"

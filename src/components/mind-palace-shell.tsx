@@ -164,6 +164,7 @@ export function MindPalaceShell() {
   const [selectedBookId, setSelectedBookId] = useState("");
   const [newBookTitle, setNewBookTitle] = useState("");
   const [newBookAuthor, setNewBookAuthor] = useState("");
+  const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>([]);
   const [useWithAsk, setUseWithAsk] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editingThoughtId, setEditingThoughtId] = useState<string | null>(null);
@@ -174,6 +175,7 @@ export function MindPalaceShell() {
   const [editBookTitle, setEditBookTitle] = useState("");
   const [editBookAuthor, setEditBookAuthor] = useState("");
   const [editManualTags, setEditManualTags] = useState("");
+  const [editCollectionIds, setEditCollectionIds] = useState<string[]>([]);
   const [editUseWithAsk, setEditUseWithAsk] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [question, setQuestion] = useState("");
@@ -822,6 +824,7 @@ export function MindPalaceShell() {
         book_title: thoughtType === "book_excerpt" && selectedBookId === "__new__" ? newBookTitle.trim() : undefined,
         book_author: thoughtType === "book_excerpt" && selectedBookId === "__new__" ? newBookAuthor.trim() : undefined,
         manual_tags: splitTags(manualTags),
+        collection_ids: selectedCollectionIds,
         use_with_ask_my_mind: useWithAsk,
       };
       await createThought(token, input, actionKeys.get("capture", input));
@@ -832,11 +835,13 @@ export function MindPalaceShell() {
       setSelectedBookId("");
       setNewBookTitle("");
       setNewBookAuthor("");
+      setSelectedCollectionIds([]);
       setUseWithAsk(settings?.default_use_with_ask_my_mind ?? false);
       setMessage("Thought saved.");
       void refresh(recallPage, recallFilters, false, token);
       void loadRemember();
       void loadBooks();
+      void loadCollections();
       if (activeBookId) {
         void loadBookThoughts(activeBookId, bookPage);
       }
@@ -857,6 +862,7 @@ export function MindPalaceShell() {
     setEditBookTitle(thought.book_title ?? "");
     setEditBookAuthor(thought.book_author ?? "");
     setEditManualTags(thought.manual_tags.join(", "));
+    setEditCollectionIds(thought.collection_ids ?? []);
     setEditUseWithAsk(thought.use_with_ask_my_mind);
     setMessage("");
   }
@@ -871,6 +877,7 @@ export function MindPalaceShell() {
     setEditBookTitle("");
     setEditBookAuthor("");
     setEditUseWithAsk(false);
+    setEditCollectionIds([]);
   }
 
   async function handleUpdateThought(event: FormEvent<HTMLFormElement>, thoughtId: string) {
@@ -895,11 +902,13 @@ export function MindPalaceShell() {
         book_title: editThoughtType === "book_excerpt" && editBookId === "__new__" ? editBookTitle.trim() : null,
         book_author: editThoughtType === "book_excerpt" && editBookId === "__new__" ? editBookAuthor.trim() : null,
         manual_tags: splitTags(editManualTags),
+        collection_ids: editCollectionIds,
         use_with_ask_my_mind: editUseWithAsk,
       });
       await refresh(recallPage, recallFilters);
       void loadAIUsage();
       void loadRemember();
+      void loadCollections();
       cancelEditingThought();
       setMessage(
         updatedThought.ai_processing_status === "pending"
@@ -1046,6 +1055,7 @@ export function MindPalaceShell() {
     setManualTags("");
     setNewBookTitle("");
     setNewBookAuthor("");
+    setSelectedCollectionIds([]);
     setUseWithAsk(settings?.default_use_with_ask_my_mind ?? false);
     setIsCaptureOpen(true);
   }
@@ -1307,7 +1317,7 @@ export function MindPalaceShell() {
                   onResetFilters={handleRecallReset}
                   onPageChange={handleRecallPageChange}
                   showAskAction={showAskAction}
-                  onSaveThought={() => setIsCaptureOpen(true)}
+                  onSaveThought={() => { setSelectedCollectionIds([]); setIsCaptureOpen(true); }}
                   onAskMind={() => setWorkspaceMode("ask")}
                   onReminisce={revealReminisce}
                   onBooks={openBooksWorkspace}
@@ -1335,6 +1345,8 @@ export function MindPalaceShell() {
                       body={editBody}
                       thoughtType={editThoughtType}
                       books={books}
+                      collections={collections}
+                      selectedCollectionIds={editCollectionIds}
                       bookId={editBookId}
                       bookTitle={editBookTitle}
                       bookAuthor={editBookAuthor}
@@ -1346,6 +1358,7 @@ export function MindPalaceShell() {
                       onBodyChange={setEditBody}
                       onThoughtTypeChange={(nextType) => { setEditThoughtType(nextType); if (nextType !== "book_excerpt") setEditBookId(""); }}
                       onBookIdChange={setEditBookId}
+                      onCollectionIdsChange={setEditCollectionIds}
                       onBookTitleChange={setEditBookTitle}
                       onBookAuthorChange={setEditBookAuthor}
                       onManualTagsChange={setEditManualTags}
@@ -1448,6 +1461,8 @@ export function MindPalaceShell() {
             title={title}
             thoughtType={thoughtType}
             books={books}
+            collections={collections}
+            selectedCollectionIds={selectedCollectionIds}
             selectedBookId={selectedBookId}
             newBookTitle={newBookTitle}
             newBookAuthor={newBookAuthor}
@@ -1460,6 +1475,7 @@ export function MindPalaceShell() {
             onTitleChange={setTitle}
             onThoughtTypeChange={(nextType) => { setThoughtType(nextType); if (nextType !== "book_excerpt") setSelectedBookId(""); }}
             onBookChange={setSelectedBookId}
+            onCollectionIdsChange={setSelectedCollectionIds}
             onNewBookTitleChange={setNewBookTitle}
             onNewBookAuthorChange={setNewBookAuthor}
             onManualTagsChange={setManualTags}

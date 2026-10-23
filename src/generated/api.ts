@@ -787,6 +787,8 @@ export interface components {
             book_id?: string | null;
             /** Book Title */
             book_title?: string | null;
+            /** Collection Ids */
+            collection_ids?: string[];
             /**
              * Is Archived
              * @default false
@@ -824,6 +826,8 @@ export interface components {
             book_id: string | null;
             /** Book Title */
             book_title: string | null;
+            /** Collection Ids */
+            collection_ids: string[];
             /**
              * Created At
              * Format: date-time
@@ -883,6 +887,8 @@ export interface components {
             book_id?: string | null;
             /** Book Title */
             book_title?: string | null;
+            /** Collection Ids */
+            collection_ids?: string[] | null;
             /** Is Archived */
             is_archived?: boolean | null;
             /** Manual Tags */
