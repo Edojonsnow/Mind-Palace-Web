@@ -32,6 +32,7 @@ type CollectionsWorkspaceProps = {
   onRemoveThought: (collectionId: string, thoughtId: string) => Promise<void>;
   onOpenThought: (thought: Thought) => void;
   onRetry: () => void;
+  openCreate?: boolean;
 };
 
 function formatDate(value: string): string {
@@ -109,6 +110,7 @@ function CollectionList({
   onRenameCollection,
   onDeleteCollection,
   onRetry,
+  openCreate,
 }: Pick<
   CollectionsWorkspaceProps,
   | "collections"
@@ -120,8 +122,9 @@ function CollectionList({
   | "onRenameCollection"
   | "onDeleteCollection"
   | "onRetry"
+  | "openCreate"
 >) {
-  const [isCreating, setIsCreating] = useState(false);
+  const [isCreating, setIsCreating] = useState(openCreate ?? false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const normalizedQuery = query.trim().toLocaleLowerCase();
@@ -294,6 +297,7 @@ export function CollectionsWorkspace({
   onRemoveThought,
   onOpenThought,
   onRetry,
+  openCreate,
 }: CollectionsWorkspaceProps) {
   return activeCollection ? (
     <CollectionDetail
@@ -316,6 +320,7 @@ export function CollectionsWorkspace({
       onRenameCollection={onRenameCollection}
       onDeleteCollection={onDeleteCollection}
       onRetry={onRetry}
+      openCreate={openCreate}
     />
   );
 }

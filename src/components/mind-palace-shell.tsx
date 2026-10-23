@@ -133,6 +133,7 @@ export function MindPalaceShell() {
   const [collectionThoughtsLoadState, setCollectionThoughtsLoadState] = useState<LoadState>("idle");
   const [collectionError, setCollectionError] = useState("");
   const [collectionSearch, setCollectionSearch] = useState("");
+  const [openCollectionCreateForm, setOpenCollectionCreateForm] = useState(false);
   const [rememberOverview, setRememberOverview] = useState<RememberOverview | null>(null);
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("hub");
   const [selectedRememberCategory, setSelectedRememberCategory] =
@@ -608,6 +609,7 @@ export function MindPalaceShell() {
     setCollectionThoughts([]);
     setCollectionThoughtsLoadState("idle");
     setCollectionSearch("");
+    setOpenCollectionCreateForm(false);
     setRememberOverview(null);
     setWorkspaceMode("hub");
     setIsCaptureOpen(false);
@@ -950,6 +952,18 @@ export function MindPalaceShell() {
 
   function openCollectionsWorkspace() {
     setWorkspaceMode("collections");
+    setOpenCollectionCreateForm(false);
+    setActiveCollectionId(null);
+    setCollectionThoughts([]);
+    setCollectionThoughtsLoadState("idle");
+    setCollectionError("");
+    setCollectionSearch("");
+    void loadCollections();
+  }
+
+  function openCollectionCreateFormFromMenu() {
+    setWorkspaceMode("collections");
+    setOpenCollectionCreateForm(true);
     setActiveCollectionId(null);
     setCollectionThoughts([]);
     setCollectionThoughtsLoadState("idle");
@@ -1325,7 +1339,7 @@ export function MindPalaceShell() {
                   collectionsLoadState={collectionsLoadState}
                   onOpenCollection={handleCollectionSelect}
                   onViewAllCollections={openCollectionsWorkspace}
-                  onCreateCollection={() => { openCollectionsWorkspace(); }}
+                  onCreateCollection={openCollectionCreateFormFromMenu}
                   onOpenThought={(thought) => {
                     setPreviewThought(thought);
                     setPreviewThoughtError("");
@@ -1390,6 +1404,7 @@ export function MindPalaceShell() {
                     setIsThoughtPreviewOpen(true);
                   }}
                   onRetry={() => activeCollectionId ? void loadCollectionThoughts(activeCollectionId) : void loadCollections()}
+                  openCreate={openCollectionCreateForm}
                 />
               ) : workspaceMode === "profile" ? (
                 <ProfileWorkspace
