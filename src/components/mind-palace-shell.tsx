@@ -18,6 +18,7 @@ import {
   askMyMind,
   AccountDeletionRequest,
   Book,
+  Collection,
   cancelAccountDeletion,
   createBook,
   createThought,
@@ -32,6 +33,8 @@ import {
   getThought,
   listDeletedThoughts,
   listBooks,
+  listCollectionThoughts,
+  listCollections,
   listThoughts,
   organizeThought,
   Thought,
@@ -39,6 +42,10 @@ import {
   requestAccountDeletion,
   restoreThought,
   updateSettings,
+  createCollection,
+  deleteCollection,
+  removeThoughtFromCollection,
+  updateCollection,
   updateThought,
   UserSettings,
   RememberOverview,
@@ -66,6 +73,7 @@ import { AskMyMindWorkspace } from "@/components/ask-my-mind-workspace";
 import { ThoughtCaptureModal } from "@/components/thought-capture-modal";
 import { TrustControlsPanel } from "@/components/trust-controls-panel";
 import { BooksWorkspace } from "@/components/books-workspace";
+import { CollectionsWorkspace } from "@/components/collections-workspace";
 import { ReminisceWorkspace } from "@/components/reminisce-workspace";
 import { ThoughtEditForm } from "@/components/thought-edit-form";
 import { ThoughtPreviewPanel } from "@/components/thought-preview-panel";
@@ -117,6 +125,14 @@ export function MindPalaceShell() {
   const [bookError, setBookError] = useState("");
   const [bookSearch, setBookSearch] = useState("");
   const bookRequestSequence = useRef(0);
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [recentCollections, setRecentCollections] = useState<Collection[]>([]);
+  const [collectionsLoadState, setCollectionsLoadState] = useState<LoadState>("idle");
+  const [activeCollectionId, setActiveCollectionId] = useState<string | null>(null);
+  const [collectionThoughts, setCollectionThoughts] = useState<Thought[]>([]);
+  const [collectionThoughtsLoadState, setCollectionThoughtsLoadState] = useState<LoadState>("idle");
+  const [collectionError, setCollectionError] = useState("");
+  const [collectionSearch, setCollectionSearch] = useState("");
   const [rememberOverview, setRememberOverview] = useState<RememberOverview | null>(null);
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("hub");
   const [selectedRememberCategory, setSelectedRememberCategory] =
@@ -183,6 +199,9 @@ export function MindPalaceShell() {
       (thought.ai_processing_status === "pending" || thought.ai_processing_status === "processing"),
   );
   const showAskAction = loadState !== "ready" || hasSavedThoughts;
+  const activeCollection = activeCollectionId
+    ? collections.find((collection) => collection.id === activeCollectionId) ?? null
+    : null;
   const hasRecallFilters = useMemo(
     () => hasRecallFilterValues(recallFilters) || hasRecallFilterValues(recallDraftFilters),
     [recallDraftFilters, recallFilters],
@@ -276,6 +295,53 @@ export function MindPalaceShell() {
     } catch {
       setBooks([]);
       setBooksLoadState("error");
+    }
+  }, []);
+
+  const loadCollections = useCallback(async () => {
+    const token = await getApiToken();
+    if (!token) {
+      setCollections([]);
+      setRecentCollections([]);
+      setCollectionsLoadState("idle");
+      return;
+    }
+
+    setCollectionsLoadState("loading");
+    setCollectionError("");
+    try {
+      const [allCollections, recent] = await Promise.all([
+        listCollections(token),
+        listCollections(token, { recent: true, limit: 5 }),
+      ]);
+      setCollections(allCollections);
+      setRecentCollections(recent);
+      setCollectionsLoadState("ready");
+    } catch (error) {
+      setCollections([]);
+      setRecentCollections([]);
+      setCollectionsLoadState("error");
+      setCollectionError(error instanceof Error ? error.message : "Unable to load collections.");
+    }
+  }, []);
+
+  const loadCollectionThoughts = useCallback(async (collectionId: string) => {
+    const token = await getApiToken();
+    if (!token) {
+      setCollectionThoughts([]);
+      setCollectionThoughtsLoadState("idle");
+      return;
+    }
+
+    setCollectionThoughtsLoadState("loading");
+    setCollectionError("");
+    try {
+      setCollectionThoughts(await listCollectionThoughts(token, collectionId));
+      setCollectionThoughtsLoadState("ready");
+    } catch (error) {
+      setCollectionThoughts([]);
+      setCollectionThoughtsLoadState("error");
+      setCollectionError(error instanceof Error ? error.message : "Unable to load this collection.");
     }
   }, []);
 
@@ -388,6 +454,7 @@ export function MindPalaceShell() {
       void loadTrustControls();
       void loadRemember();
       void loadBooks();
+      void loadCollections();
       void loadAIUsage();
       void loadProfile(profileController.signal);
     }, 0);
@@ -395,7 +462,7 @@ export function MindPalaceShell() {
       window.clearTimeout(refreshId);
       profileController.abort();
     };
-  }, [authMode, loadAIUsage, loadBooks, loadProfile, loadRemember, loadTrustControls, refresh, session.isPending, sessionUserId]);
+  }, [authMode, loadAIUsage, loadBooks, loadCollections, loadProfile, loadRemember, loadTrustControls, refresh, session.isPending, sessionUserId]);
 
   useEffect(() => {
     if (
@@ -533,6 +600,12 @@ export function MindPalaceShell() {
     setAIUsage(null);
     setProfile(null);
     setBooks([]);
+    setCollections([]);
+    setRecentCollections([]);
+    setActiveCollectionId(null);
+    setCollectionThoughts([]);
+    setCollectionThoughtsLoadState("idle");
+    setCollectionSearch("");
     setRememberOverview(null);
     setWorkspaceMode("hub");
     setIsCaptureOpen(false);
@@ -866,6 +939,84 @@ export function MindPalaceShell() {
     setBookSearch("");
   }
 
+  function openCollectionsWorkspace() {
+    setWorkspaceMode("collections");
+    setActiveCollectionId(null);
+    setCollectionThoughts([]);
+    setCollectionThoughtsLoadState("idle");
+    setCollectionError("");
+    setCollectionSearch("");
+    void loadCollections();
+  }
+
+  function handleCollectionSelect(collectionId: string) {
+    setWorkspaceMode("collections");
+    setActiveCollectionId(collectionId);
+    void loadCollectionThoughts(collectionId);
+  }
+
+  function handleBackToCollections() {
+    setActiveCollectionId(null);
+    setCollectionThoughts([]);
+    setCollectionThoughtsLoadState("idle");
+    setCollectionError("");
+    void loadCollections();
+  }
+
+  async function handleCreateCollection(name: string) {
+    const token = await getApiToken();
+    if (!token) return;
+    try {
+      await createCollection(token, name);
+      await loadCollections();
+      setMessage("Collection created.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to create collection.");
+      throw error;
+    }
+  }
+
+  async function handleRenameCollection(collectionId: string, name: string) {
+    const token = await getApiToken();
+    if (!token) return;
+    try {
+      const updated = await updateCollection(token, collectionId, name);
+      setCollections((current) => current.map((collection) => collection.id === collectionId ? updated : collection));
+      setRecentCollections((current) => current.map((collection) => collection.id === collectionId ? updated : collection));
+      setMessage("Collection renamed.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to rename collection.");
+      throw error;
+    }
+  }
+
+  async function handleDeleteCollection(collectionId: string) {
+    const token = await getApiToken();
+    if (!token) return;
+    try {
+      await deleteCollection(token, collectionId);
+      setCollections((current) => current.filter((collection) => collection.id !== collectionId));
+      setRecentCollections((current) => current.filter((collection) => collection.id !== collectionId));
+      setMessage("Collection deleted. Your thoughts are still safe.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to delete collection.");
+    }
+  }
+
+  async function handleRemoveThoughtFromCollection(collectionId: string, thoughtId: string) {
+    const token = await getApiToken();
+    if (!token) return;
+    try {
+      await removeThoughtFromCollection(token, collectionId, thoughtId);
+      setCollectionThoughts((current) => current.filter((thought) => thought.id !== thoughtId));
+      setCollections((current) => current.map((collection) => collection.id === collectionId ? { ...collection, thought_count: Math.max(0, collection.thought_count - 1) } : collection));
+      setRecentCollections((current) => current.map((collection) => collection.id === collectionId ? { ...collection, thought_count: Math.max(0, collection.thought_count - 1) } : collection));
+      setMessage("Thought removed from collection.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to remove thought from collection.");
+    }
+  }
+
   function handleBookSelect(bookId: string) {
     setActiveBookId(bookId);
     void loadBookThoughts(bookId, 1);
@@ -1160,6 +1311,11 @@ export function MindPalaceShell() {
                   onAskMind={() => setWorkspaceMode("ask")}
                   onReminisce={revealReminisce}
                   onBooks={openBooksWorkspace}
+                  recentCollections={recentCollections}
+                  collectionsLoadState={collectionsLoadState}
+                  onOpenCollection={handleCollectionSelect}
+                  onViewAllCollections={openCollectionsWorkspace}
+                  onCreateCollection={() => { openCollectionsWorkspace(); }}
                   onOpenThought={(thought) => {
                     setPreviewThought(thought);
                     setPreviewThoughtError("");
@@ -1197,6 +1353,30 @@ export function MindPalaceShell() {
                       onCancel={cancelEditingThought}
                     />
                   ) : null}
+                />
+              ) : workspaceMode === "collections" ? (
+                <CollectionsWorkspace
+                  collections={collections}
+                  activeCollection={activeCollection}
+                  thoughts={collectionThoughts}
+                  collectionsLoadState={collectionsLoadState}
+                  thoughtsLoadState={collectionThoughtsLoadState}
+                  errorMessage={collectionError}
+                  query={collectionSearch}
+                  onQueryChange={setCollectionSearch}
+                  onCollectionSelect={handleCollectionSelect}
+                  onBackToCollections={handleBackToCollections}
+                  onCreateCollection={handleCreateCollection}
+                  onRenameCollection={handleRenameCollection}
+                  onDeleteCollection={handleDeleteCollection}
+                  onRemoveThought={handleRemoveThoughtFromCollection}
+                  onOpenThought={(thought) => {
+                    setPreviewThought(thought);
+                    setPreviewThoughtError("");
+                    setIsPreviewThoughtLoading(false);
+                    setIsThoughtPreviewOpen(true);
+                  }}
+                  onRetry={() => activeCollectionId ? void loadCollectionThoughts(activeCollectionId) : void loadCollections()}
                 />
               ) : workspaceMode === "profile" ? (
                 <ProfileWorkspace

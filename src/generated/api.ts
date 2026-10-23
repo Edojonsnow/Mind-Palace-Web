@@ -75,6 +75,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/collections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Collections Route */
+        get: operations["list_collections_route_collections_get"];
+        put?: never;
+        /** Create Collection Route */
+        post: operations["create_collection_route_collections_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/collections/{collection_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Collection Route */
+        get: operations["get_collection_route_collections__collection_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Collection Route */
+        delete: operations["delete_collection_route_collections__collection_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Collection Route */
+        patch: operations["update_collection_route_collections__collection_id__patch"];
+        trace?: never;
+    };
+    "/collections/{collection_id}/thoughts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Collection Thoughts Route */
+        get: operations["list_collection_thoughts_route_collections__collection_id__thoughts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/collections/{collection_id}/thoughts/{thought_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Thought To Collection Route */
+        post: operations["add_thought_to_collection_route_collections__collection_id__thoughts__thought_id__post"];
+        /** Remove Thought From Collection Route */
+        delete: operations["remove_thought_from_collection_route_collections__collection_id__thoughts__thought_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/exports": {
         parameters: {
             query?: never;
@@ -584,6 +656,40 @@ export interface components {
             /** Role */
             role: string;
         };
+        /** CollectionCreate */
+        CollectionCreate: {
+            /** Name */
+            name: string;
+        };
+        /** CollectionRead */
+        CollectionRead: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Last Accessed At */
+            last_accessed_at: string | null;
+            /** Name */
+            name: string;
+            /** Thought Count */
+            thought_count: number;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** CollectionUpdate */
+        CollectionUpdate: {
+            /** Name */
+            name: string;
+        };
         /** ExportRequestRead */
         ExportRequestRead: {
             /** Completed At */
@@ -1084,6 +1190,276 @@ export interface operations {
             };
         };
     };
+    list_collections_route_collections_get: {
+        parameters: {
+            query?: {
+                recent?: boolean;
+                limit?: number;
+                q?: string | null;
+            };
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_collection_route_collections_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_collection_route_collections__collection_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_collection_route_collections__collection_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_collection_route_collections__collection_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_collection_thoughts_route_collections__collection_id__thoughts_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThoughtRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_thought_to_collection_route_collections__collection_id__thoughts__thought_id__post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
+            path: {
+                collection_id: string;
+                thought_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_thought_from_collection_route_collections__collection_id__thoughts__thought_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Neon-Auth-Session-Cookie"?: string | null;
+            };
+            path: {
+                collection_id: string;
+                thought_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     create_export_route_exports_post: {
         parameters: {
             query?: never;
@@ -1207,7 +1583,9 @@ export interface operations {
     database_health_check_health_db_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Health-Check-Token"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1222,6 +1600,15 @@ export interface operations {
                     "application/json": {
                         [key: string]: string;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -1493,6 +1880,7 @@ export interface operations {
                 thought_type?: components["schemas"]["ThoughtType"] | null;
                 source_type?: components["schemas"]["SourceType"] | null;
                 book_id?: string | null;
+                collection_id?: string | null;
                 tag?: string | null;
                 book?: string | null;
                 theme?: string | null;

@@ -10,6 +10,16 @@
 .navAction svg { flex: 0 0 auto; }
 .navAction[data-action=ask] > svg:first-child { color: var(--mp-echo); }
 .navArrow { margin-inline-start: auto; opacity: 0; }
+.collectionMenu { position: relative; }
+.collectionChevron { margin-inline-start: auto; color: var(--mp-text-3); transition: transform var(--dur-2) var(--ease-out); }
+.collectionMenu:has(.collectionDropdown) .collectionChevron { transform: rotate(180deg); }
+.collectionDropdown { position: absolute; z-index: 20; top: calc(100% + var(--space-2)); left: 0; width: 248px; padding: var(--space-2); border: 1px solid var(--mp-line-strong); border-radius: var(--r-xs); background: var(--mp-surface); box-shadow: var(--mp-note-elevation); }
+.collectionDropdownLabel { padding: var(--space-2) var(--space-3); color: var(--mp-text-3); font-size: .6875rem; letter-spacing: .08em; text-transform: uppercase; }
+.collectionDropdown > button { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); width: 100%; min-height: 40px; padding: 0 var(--space-3); border-radius: var(--r-xs); color: var(--mp-text-2); font-size: .8125rem; text-align: left; }
+.collectionDropdown > button:hover { background: var(--mp-lumen-soft); color: var(--mp-lumen-text); }
+.collectionDropdown > button small { color: var(--mp-text-3); font-size: .6875rem; }
+.collectionDropdownState { display: block; padding: var(--space-3); color: var(--mp-text-3); font-size: .75rem; }
+.collectionDropdownRule { height: 1px; margin: var(--space-2) 0; background: var(--mp-line); }
 .captureAction { display: flex; align-items: center; justify-content: center; gap: var(--space-2); width: 100%; min-height: 44px; margin-top: var(--space-6); border-radius: var(--r-xs); background: var(--mp-lumen-grad); color: var(--mp-on-lumen); font: 500 .875rem var(--font-ui); white-space: nowrap; }
 .personal { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-10); font-size: .8125rem; }
 .personal p { margin-top: var(--space-1); color: var(--mp-text-3); font-size: .75rem; }
@@ -123,6 +133,8 @@
   .library { order: 1; }
   .currentView,.captureAction,.personal { display: none; }
   .navAction { width: auto; gap: var(--space-2); padding: var(--space-2); font-size: .8125rem; }
+  .collectionMenu { position: static; }
+  .collectionDropdown { top: auto; left: var(--space-4); right: var(--space-4); width: auto; margin-top: var(--space-2); }
   .navArrow { display: none; }
   .searchLabel { font-size: 2rem; }
   .searchRow input { font-size: .9375rem; }

@@ -1,6 +1,6 @@
-import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, LayoutGrid, LockKeyhole, MessageCircleQuestion, NotebookPen, Pencil, Plus, RefreshCw, Search, Tag, X } from "lucide-react";
-import { useEffect, useRef, type FormEvent, type ReactNode } from "react";
-import type { AIUsage, Thought } from "@/lib/api";
+import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, ChevronDown, FolderOpen, LayoutGrid, LockKeyhole, MessageCircleQuestion, NotebookPen, Pencil, Plus, RefreshCw, Search, Tag, X } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import type { AIUsage, Collection, Thought } from "@/lib/api";
 import { formatDate, hasRecallFilterValues, type LoadState, type RecallFilters } from "./mind-palace-shell-helpers";
 import { RecallSearchPanel } from "./recall-search-panel";
 import styles from "./mind-map-home.module.css";
@@ -31,6 +31,11 @@ type MindMapHomeProps = {
   onAskMind: () => void;
   onReminisce: () => void;
   onBooks: () => void;
+  recentCollections: Collection[];
+  collectionsLoadState: LoadState;
+  onOpenCollection: (collectionId: string) => void;
+  onViewAllCollections: () => void;
+  onCreateCollection: () => void;
   onOpenThought: (thought: Thought) => void;
   onEditThought: (thought: Thought) => void;
   onTagSelect: (tag: string) => void;
@@ -73,10 +78,12 @@ export function MindMapHome({
   name, thoughts, total, loadState, page, totalPages, aiUsage, draftFilters, activeFilters, hasFilters,
   onDraftFiltersChange, onSearchSubmit, onClearQuery, onResetFilters, onPageChange,
   editingThoughtId, editor, isUpdating, organizingThoughtId, onOrganizeThought,
-  showAskAction, onSaveThought, onAskMind, onReminisce, onBooks, onOpenThought, onEditThought, onTagSelect, onRefresh,
+  showAskAction, onSaveThought, onAskMind, onReminisce, onBooks, recentCollections, collectionsLoadState,
+  onOpenCollection, onViewAllCollections, onCreateCollection, onOpenThought, onEditThought, onTagSelect, onRefresh,
 }: MindMapHomeProps) {
   const search = useRef<HTMLInputElement>(null);
   const editorPanel = useRef<HTMLElement>(null);
+  const [isCollectionsMenuOpen, setIsCollectionsMenuOpen] = useState(false);
   const firstName = name.trim().split(/\s+/)[0] || "you";
   const isFiltered = hasRecallFilterValues(activeFilters);
   const isLoading = loadState === "loading";
@@ -103,6 +110,32 @@ export function MindMapHome({
             </button>;
           })}
           <button className={styles.navAction} type="button" onClick={onBooks}><BookOpen size={18} aria-hidden="true" />Books<ArrowUpRight size={14} className={styles.navArrow} aria-hidden="true" /></button>
+          <div className={styles.collectionMenu}>
+            <button
+              className={styles.navAction}
+              type="button"
+              aria-expanded={isCollectionsMenuOpen}
+              aria-controls="collections-menu"
+              onClick={() => setIsCollectionsMenuOpen((current) => !current)}
+            >
+              <FolderOpen size={18} aria-hidden="true" />Collections<ChevronDown size={15} className={styles.collectionChevron} aria-hidden="true" />
+            </button>
+            {isCollectionsMenuOpen ? (
+              <div id="collections-menu" className={styles.collectionDropdown} role="menu">
+                <p className={styles.collectionDropdownLabel}>Recently used</p>
+                {collectionsLoadState === "loading" ? <span className={styles.collectionDropdownState}>Loading...</span> : null}
+                {collectionsLoadState !== "loading" && recentCollections.length === 0 ? <span className={styles.collectionDropdownState}>No collections yet</span> : null}
+                {recentCollections.map((collection) => (
+                  <button key={collection.id} type="button" role="menuitem" onClick={() => { setIsCollectionsMenuOpen(false); onOpenCollection(collection.id); }}>
+                    <span>{collection.name}</span><small>{collection.thought_count}</small>
+                  </button>
+                ))}
+                <div className={styles.collectionDropdownRule} />
+                <button type="button" role="menuitem" onClick={() => { setIsCollectionsMenuOpen(false); onViewAllCollections(); }}>View all collections<ArrowUpRight size={14} aria-hidden="true" /></button>
+                <button type="button" role="menuitem" onClick={() => { setIsCollectionsMenuOpen(false); onCreateCollection(); }}><Plus size={14} aria-hidden="true" />New collection</button>
+              </div>
+            ) : null}
+          </div>
         </nav>
         <button className={styles.captureAction} type="button" onClick={onSaveThought}><Plus size={18} aria-hidden="true" />Save a thought</button>
         <div className={styles.personal}><span className={styles.avatar} aria-hidden="true">{firstName.charAt(0).toUpperCase()}</span><div><span>Hello, {firstName}.</span><p>Your personal library</p></div></div>

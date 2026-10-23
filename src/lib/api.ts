@@ -5,6 +5,7 @@ type Schemas = components["schemas"];
 export type ThoughtType = Schemas["ThoughtType"];
 export type Thought = Schemas["ThoughtRead"];
 export type SearchMode = Schemas["SearchMode"];
+export type Collection = Schemas["CollectionRead"];
 
 export type ThoughtListOptions = {
   q?: string;
@@ -12,6 +13,7 @@ export type ThoughtListOptions = {
   thought_type?: string;
   source_type?: string;
   book_id?: string;
+  collection_id?: string;
   tag?: string;
   book?: string;
   theme?: string;
@@ -98,6 +100,12 @@ export type CreateThoughtInput = Partial<Schemas["ThoughtCreate"]> & {
 };
 
 export type UpdateThoughtInput = Partial<Schemas["ThoughtUpdate"]>;
+
+export type CollectionListOptions = {
+  recent?: boolean;
+  limit?: number;
+  q?: string;
+};
 
 const API_BASE_URL =
   typeof window === "undefined"
@@ -198,6 +206,68 @@ export function getThought(token: string, thoughtId: string): Promise<Thought> {
 export function listBooks(token: string, query?: string): Promise<Book[]> {
   const path = query?.trim() ? `/books?q=${encodeURIComponent(query.trim())}` : "/books";
   return request<Book[]>(path, token);
+}
+
+export function listCollections(
+  token: string,
+  options: CollectionListOptions = {},
+): Promise<Collection[]> {
+  const params = new URLSearchParams();
+  if (options.recent) params.set("recent", "true");
+  if (options.limit !== undefined) params.set("limit", String(options.limit));
+  if (options.q?.trim()) params.set("q", options.q.trim());
+  const path = params.size > 0 ? `/collections?${params.toString()}` : "/collections";
+  return request<Collection[]>(path, token);
+}
+
+export function createCollection(token: string, name: string): Promise<Collection> {
+  return request<Collection>("/collections", token, {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+}
+
+export function getCollection(token: string, collectionId: string): Promise<Collection> {
+  return request<Collection>(`/collections/${collectionId}`, token);
+}
+
+export function updateCollection(
+  token: string,
+  collectionId: string,
+  name: string,
+): Promise<Collection> {
+  return request<Collection>(`/collections/${collectionId}`, token, {
+    method: "PATCH",
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function deleteCollection(token: string, collectionId: string): Promise<void> {
+  await request<void>(`/collections/${collectionId}`, token, { method: "DELETE" });
+}
+
+export function listCollectionThoughts(token: string, collectionId: string): Promise<Thought[]> {
+  return request<Thought[]>(`/collections/${collectionId}/thoughts`, token);
+}
+
+export function addThoughtToCollection(
+  token: string,
+  collectionId: string,
+  thoughtId: string,
+): Promise<Collection> {
+  return request<Collection>(`/collections/${collectionId}/thoughts/${thoughtId}`, token, {
+    method: "POST",
+  });
+}
+
+export async function removeThoughtFromCollection(
+  token: string,
+  collectionId: string,
+  thoughtId: string,
+): Promise<void> {
+  await request<void>(`/collections/${collectionId}/thoughts/${thoughtId}`, token, {
+    method: "DELETE",
+  });
 }
 
 export function createBook(token: string, input: { title: string; author: string }): Promise<Book> {
