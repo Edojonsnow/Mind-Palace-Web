@@ -67,8 +67,8 @@ function ThoughtCard({ thought, onOpen, onEdit, onTag, isUpdating, isOrganizing,
         {thought.manual_tags.slice(0, 2).map(tag => <button key={tag} type="button" onClick={() => onTag(tag)} title={`Filter by ${tag}`}>{tag}</button>)}
         {thought.manual_tags.length > 2 ? <span title={thought.manual_tags.slice(2).join(", ")}>+{thought.manual_tags.length - 2}</span> : null}
       </div> : null}
-      {thought.use_with_ask_my_mind && thought.ai_processing_status === "failed" ? <button className={styles.retryOrganization} type="button" onClick={onOrganize} disabled={organizationBusy}>{isOrganizing ? "Retrying organization..." : "Retry organization"}</button> : null}
-      {thought.use_with_ask_my_mind && ["pending", "processing"].includes(thought.ai_processing_status) ? <p className={styles.organizationStatus}>Organizing...</p> : null}
+      {thought.use_with_ask_my_mind && thought.ai_processing_status === "failed" ? <><p className={styles.organizationStatus} role="status">Organization couldn&apos;t finish.</p><button className={styles.retryOrganization} type="button" onClick={onOrganize} disabled={organizationBusy}>{isOrganizing ? "Retrying organization..." : "Retry organization"}</button></> : null}
+      {thought.use_with_ask_my_mind && ["pending", "processing"].includes(thought.ai_processing_status) ? <p className={styles.organizationStatus} role="status">Organizing...</p> : null}
       <div className={styles.cardFooter}><time dateTime={thought.created_at}>{formatDate(thought.created_at)}</time>{thought.use_with_ask_my_mind ? <span className={styles.aiMark} title="Available to Ask my mind"><MessageCircleQuestion size={14} aria-label="AI enabled" /></span> : <LockKeyhole size={13} aria-label="Not available to AI" />}</div>
     </article>
   );
