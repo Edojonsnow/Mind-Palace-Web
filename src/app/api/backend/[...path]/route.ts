@@ -32,9 +32,17 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
     cache: "no-store",
   });
 
+  // The server-side fetch may decompress an upstream response while retaining
+  // its compression headers. Do not forward those stale headers to the
+  // browser, or it will try to decode an already-decoded body.
+  const responseHeaders = new Headers(response.headers);
+  responseHeaders.delete("content-encoding");
+  responseHeaders.delete("content-length");
+  responseHeaders.delete("transfer-encoding");
+
   return new Response(response.body, {
     status: response.status,
-    headers: response.headers,
+    headers: responseHeaders,
   });
 }
 
