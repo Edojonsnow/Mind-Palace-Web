@@ -1,13 +1,8 @@
 "use client";
 
-import { createInternalNeonAuth } from "@neondatabase/auth";
 import { createAuthClient as createNextAuthClient } from "@neondatabase/auth/next";
-import { BetterAuthReactAdapter } from "@neondatabase/auth/react";
 
 export const authClient = createNextAuthClient();
-const jwtAuthClient = createInternalNeonAuth(undefined as unknown as string, {
-  adapter: BetterAuthReactAdapter(),
-});
 
 export type ActiveAuthSession = {
   token?: string;
@@ -15,8 +10,15 @@ export type ActiveAuthSession = {
 };
 
 export async function getJWTToken(activeSession?: ActiveAuthSession): Promise<string | null> {
-  // The Better Auth session token may be opaque. Use Neon's JWT-specific
-  // method so API requests receive a locally verifiable access token.
+  // The cached Better Auth session token may be opaque. Use the explicit JWT
+  // endpoint so API requests receive a locally verifiable access token.
   void activeSession;
-  return jwtAuthClient.getJWTToken();
+  const response = await fetch("/api/auth/token", {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!response.ok) return null;
+
+  const payload = (await response.json()) as { token?: unknown };
+  return typeof payload.token === "string" ? payload.token : null;
 }
