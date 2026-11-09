@@ -67,13 +67,22 @@ test.describe("AI-assisted MVP scenarios", () => {
 
   test("captures an AI-enabled thought and exposes Ask My Mind", async ({ page }) => {
     const marker = `Acceptance AI capture ${Date.now()}`;
+    const body = `I protect a quiet morning routine by keeping my phone away from my desk. ${marker}`;
     await page.goto("/");
     await page.getByRole("button", { name: "Save a thought", exact: true }).filter({ visible: true }).first().click();
 
     const dialog = page.getByRole("dialog");
-    await dialog.getByPlaceholder("Start anywhere. You do not need to organize it.").fill(marker);
+    await dialog.getByPlaceholder("Start anywhere. You do not need to organize it.").fill(body);
     await dialog.getByRole("checkbox").check();
+    const createResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/backend/thoughts") &&
+        response.request().method() === "POST",
+    );
     await dialog.getByRole("button", { name: "Keep this thought" }).click();
+    const createResponse = await createResponsePromise;
+    expect(createResponse.ok()).toBeTruthy();
+    const createdThought = (await createResponse.json()) as { id: string };
     await expect(dialog).toBeHidden();
 
     await page.getByLabel("Search your mind", { exact: true }).fill(marker);
@@ -81,9 +90,17 @@ test.describe("AI-assisted MVP scenarios", () => {
     await expect(page.getByText(marker)).toBeVisible();
     await expect(page.getByText("Organizing...", { exact: true })).toHaveCount(0, { timeout: 60_000 });
 
+    const semanticResponse = await page.request.get(
+      `/api/backend/thoughts?q=${encodeURIComponent("What habit helps avoid distractions at the start of the day?")}&search_mode=semantic&page_size=100`,
+    );
+    expect(semanticResponse.ok()).toBeTruthy();
+    expect(semanticResponse.headers()["x-search-mode"]).toBe("semantic");
+    const semanticMatches = (await semanticResponse.json()) as Array<{ id: string }>;
+    expect(semanticMatches.some((thought) => thought.id === createdThought.id)).toBeTruthy();
+
     await expect(page.getByRole("button", { name: "Ask my mind" })).toBeVisible();
     await page.getByRole("button", { name: "Ask my mind" }).click();
-    await page.getByPlaceholder("Ask something only your mind could answer…").fill("What did I just capture?");
+    await page.getByPlaceholder("Ask something only your mind could answer…").fill("What habit did I capture about avoiding distractions?");
     await page.getByRole("button", { name: "Ask →" }).click();
     await expect(page.getByText(/Sources \/ [1-9]\d*/)).toBeVisible({ timeout: 30_000 });
 
