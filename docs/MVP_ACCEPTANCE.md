@@ -1,7 +1,8 @@
 # Authenticated MVP acceptance
 
 The Playwright suites in `e2e/mvp.acceptance.spec.ts`,
-`e2e/profile-live.acceptance.spec.ts`, and `e2e/trust.acceptance.spec.ts`
+`e2e/books.acceptance.spec.ts`, `e2e/profile-live.acceptance.spec.ts`, and
+`e2e/trust.acceptance.spec.ts`
 check the real browser journey against a
 disposable authenticated account. They are intentionally separate from unit
 tests and backend `TestClient` tests: the browser suites exercise the Next.js
@@ -74,6 +75,9 @@ The deterministic authenticated suites cover:
 
 - private home, thought capture with AI disabled, Recall search, active-filter
   clearing, and sign-out;
+- creating a book excerpt with AI disabled, finding its book in the catalog,
+  searching by title, checking its excerpt count, and opening the thought
+  preview from the book detail view;
 - restoring a deleted thought during the recovery window;
 - Profile and AI preference persistence across reload, immediate consent
   changes, and restoration of the test account's original profile values;
@@ -81,6 +85,10 @@ The deterministic authenticated suites cover:
 - requesting and cancelling account deletion during the recovery window; and
 - disabling AI for a thought and verifying its public status becomes
   `not_requested`.
+
+The Books scenario does not require an OpenAI key. It soft-deletes its created
+thought during cleanup, but the empty catalog book remains because the Books
+API has no delete endpoint. Use a disposable account for these tests.
 
 The backend lifecycle suite additionally verifies permanent purge after the
 recovery window, citation cleanup, account purge, and removal of AI artifacts
