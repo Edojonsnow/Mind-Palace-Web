@@ -1,0 +1,12 @@
+{
+  "date": "2026-11-11",
+  "scope": "public product website",
+  "design_system": "DESIGN.md",
+  "fonts": "Instrument Serif display and Geist body from src/app/layout.tsx",
+  "palette": "Cool light canvas, neutral graphite, amber, and content-specific note surfaces from tokens.css",
+  "motion": "Existing CSS transitions; no animation dependency",
+  "spacing": "Existing 4-point spacing tokens",
+  "framework": "Next.js App Router",
+  "preserve": ["Private app at /", "Auth and API behavior", "Existing app tokens and font stack"],
+  "introduce": ["Public /about route", "Namespaced public-page tokens", "Synthetic product screenshots"]
+}

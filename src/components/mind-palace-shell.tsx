@@ -72,6 +72,7 @@ import homeStyles from "@/components/mind-map-home.module.css";
 import { AskMyMindWorkspace } from "@/components/ask-my-mind-workspace";
 import { ThoughtCaptureModal } from "@/components/thought-capture-modal";
 import { TrustControlsPanel } from "@/components/trust-controls-panel";
+import Link from "next/link";
 import { BooksWorkspace } from "@/components/books-workspace";
 import { CollectionsWorkspace } from "@/components/collections-workspace";
 import { ReminisceWorkspace } from "@/components/reminisce-workspace";
@@ -1724,6 +1725,7 @@ export function MindPalaceShell() {
               </button> : null}
             </section> : null}
 
+            {!isAuthenticated ? <Link href="/about" className="mx-auto inline-flex min-h-11 items-center text-sm text-[var(--mp-text-3)] underline underline-offset-4">About Mind Palace</Link> : null}
           </aside>
 
         </section>

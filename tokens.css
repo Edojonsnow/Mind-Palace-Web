@@ -70,3 +70,20 @@
   --mp-muted: var(--mp-text-3); --mp-border: var(--mp-line);
   --mp-deep: var(--mp-lumen-press);
 }
+
+:root {
+  --site-canvas: oklch(95.4% 0.005 280);
+  --site-paper: oklch(98.7% 0.003 280);
+  --site-ink: oklch(24% 0.01 285);
+  --site-muted: oklch(45% 0.015 285);
+  --site-rule: oklch(82% 0.01 285);
+  --site-amber: oklch(78% 0.15 76);
+  --site-amber-hover: oklch(83% 0.13 76);
+  --site-amber-ink: oklch(22% 0.04 76);
+  --site-graphite: oklch(21% 0.009 285);
+  --site-light-ink: oklch(96% 0.004 285);
+  --site-light-muted: oklch(78% 0.012 285);
+  --site-dark-rule: oklch(40% 0.012 285);
+  --site-privacy: oklch(77% 0.10 170);
+  --site-focus: oklch(47% 0.12 76);
+}
