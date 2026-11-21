@@ -1,4 +1,5 @@
 import type { components } from "@/generated/api";
+import { validRequestId } from "./request-reference";
 
 type Schemas = components["schemas"];
 
@@ -112,13 +113,33 @@ const API_BASE_URL =
     ? process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000"
     : "/api/backend";
 
-class ApiError extends Error {
+export class ApiError extends Error {
   constructor(
     message: string,
     public readonly status: number,
+    public readonly requestId: string | null = null,
   ) {
     super(message);
   }
+}
+
+async function responseError(response: Response): Promise<ApiError> {
+  const requestId = validRequestId(response.headers.get("X-Request-ID"));
+  let message = response.status >= 500
+    ? "Mind Palace could not complete this request. Please try again."
+    : `Request failed with status ${response.status}`;
+  if (response.status < 500) {
+    try {
+      const body: unknown = await response.json();
+      if (body && typeof body === "object" && "detail" in body && typeof body.detail === "string") {
+        message = body.detail;
+      }
+    } catch {
+      // Keep the safe fallback for non-JSON responses.
+    }
+  }
+  if (requestId && response.status >= 500) message += ` Reference: ${requestId}.`;
+  return new ApiError(message, response.status, requestId);
 }
 
 async function requestWithResponse<T>(
@@ -136,14 +157,7 @@ async function requestWithResponse<T>(
   });
 
   if (!response.ok) {
-    let message = `Request failed with status ${response.status}`;
-    try {
-      const body = (await response.json()) as { detail?: string };
-      message = body.detail ?? message;
-    } catch {
-      // Keep the fallback message when the API returns a non-JSON error.
-    }
-    throw new ApiError(message, response.status);
+    throw await responseError(response);
   }
 
   if (response.status === 204) {
@@ -360,14 +374,7 @@ export async function downloadExport(token: string, exportId: string): Promise<B
   });
 
   if (!response.ok) {
-    let message = `Request failed with status ${response.status}`;
-    try {
-      const body = (await response.json()) as { detail?: string };
-      message = body.detail ?? message;
-    } catch {
-      // Keep the fallback message when the API returns a non-JSON error.
-    }
-    throw new ApiError(message, response.status);
+    throw await responseError(response);
   }
 
   return response.blob();

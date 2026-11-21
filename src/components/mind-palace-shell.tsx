@@ -152,6 +152,7 @@ export function MindPalaceShell() {
   const [isCancellingDeletion, setIsCancellingDeletion] = useState(false);
   const [organizingThoughtId, setOrganizingThoughtId] = useState<string | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("idle");
+  const [libraryError, setLibraryError] = useState("");
   const [message, setMessage] = useState("");
   useEffect(() => {
     if (!message) return;
@@ -257,12 +258,14 @@ export function MindPalaceShell() {
         if (nextUsage) {
           setAIUsage(nextUsage);
         }
+        setLibraryError("");
         setLoadState("ready");
       } catch (error) {
         if (requestSequence !== refreshSequence.current) {
           return;
         }
         setLoadState("error");
+        setLibraryError(error instanceof Error ? error.message : "Unable to load Mind Palace.");
         setMessage(error instanceof Error ? error.message : "Unable to load Mind Palace.");
       }
     },
@@ -602,6 +605,7 @@ export function MindPalaceShell() {
     setSettings(null);
     setAIUsage(null);
     setProfile(null);
+    setLibraryError("");
     setBooks([]);
     setCollections([]);
     setRecentCollections([]);
@@ -1322,6 +1326,7 @@ export function MindPalaceShell() {
                   totalPages={recallTotalPages}
                   aiUsage={aiUsage}
                   loadState={loadState}
+                  errorMessage={libraryError}
                   draftFilters={recallDraftFilters}
                   activeFilters={recallFilters}
                   hasFilters={hasRecallFilters}

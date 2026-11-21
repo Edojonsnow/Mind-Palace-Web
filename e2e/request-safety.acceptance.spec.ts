@@ -16,6 +16,7 @@ test("action keys distinguish retries, changed payloads, success, and accounts",
 test.describe("request retries", () => {
   test.beforeEach(async ({ page }) => {
     await page.route("**/api/auth/**", route => route.fulfill({ json: {
+      token: "synthetic-token",
       user: { id: "retry-test", email: "retry@example.test", name: "Alex" },
       session: { id: "retry-session", token: "synthetic-token", userId: "retry-test", expiresAt: "2099-01-01T00:00:00Z" },
     } }));
@@ -107,8 +108,9 @@ test.describe("request retries", () => {
       } });
     });
     await page.goto("/");
+    await page.getByRole("radio", { name: "Search by meaning", exact: true }).check();
     await page.getByRole("searchbox", { name: "Search your mind" }).fill("Tennis");
     await page.getByRole("button", { name: "Search memory", exact: true }).click();
-    await expect(page.getByText("AI search is temporarily unavailable. Showing text matches instead.", { exact: true })).toBeVisible();
+    await expect(page.getByText("Search by meaning is temporarily unavailable. Showing keyword matches instead.", { exact: true })).toBeVisible();
   });
 });

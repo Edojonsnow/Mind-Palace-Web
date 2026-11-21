@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { forwardBackendRequest } from "@/lib/backend-proxy";
 
 const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
 const sessionCookieName = "__Secure-neon-auth.session_token";
@@ -22,28 +23,7 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
   const sessionCookie = (await cookies()).get(sessionCookieName)?.value;
   if (sessionCookie) requestHeaders.set(sessionCookieHeader, sessionCookie);
 
-  const body = ["GET", "HEAD"].includes(request.method)
-    ? undefined
-    : await request.arrayBuffer();
-  const response = await fetch(target, {
-    method: request.method,
-    headers: requestHeaders,
-    body,
-    cache: "no-store",
-  });
-
-  // The server-side fetch may decompress an upstream response while retaining
-  // its compression headers. Do not forward those stale headers to the
-  // browser, or it will try to decode an already-decoded body.
-  const responseHeaders = new Headers(response.headers);
-  responseHeaders.delete("content-encoding");
-  responseHeaders.delete("content-length");
-  responseHeaders.delete("transfer-encoding");
-
-  return new Response(response.body, {
-    status: response.status,
-    headers: responseHeaders,
-  });
+  return forwardBackendRequest(request, target, requestHeaders);
 }
 
 export const GET = proxy;

@@ -10,6 +10,7 @@ type MindMapHomeProps = {
   thoughts: Thought[];
   total: number;
   loadState: LoadState;
+  errorMessage?: string;
   page: number;
   totalPages: number;
   aiUsage: AIUsage | null;
@@ -75,7 +76,7 @@ function ThoughtCard({ thought, onOpen, onEdit, onTag, isUpdating, isOrganizing,
 }
 
 export function MindMapHome({
-  name, thoughts, total, loadState, page, totalPages, aiUsage, draftFilters, activeFilters, hasFilters,
+  name, thoughts, total, loadState, errorMessage, page, totalPages, aiUsage, draftFilters, activeFilters, hasFilters,
   onDraftFiltersChange, onSearchSubmit, onClearQuery, onResetFilters, onPageChange,
   editingThoughtId, editor, isUpdating, organizingThoughtId, onOrganizeThought,
   showAskAction, onSaveThought, onAskMind, onReminisce, onBooks, recentCollections, collectionsLoadState,
@@ -186,7 +187,7 @@ export function MindMapHome({
             <button className={styles.refreshButton} type="button" onClick={onRefresh} disabled={isLoading} aria-label="Refresh thoughts" title="Refresh thoughts"><RefreshCw size={16} aria-hidden="true" /></button>
           </div>
         </div>
-        {loadState === "error" ? <div className={styles.loadError} role="alert"><p>Your thoughts could not be loaded.</p><button type="button" onClick={onRefresh}>Try again</button></div> : null}
+        {loadState === "error" ? <div className={styles.loadError} role="alert"><div><p>Your thoughts could not be loaded.</p>{errorMessage ? <p className="mt-2 max-w-prose break-words text-sm">{errorMessage}</p> : null}</div><button type="button" onClick={onRefresh}>Try again</button></div> : null}
         <div className={styles.thoughtGrid} aria-busy={isLoading}>
           {!isFiltered && page === 1 ? <button className={styles.newThought} type="button" aria-label="Save a thought" onClick={onSaveThought}><Plus size={24} aria-hidden="true" /><span>Save a thought</span><span className={styles.newThoughtHint}>What would you like to keep?</span><ArrowUpRight size={16} className={styles.newThoughtArrow} aria-hidden="true" /></button> : null}
           {loadState !== "ready" && thoughts.length === 0 && loadState !== "error"
