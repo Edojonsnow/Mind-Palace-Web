@@ -310,6 +310,16 @@ export function getSettings(token: string): Promise<UserSettings> {
   return request<UserSettings>("/settings", token);
 }
 
+export function updateOnboarding(
+  token: string,
+  action: Schemas["OnboardingUpdate"]["action"],
+): Promise<UserSettings> {
+  return request<UserSettings>("/settings/onboarding", token, {
+    method: "PATCH",
+    body: JSON.stringify({ action }),
+  });
+}
+
 export function getRememberOverview(token: string): Promise<RememberOverview> {
   return request<RememberOverview>("/remember", token);
 }

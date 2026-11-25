@@ -71,6 +71,16 @@ MIND_PALACE_E2E_AI=true \
 
 ## Coverage
 
+`e2e/onboarding.acceptance.spec.ts` uses synthetic authenticated API fixtures
+for new-account privacy defaults, cross-reload progress, skipping, optional
+Profile setup, composer cancellation, failed-save retry, and first-thought
+visibility while the library refresh is delayed. It also checks narrow mobile
+and desktop layouts in both themes. This is browser evidence for the web
+contract, not live Neon, database migration, or provider acceptance. The backend
+onboarding tests separately cover ownership, completion persistence, exports,
+and the migration's exemption for existing accounts. See
+`../mind-palace-app/docs/ONBOARDING.md` for deployment order.
+
 The deterministic authenticated suites cover:
 
 - private home, thought capture with AI disabled, Recall search, active-filter

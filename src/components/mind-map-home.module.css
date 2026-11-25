@@ -153,4 +153,8 @@
   .newThoughtArrow { top: var(--space-4); right: var(--space-4); }
   .cardBody { -webkit-line-clamp: 6; }
 }
+@media(max-width:359px) {
+  .shell[data-onboarding="true"] { padding-top: 120px; }
+  .shell[data-onboarding="true"] .utilities { top: 60px; left: var(--space-4); }
+}
 @media(prefers-reduced-motion:reduce) { .cardSkeleton div { animation: none; } .captureAction:active,.searchSubmit:active,.newThought:active { transform: none; } }

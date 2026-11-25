@@ -1,0 +1,15 @@
+.panel { grid-column: 1 / -1; width: 100%; max-width: 680px; margin: 24px auto; }
+.header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 32px; }
+.progress { display: flex; flex-wrap: wrap; gap: 20px; padding: 0; margin: 0; list-style: none; color: var(--mp-text-3); font-size: 14px; }
+.progress li[aria-current="step"] { color: var(--mp-lumen-text); text-decoration: underline; text-underline-offset: 8px; }
+.title { font-family: var(--font-display); font-size: 36px; font-weight: 400; line-height: 1.2; overflow-wrap: anywhere; }
+.title:focus { outline: none; }
+.privacy { margin: 28px 0 0; }
+.privacy div { padding: 20px 0; border-bottom: 1px solid var(--mp-line); }
+.privacy dt { color: var(--mp-text); font-size: 16px; font-weight: 500; }
+.privacy dd, .intro { margin: 8px 0 0; color: var(--mp-text-2); font-size: 15px; line-height: 1.65; max-width: 65ch; }
+.intro { margin-top: 20px; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 28px; }
+.actions span { color: var(--mp-text-3); font-size: 14px; }
+.error { color: var(--mp-danger); margin-top: 20px; overflow-wrap: anywhere; }
+@media (max-width: 560px) { .panel { margin: 12px auto; } .title { font-size: 30px; } .header { margin-bottom: 24px; } }

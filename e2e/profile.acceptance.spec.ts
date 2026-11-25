@@ -1,11 +1,17 @@
 import { expect, test } from "@playwright/test";
 
+const syntheticUsage = {
+  usage_date: "2026-11-21", resets_at: "2026-11-22T00:00:00Z", daily_limit: 100,
+  remaining_units: 100, units_used: 0, ask_count: 0, search_count: 0, organization_count: 0,
+};
+
 test.describe("private profile workspace", () => {
   test.beforeEach(async ({ page }) => {
     let account = { display_name: "Alex", email: "profile@example.test", avatar_url: null };
     let preferences = { use_profile_context: false, writing_style: "natural", response_detail: "balanced", personal_goals: [], interests: [] };
     await page.route("**/api/auth/**", route => {
       const path = new URL(route.request().url()).pathname;
+      if (path.endsWith("/token")) return route.fulfill({ json: { token: "synthetic-token" } });
       if (!path.includes("get-session")) return route.fulfill({ json: { success: true } });
       return route.fulfill({ json: {
         user: { id: "profile-test", email: account.email, name: "Alex" },
@@ -14,6 +20,7 @@ test.describe("private profile workspace", () => {
     });
     await page.route("**/api/backend/**", route => {
       const path = new URL(route.request().url()).pathname;
+      if (path.endsWith("/settings/ai-usage")) return route.fulfill({ json: syntheticUsage });
       if (path.endsWith("/profile/ai-preferences")) {
         if (route.request().method() === "PATCH") preferences = { ...preferences, ...route.request().postDataJSON() };
         return route.fulfill({ json: preferences });
@@ -92,7 +99,7 @@ test.describe("private profile workspace", () => {
     await page.route("**/api/backend/profile", route => route.request().method() === "PATCH" ? route.fulfill({ status: 503, json: { detail: "Profile service unavailable" } }) : route.fallback());
     await page.getByLabel("Preferred name").fill("Keep my draft");
     await page.getByRole("button", { name: "Save profile", exact: true }).click();
-    await expect(page.getByRole("region", { name: "Profile", exact: true }).getByRole("alert")).toContainText("Profile service unavailable");
+    await expect(page.getByRole("region", { name: "Profile", exact: true }).getByRole("alert")).toContainText("could not complete this request");
     await expect(page.getByLabel("Preferred name")).toHaveValue("Keep my draft");
     await expect(page.getByRole("button", { name: "Save profile", exact: true })).toBeEnabled();
     await page.getByRole("button", { name: "Privacy & data", exact: true }).last().click();
@@ -119,7 +126,7 @@ test.describe("private profile workspace", () => {
     await expect(page.getByRole("heading", { name: "Profile", exact: true })).toBeVisible();
     await expect(page.getByText("Loading your profile...", { exact: true })).toBeVisible();
     release();
-    await expect(page.getByRole("region", { name: "Profile", exact: true }).getByRole("alert")).toContainText("Unable to load profile");
+    await expect(page.getByRole("region", { name: "Profile", exact: true }).getByRole("alert")).toContainText("could not complete this request");
     await page.unroute("**/api/backend/profile/ai-preferences");
     await page.getByRole("button", { name: "Try again", exact: true }).click();
     await expect(page.getByLabel("Preferred name")).toBeVisible();
@@ -142,35 +149,40 @@ test.describe("private profile workspace", () => {
   }
 });
 
-test("Profile refreshes a session that is near expiry before using it", async ({ page }) => {
-  let sessionRequests = 0;
+test("Profile requests a fresh JWT rather than using an opaque near-expiry session token", async ({ page }) => {
+  let tokenRequests = 0;
   await page.route("**/api/auth/**", route => {
-    if (!new URL(route.request().url()).pathname.includes("get-session")) {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith("/token")) {
+      tokenRequests++;
+      return route.fulfill({ json: { token: "fresh-synthetic-jwt" } });
+    }
+    if (!path.includes("get-session")) {
       return route.fulfill({ json: { success: true } });
     }
-    sessionRequests++;
     return route.fulfill({ json: {
       user: { id: "expiring-profile-test", email: "profile@example.test", name: "Alex" },
-      session: { id: "expiring-session", token: sessionRequests > 1 ? "refreshed-synthetic-token" : "synthetic-token", userId: "expiring-profile-test", expiresAt: sessionRequests > 1 ? "2099-01-01T00:00:00Z" : new Date(Date.now() + 20_000).toISOString() },
+      session: { id: "expiring-session", token: "opaque-session-token", userId: "expiring-profile-test", expiresAt: new Date(Date.now() + 20_000).toISOString() },
     } });
   });
   await page.route("**/api/backend/**", route => {
     const path = new URL(route.request().url()).pathname;
     if (path.endsWith("/profile/ai-preferences")) {
-      expect(route.request().headers().authorization).toBe("Bearer refreshed-synthetic-token");
+      expect(route.request().headers().authorization).toBe("Bearer fresh-synthetic-jwt");
     }
     const data = path.endsWith("/profile/ai-preferences")
       ? { use_profile_context: false, writing_style: "natural", response_detail: "balanced", personal_goals: [], interests: [] }
       : path.endsWith("/profile") ? { display_name: "Alex", email: "profile@example.test", avatar_url: null }
-      : path.endsWith("/settings") ? { default_use_with_ask_my_mind: false } : [];
+      : path.endsWith("/settings") ? { default_use_with_ask_my_mind: false }
+      : path.endsWith("/settings/ai-usage") ? syntheticUsage : [];
     return route.fulfill({ json: data, headers: { "x-total-count": "0" } });
   });
   await page.goto("/");
   await expect(page.getByText("Hello, Alex.", { exact: true })).toBeVisible();
   // Let the shell's initial requests settle before isolating Profile loading.
   await expect(page.getByRole("heading", { name: "A thought is all it takes.", exact: true })).toBeVisible();
-  const before = sessionRequests;
+  const before = tokenRequests;
   await page.getByRole("button", { name: "Profile", exact: true }).click();
   await expect(page.getByLabel("Preferred name")).toBeVisible();
-  expect(sessionRequests).toBeGreaterThan(before);
+  expect(tokenRequests).toBeGreaterThan(before);
 });

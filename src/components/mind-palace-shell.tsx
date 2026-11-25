@@ -42,6 +42,7 @@ import {
   requestAccountDeletion,
   restoreThought,
   updateSettings,
+  updateOnboarding,
   createCollection,
   deleteCollection,
   removeThoughtFromCollection,
@@ -79,6 +80,7 @@ import { ReminisceWorkspace } from "@/components/reminisce-workspace";
 import { ThoughtEditForm } from "@/components/thought-edit-form";
 import { ThoughtPreviewPanel } from "@/components/thought-preview-panel";
 import { ProfileWorkspace } from "@/components/profile-workspace";
+import { OnboardingPanel } from "@/components/onboarding-panel";
 
 async function getApiToken(): Promise<string | null> {
   return getJWTToken();
@@ -114,6 +116,8 @@ export function MindPalaceShell() {
   const [recallTotal, setRecallTotal] = useState(0);
   const [recallTotalPages, setRecallTotalPages] = useState(0);
   const [settings, setSettings] = useState<UserSettings | null>(null);
+  const [isSavingOnboarding, setIsSavingOnboarding] = useState(false);
+  const [onboardingError, setOnboardingError] = useState("");
   const [aiUsage, setAIUsage] = useState<AIUsage | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
@@ -195,7 +199,13 @@ export function MindPalaceShell() {
   const actionKeys = useMemo(() => createActionKeys(sessionUserId), [sessionUserId]);
   const refreshSequence = useRef(0);
   const askSubmissionLock = useRef(false);
+  const onboardingSubmissionLock = useRef(false);
+  const onboardingRequestSequence = useRef(0);
   const isAuthenticated = Boolean(session.data?.user) && authMode === "sign-in";
+  const showOnboarding = settings?.onboarding_completed_at === null
+    && ["privacy", "first_thought"].includes(settings.onboarding_step);
+
+  useEffect(() => () => { onboardingRequestSequence.current += 1; }, [sessionUserId]);
 
   const hasSavedThoughts = libraryTotal > 0 || thoughts.length > 0;
   const hasProcessingThoughts = thoughts.some(
@@ -597,6 +607,7 @@ export function MindPalaceShell() {
   }
 
   async function handleSignOut() {
+    onboardingRequestSequence.current += 1;
     await authClient.signOut();
     actionKeys.clear();
     setThoughts([]);
@@ -604,6 +615,7 @@ export function MindPalaceShell() {
     setRecallTotal(0);
     setRecallTotalPages(0);
     setSettings(null);
+    setOnboardingError("");
     setAIUsage(null);
     setProfile(null);
     setLibraryError("");
@@ -804,14 +816,16 @@ export function MindPalaceShell() {
   async function handleCreateThought(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (isSaving) return;
+
+    const sequence = onboardingRequestSequence.current;
     const token = await getApiToken();
-    if (!token || !body.trim()) {
+    if (!token || !body.trim() || sequence !== onboardingRequestSequence.current) {
       return;
     }
 
     setIsSaving(true);
     setMessage("");
-    setIsCaptureOpen(false);
 
     try {
       let bookId = selectedBookId && selectedBookId !== "__new__" ? selectedBookId : undefined;
@@ -820,6 +834,7 @@ export function MindPalaceShell() {
           title: newBookTitle.trim(),
           author: newBookAuthor.trim(),
         });
+        if (sequence !== onboardingRequestSequence.current) return;
         bookId = book.id;
         setBooks((current) => [...current.filter((item) => item.id !== book.id), book]);
       }
@@ -834,8 +849,18 @@ export function MindPalaceShell() {
         collection_ids: selectedCollectionIds,
         use_with_ask_my_mind: useWithAsk,
       };
-      await createThought(token, input, actionKeys.get("capture", input));
+      const savedThought = await createThought(token, input, actionKeys.get("capture", input));
+      if (sequence !== onboardingRequestSequence.current) return;
       actionKeys.complete("capture");
+      setIsCaptureOpen(false);
+      if (showOnboarding) {
+        setSettings((current) => current ? {
+          ...current, onboarding_completed_at: savedThought.created_at,
+        } : current);
+        setThoughts((current) => [savedThought, ...current.filter((thought) => thought.id !== savedThought.id)]);
+        setLibraryTotal((current) => current + 1);
+        setRecallTotal((current) => current + 1);
+      }
       setBody("");
       setTitle("");
       setManualTags("");
@@ -845,7 +870,7 @@ export function MindPalaceShell() {
       setSelectedCollectionIds([]);
       setUseWithAsk(settings?.default_use_with_ask_my_mind ?? false);
       setMessage("Thought saved.");
-      void refresh(recallPage, recallFilters, false, token);
+      void refresh(recallPage, recallFilters, showOnboarding, token);
       void loadRemember();
       void loadBooks();
       void loadCollections();
@@ -853,10 +878,35 @@ export function MindPalaceShell() {
         void loadBookThoughts(activeBookId, bookPage);
       }
     } catch (error) {
+      if (sequence !== onboardingRequestSequence.current) return;
       setIsCaptureOpen(true);
       setMessage(error instanceof Error ? error.message : "Unable to save thought.");
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function handleOnboarding(action: "continue" | "skip", openProfile = false) {
+    if (onboardingSubmissionLock.current || isSaving) return;
+    onboardingSubmissionLock.current = true;
+    setIsSavingOnboarding(true);
+    setOnboardingError("");
+    const sequence = onboardingRequestSequence.current;
+    try {
+      const token = await getApiToken();
+      if (!token) throw new Error("Your session has expired. Sign in again to continue.");
+      if (sequence !== onboardingRequestSequence.current) return;
+      const nextSettings = await updateOnboarding(token, action);
+      if (sequence !== onboardingRequestSequence.current) return;
+      setSettings(nextSettings);
+      if (openProfile) setWorkspaceMode("profile");
+    } catch (error) {
+      if (sequence === onboardingRequestSequence.current) {
+        setOnboardingError(error instanceof Error ? error.message : "Unable to save setup progress. Please try again.");
+      }
+    } finally {
+      onboardingSubmissionLock.current = false;
+      setIsSavingOnboarding(false);
     }
   }
 
@@ -1272,7 +1322,7 @@ export function MindPalaceShell() {
     <main className="min-h-screen bg-transparent text-[var(--mp-text)]">
       <div className="flex min-h-screen w-full flex-col">
         {isAuthenticated ? (
-          <section className={workspaceMode === "hub" ? homeStyles.shell : homeStyles.workspaceShell}>
+          <section className={workspaceMode === "hub" ? homeStyles.shell : homeStyles.workspaceShell} data-onboarding={workspaceMode === "hub" && showOnboarding ? "true" : undefined}>
             {workspaceMode === "hub" ? <div className={homeStyles.brand}><div className="mp-wordmark">mind palace</div><span>A place for what stays with you.</span></div> : null}
             <div className={homeStyles.utilities}>
               <ThemeToggle />
@@ -1318,7 +1368,17 @@ export function MindPalaceShell() {
             ) : null}
 
             <div className={workspaceMode === "hub" ? homeStyles.content : "relative z-10 mx-auto w-full max-w-6xl py-4"}>
-              {workspaceMode === "hub" ? (
+              {workspaceMode === "hub" && showOnboarding && settings ? (
+                <OnboardingPanel
+                  step={settings.onboarding_step}
+                  isBusy={isSavingOnboarding || isSaving}
+                  errorMessage={onboardingError}
+                  onContinue={() => void handleOnboarding("continue")}
+                  onSkip={() => void handleOnboarding("skip")}
+                  onSaveThought={() => { setSelectedCollectionIds([]); setIsCaptureOpen(true); }}
+                  onProfile={() => void handleOnboarding("skip", true)}
+                />
+              ) : workspaceMode === "hub" ? (
                 <MindMapHome
                   name={profile?.display_name ?? session.data?.user?.name ?? ""}
                   thoughts={thoughts}
