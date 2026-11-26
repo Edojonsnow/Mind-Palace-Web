@@ -53,7 +53,7 @@ export default function AboutPage() {
             <p>Ask a question about the thoughts you have enabled for AI. Answers link back to the saved entries they draw from, so you can read the original for yourself.</p>
           </div>
           <figure className={styles.askFigure}>
-            <Image src="/product/ask.jpg" alt="A sample Ask My Mind conversation about making time to think, with a cited journal entry alongside the answer." width={1360} height={860} sizes="(max-width: 768px) 100vw, 1120px" unoptimized />
+            <Image src="/product/ask.jpg" alt="A sample Ask Omini conversation about making time to think, with a cited journal entry alongside the answer." width={1360} height={860} sizes="(max-width: 768px) 100vw, 1120px" unoptimized />
             <figcaption>A sample question, an answer, and the thought behind it.</figcaption>
           </figure>
         </section>
@@ -74,7 +74,7 @@ export default function AboutPage() {
         <section className={styles.questions} aria-labelledby="questions-heading">
           <h2 id="questions-heading">A few things to know.</h2>
           <div>
-            <details><summary>Do I have to use AI?<Plus size={19} aria-hidden="true" /></summary><p>No. You can save, edit, browse, tag, and organize thoughts without enabling AI. Search words uses text matching. Search by meaning and Ask My Mind use AI and are subject to your AI allowance.</p></details>
+            <details><summary>Do I have to use AI?<Plus size={19} aria-hidden="true" /></summary><p>No. You can save, edit, browse, tag, and organize thoughts without enabling AI. Search words uses text matching. Search by meaning and Ask Omini use AI and are subject to your AI allowance.</p></details>
             <details><summary>What happens if AI processing fails?<Plus size={19} aria-hidden="true" /></summary><p>Your saved thought stays in the library. You can still read it and find it with text search. A processing status shows when organization is pending or has failed, with an option to retry.</p></details>
             <details><summary>Can I use it on my phone?<Plus size={19} aria-hidden="true" /></summary><p>The web app works in a mobile browser. Native mobile apps, offline storage, image uploads, and sharing directly from social apps are future work, not features of this version.</p></details>
           </div>
@@ -83,7 +83,7 @@ export default function AboutPage() {
 
       <footer className={styles.footer}>
         <div><p className={styles.footerHeading}>Keep the thought.<br />Come back to it.</p><Link className={styles.primaryAction} href="/">Open Mind Palace <ArrowUpRight size={19} aria-hidden="true" /></Link></div>
-        <div className={styles.footerMeta}><span className={styles.wordmark}>mind palace<span aria-hidden="true">.</span></span><nav aria-label="Footer"><a href="#your-library">Your library</a><a href="#ask">Ask My Mind</a><a href="#privacy">Privacy</a></nav><span>A personal library for what stays with you.</span></div>
+        <div className={styles.footerMeta}><span className={styles.wordmark}>mind palace<span aria-hidden="true">.</span></span><nav aria-label="Footer"><a href="#your-library">Your library</a><a href="#ask">Ask Omini</a><a href="#privacy">Privacy</a></nav><span>A personal library for what stays with you.</span></div>
       </footer>
     </div>
   );

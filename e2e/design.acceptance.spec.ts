@@ -28,6 +28,30 @@ test.describe("presentation safeguards", () => {
     await expect(trigger).toBeFocused();
   });
 
+  for (const [width, height, theme] of [[320, 568, "dark"], [768, 800, "light"], [1440, 900, "dark"]] as const) {
+    test(`capture supports excerpts and keeps save visible at ${width}px`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height });
+      await page.addInitScript(t => localStorage.setItem("mind-palace-theme", t), theme);
+      await page.goto("/");
+      await page.getByRole("button", { name: "Save a thought", exact: true }).first().click();
+      const dialog = page.getByRole("dialog");
+      const body = dialog.getByLabel("Your thought", { exact: true });
+      const save = dialog.getByRole("button", { name: "Keep this thought" });
+      await body.fill("a".repeat(1001));
+      await expect(save).toBeDisabled();
+      await body.fill("A passage to revisit.");
+      await dialog.getByLabel("Kind of thought", { exact: true }).selectOption("book_excerpt");
+      await dialog.getByLabel("Book", { exact: true }).selectOption("__new__");
+      await dialog.getByLabel("Book title", { exact: true }).fill("Reading notes");
+      await dialog.getByLabel("Author", { exact: true }).fill("Example author");
+      await expect(dialog.getByRole("checkbox", {name: "Let Ask Omini use this"})).not.toBeChecked();
+      await expect(save).toBeEnabled();
+      await expect(save).toBeInViewport({ ratio: 1 });
+      expect(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth)).toBeTruthy();
+      await page.screenshot({ path: testInfo.outputPath("capture.png") });
+    });
+  }
+
   test("reduced motion uses a static brain without delaying actions", async ({ page }, testInfo) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");

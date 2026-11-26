@@ -1,9 +1,9 @@
-.refinements { padding-top: var(--space-2); }
+.refinements { padding-top: var(--space-2); padding-bottom: var(--space-3); border-bottom: 1px solid var(--mp-line); }
 .refine summary { display: inline-flex; align-items: center; min-height: 44px; gap: var(--space-2); cursor: pointer; list-style: none; color: var(--mp-text-2); font: 400 .875rem var(--font-ui); white-space: nowrap; }
 .refine summary::-webkit-details-marker { display: none; }
 .refine[open] summary > svg:last-child { transform: rotate(180deg); }
 .count { color: var(--mp-lumen-text); font-variant-numeric: tabular-nums; }
-.form { padding-block: var(--space-3) var(--space-5); border-bottom: 1px solid var(--mp-line); }
+.form { padding-block: var(--space-3) var(--space-4); }
 .filters { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: var(--space-4); }
 .filters label { display: grid; gap: var(--space-2); min-width: 0; color: var(--mp-text-2); font: 400 .8125rem/1.4 var(--font-ui); }
 .control { width: 100%; min-width: 0; height: 44px; border: 1px solid var(--mp-control-line); border-radius: var(--r-xs); background: var(--mp-surface-2); padding-inline: var(--space-3); color: var(--mp-text); font: 400 .875rem var(--font-ui); }

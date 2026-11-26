@@ -28,7 +28,7 @@ export function AskMyMindWorkspace({ messages, question, isAsking, errorMessage,
       <div className={styles.conversation}>
         <div className={styles.messages} role="log" aria-label="Conversation" aria-live="polite" aria-relevant="additions">
           {messages.length === 0 ? <div className={styles.empty}><Search size={28} aria-hidden="true" /><h2>Your thoughts, in conversation.</h2><p>Ask about a pattern, decision, person, or idea you have written about.</p></div> : messages.map(message => <article key={message.id} className={message.role === "user" ? styles.question : styles.answer}>
-            <p className="mp-eyebrow">{message.role === "user" ? "You" : "Ask my mind"}</p>
+            <p className="mp-eyebrow">{message.role === "user" ? "You" : "Ask Omini"}</p>
             <div className={styles.content}>{message.content}</div>
             {message.role === "assistant" ? <>
               <div className={styles.evidence}>{message.citations.length ? <><span className={styles.evidenceDot} />{new Set(message.citations.map(s => s.thought_id)).size} {new Set(message.citations.map(s => s.thought_id)).size === 1 ? "thought cited" : "thoughts cited"}</> : "No supporting thoughts cited"}</div>

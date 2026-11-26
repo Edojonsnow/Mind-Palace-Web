@@ -8,7 +8,7 @@ import styles from "@/app/about/page.module.css";
 const views = [
   { key: "capture", label: "Save a thought", icon: NotebookPen, title: "Start with what is on your mind.", description: "A quick note or a longer reflection. Give it a title, choose a type, and decide whether AI can use it.", alt: "The thought composer, with a sample note and the AI access toggle off." },
   { key: "library", label: "Find it again", icon: Search, title: "Your thoughts, not a pile of files.", description: "Browse your library, search for a phrase, or narrow things down with tags and filters.", alt: "The library showing sample thoughts, tags, and word and meaning search controls." },
-  { key: "ask", label: "Ask My Mind", icon: MessageCircleQuestion, title: "Questions, with somewhere to return to.", description: "Get answers grounded in your AI-enabled thoughts, with citations you can open and read in full.", alt: "A sample AI answer with a citation and its original journal entry." },
+  { key: "ask", label: "Ask Omini", icon: MessageCircleQuestion, title: "Questions, with somewhere to return to.", description: "Get answers grounded in your AI-enabled thoughts, with citations you can open and read in full.", alt: "A sample AI answer with a citation and its original journal entry." },
   { key: "books", label: "Keep a passage", icon: BookOpen, title: "A bookshelf made of what stayed with you.", description: "Save a book once. Keep adding excerpts, and revisit them together from your Books view.", alt: "The Books workspace showing Circe by Madeline Miller and its saved excerpt count." },
 ];
 

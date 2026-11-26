@@ -29,7 +29,7 @@ test.describe("authenticated profile persistence", () => {
       await page.getByLabel("Response length").selectOption("concise");
       await page.getByRole("button", { name: "Save AI preferences", exact: true }).click();
       await expect(page.getByText("AI preferences saved.", { exact: true })).toBeVisible();
-      const toggle = page.getByLabel("Use my profile with Ask my mind");
+      const toggle = page.getByLabel("Use my profile with Ask Omini");
       if (await toggle.isChecked()) await toggle.click();
       await expect(toggle).not.toBeChecked();
       await toggle.click();
@@ -41,7 +41,7 @@ test.describe("authenticated profile persistence", () => {
       await expect(page.getByLabel("Preferred name")).toHaveValue("Acceptance Profile");
       await expect(page.getByLabel("Personal goals", { exact: true })).toHaveValue("A synthetic acceptance goal");
       await expect(page.getByLabel("Response length")).toHaveValue("concise");
-      await expect(page.getByLabel("Use my profile with Ask my mind")).not.toBeChecked();
+      await expect(page.getByLabel("Use my profile with Ask Omini")).not.toBeChecked();
     } finally {
       const restoredAccount = await page.request.patch("/api/backend/profile", { headers, data: {
         display_name: originalAccount.display_name, avatar_url: originalAccount.avatar_url,

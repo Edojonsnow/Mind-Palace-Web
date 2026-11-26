@@ -16,8 +16,8 @@ export function DesignSystem() {
       <h3 className="mb-4 mt-8 text-2xl">Typography</h3><p className="font-serif text-3xl">Your words, kept close.</p><p className="my-3 font-sans">System copy and AI answers.</p>
       <h3 className="mb-4 mt-8 text-2xl">Actions</h3><div className="flex flex-wrap gap-3"><Button variant="primary">Keep this thought <ArrowRight size={16} /></Button><Button variant="echo">Ask →</Button><Button>Secondary</Button><Button variant="ghost">Ghost</Button><Button variant="danger">Delete</Button><Button variant="icon" aria-label="Close"><X size={18} /></Button><Button disabled>Disabled</Button></div>
       <h3 className="mb-4 mt-8 text-2xl">Fields and consent</h3><ValidatedForm onSubmit={e => e.preventDefault()}><label className="mp-auth-label">Thought title<input className="mp-field mt-2" required placeholder="A thought to keep" /></label><Button type="submit">Validate</Button></ValidatedForm>
-      <label className="mt-5 flex min-h-11 items-center justify-between gap-4">Let Ask My Mind use this<input type="checkbox" checked={on} onChange={e => setOn(e.target.checked)} /></label>
-      <div className="mt-5 flex gap-3"><span className="mp-tag">reflection</span><span className="flex items-center gap-2 text-vault"><LockKeyhole size={16} />Private</span><span className="flex items-center gap-2 text-echo"><Sparkles size={16} />Ask My Mind</span></div>
+      <label className="mt-5 flex min-h-11 items-center justify-between gap-4">Let Ask Omini use this<input type="checkbox" checked={on} onChange={e => setOn(e.target.checked)} /></label>
+      <div className="mt-5 flex gap-3"><span className="mp-tag">reflection</span><span className="flex items-center gap-2 text-vault"><LockKeyhole size={16} />Private</span><span className="flex items-center gap-2 text-echo"><Sparkles size={16} />Ask Omini</span></div>
       <h3 className="mb-4 mt-8 text-2xl">Loading and empty</h3><Skeleton /><div className="mp-empty"><h2>Nothing matches yet.</h2><p>Try describing it differently.</p></div>
     </section>)}</div>
   </main>;

@@ -96,6 +96,8 @@ export type AccountDeletionRequest = Schemas["AccountDeletionRequestRead"] & {
   status: "pending" | "cancelled" | "completed" | "failed";
 };
 
+export type AccountDeletionOptions = Schemas["AccountDeletionOptions"];
+
 export type CreateThoughtInput = Partial<Schemas["ThoughtCreate"]> & {
   body: Schemas["ThoughtCreate"]["body"];
 };
@@ -402,4 +404,18 @@ export function requestAccountDeletion(token: string): Promise<AccountDeletionRe
 
 export function cancelAccountDeletion(token: string): Promise<void> {
   return request<void>('/account/deletion', token, { method: "DELETE" });
+}
+
+export function getAccountDeletionOptions(token: string): Promise<AccountDeletionOptions> {
+  return request<AccountDeletionOptions>('/account/deletion/options', token);
+}
+
+export function permanentlyDeleteAccount(
+  token: string,
+  confirmation: Schemas["PermanentAccountDeletion"]["confirmation"],
+): Promise<void> {
+  return request<void>('/account/deletion/permanent', token, {
+    method: "POST",
+    body: JSON.stringify({ confirmation }),
+  });
 }

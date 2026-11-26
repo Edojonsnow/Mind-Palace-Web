@@ -29,7 +29,7 @@ test.describe("authenticated Books workflows", () => {
       await dialog.getByLabel("Book title", { exact: true }).fill(bookTitle);
       await dialog.getByLabel("Author", { exact: true }).fill(bookAuthor);
 
-      await dialog.getByRole("checkbox", { name: "Let Ask My Mind use this", exact: true }).uncheck();
+      await dialog.getByRole("checkbox", { name: "Let Ask Omini use this", exact: true }).uncheck();
 
       const bookResponsePromise = page.waitForResponse(
         (response) =>

@@ -65,7 +65,7 @@ test.describe("AI-assisted MVP scenarios", () => {
     "Set MIND_PALACE_E2E_STORAGE_STATE and MIND_PALACE_E2E_AI=true to run AI-backed acceptance scenarios.",
   );
 
-  test("captures an AI-enabled thought and exposes Ask My Mind", async ({ page }) => {
+  test("captures an AI-enabled thought and exposes Ask Omini", async ({ page }) => {
     const marker = `Acceptance AI capture ${Date.now()}`;
     const body = `I protect a quiet morning routine by keeping my phone away from my desk. ${marker}`;
     await page.goto("/");
@@ -98,8 +98,8 @@ test.describe("AI-assisted MVP scenarios", () => {
     const semanticMatches = (await semanticResponse.json()) as Array<{ id: string }>;
     expect(semanticMatches.some((thought) => thought.id === createdThought.id)).toBeTruthy();
 
-    await expect(page.getByRole("button", { name: "Ask my mind" })).toBeVisible();
-    await page.getByRole("button", { name: "Ask my mind" }).click();
+    await expect(page.getByRole("button", { name: "Ask Omini" })).toBeVisible();
+    await page.getByRole("button", { name: "Ask Omini" }).click();
     await page.getByPlaceholder("Ask something only your mind could answer…").fill("What habit did I capture about avoiding distractions?");
     await page.getByRole("button", { name: "Ask →" }).click();
     await expect(page.getByText(/Sources \/ [1-9]\d*/)).toBeVisible({ timeout: 30_000 });

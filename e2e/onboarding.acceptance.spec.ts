@@ -2,6 +2,9 @@ import { expect, test, type Page } from "@playwright/test";
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
+const privacyHeading = "Your thoughts. Your terms.";
+const firstThoughtHeading = "Catch a thought before it slips away.";
+
 async function setupAccount(page: Page, completed = false) {
   const settings = {
     id: "synthetic-settings", user_id: "onboarding-user",
@@ -84,24 +87,29 @@ async function setupAccount(page: Page, completed = false) {
 test("new users resume setup and save a real first thought without enabling AI", async ({ page }) => {
   const account = await setupAccount(page);
   await page.goto("/");
-  const setup = page.getByRole("region", { name: "Your library, your choice." });
+  const setup = page.getByRole("region", { name: privacyHeading });
   await expect(setup).toContainText("not end-to-end encrypted");
+  await expect(setup).toContainText("the service can read your saved thoughts");
+  await expect(setup).toContainText("AI starts off");
+  await expect(setup).toContainText("external AI provider");
+  await expect(setup).toContainText("recovery window");
   await setup.getByRole("button", { name: "Continue", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Keep your first thought." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: firstThoughtHeading })).toBeVisible();
+  await expect(page.getByRole("region", { name: firstThoughtHeading })).toContainText("group it into a collection");
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Keep your first thought." })).toBeFocused();
+  await expect(page.getByRole("heading", { name: firstThoughtHeading })).toBeFocused();
   await page.getByRole("button", { name: "Save a thought", exact: true }).click();
-  await expect(page.getByRole("checkbox", { name: "Let Ask My Mind use this" })).not.toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "Let Ask Omini use this" })).not.toBeChecked();
   await page.getByRole("button", { name: "Close", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Keep your first thought." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: firstThoughtHeading })).toBeVisible();
   await page.getByRole("button", { name: "Save a thought", exact: true }).click();
   await page.getByLabel("Your thought", { exact: true }).fill("A synthetic first note.");
-  await page.getByPlaceholder("Give this thought a name").fill("First saved thought");
+  await page.getByLabel("Optional title", { exact: true }).fill("First saved thought");
   account.pauseRefresh();
   await page.getByRole("button", { name: "Keep this thought" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Open thought: First saved thought", exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Keep your first thought." })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: firstThoughtHeading })).toHaveCount(0);
   expect(account.settings.default_use_with_ask_my_mind).toBe(false);
   expect(account.privateContentRequests).toHaveLength(0);
   expect(account.captures()).toBe(1);
@@ -127,11 +135,11 @@ test("failed progress and capture can be retried without losing the draft", asyn
   account.failProgress(true);
   await page.goto("/");
   await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await expect(page.getByRole("region", { name: "Your library, your choice." }).getByRole("alert")).toContainText("could not complete this request");
-  await expect(page.getByRole("heading", { name: "Your library, your choice." })).toBeVisible();
+  await expect(page.getByRole("region", { name: privacyHeading }).getByRole("alert")).toContainText("could not complete this request");
+  await expect(page.getByRole("heading", { name: privacyHeading })).toBeVisible();
   account.failProgress(false);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Keep your first thought." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: firstThoughtHeading })).toBeVisible();
   await page.getByRole("button", { name: "Save a thought", exact: true }).click();
   await page.getByLabel("Your thought", { exact: true }).fill("A draft that survives failure.");
   account.failCapture(true);
@@ -156,7 +164,7 @@ test("profile setup is optional and does not enable personalization", async ({ p
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("button", { name: "Set up profile (optional)", exact: true }).click();
   await expect(page.getByRole("region", { name: "Profile", exact: true })).toBeVisible();
-  await expect(page.getByLabel("Use my profile with Ask my mind")).not.toBeChecked();
+  await expect(page.getByLabel("Use my profile with Ask Omini")).not.toBeChecked();
   expect(account.privateContentRequests).toHaveLength(0);
 });
 
@@ -167,7 +175,7 @@ for (const width of [320, 1440]) {
       await page.addInitScript(value => localStorage.setItem("mind-palace-theme", value), theme);
       await page.setViewportSize({ width, height: 900 });
       await page.goto("/");
-      await expect(page.getByRole("heading", { name: "Your library, your choice." })).toBeVisible();
+      await expect(page.getByRole("heading", { name: privacyHeading })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       const brand = await page.locator('[data-onboarding="true"] .mp-wordmark').boundingBox();
       const themeButton = await page.getByRole("button", { name: /Theme:/ }).boundingBox();
@@ -176,6 +184,7 @@ for (const width of [320, 1440]) {
       await page.getByRole("button", { name: "Continue", exact: true }).click();
       await expect(page.getByRole("button", { name: "Set up profile (optional)", exact: true })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await page.screenshot({ path: testInfo.outputPath(`first-thought-${theme}-${width}.png`), fullPage: true });
     });
   }
 }

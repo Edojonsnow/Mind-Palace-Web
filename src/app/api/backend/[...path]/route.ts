@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { forwardBackendRequest } from "@/lib/backend-proxy";
+import { expireNeonAuthCookies } from "@/lib/auth-cookies";
 
 const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
 const sessionCookieName = "__Secure-neon-auth.session_token";
@@ -20,10 +21,16 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
   const idempotencyKey = request.headers.get("idempotency-key");
   if (idempotencyKey) requestHeaders.set("idempotency-key", idempotencyKey);
 
-  const sessionCookie = (await cookies()).get(sessionCookieName)?.value;
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get(sessionCookieName)?.value;
   if (sessionCookie) requestHeaders.set(sessionCookieHeader, sessionCookie);
 
-  return forwardBackendRequest(request, target, requestHeaders);
+  const response = await forwardBackendRequest(request, target, requestHeaders);
+  if (request.method === "POST" && path.join("/") === "account/deletion/permanent" && response.status === 204) {
+    // Neon is already deleted; remove both the session and the SDK's local cache.
+    expireNeonAuthCookies(cookieStore);
+  }
+  return response;
 }
 
 export const GET = proxy;

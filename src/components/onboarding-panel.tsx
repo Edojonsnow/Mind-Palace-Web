@@ -32,16 +32,16 @@ export function OnboardingPanel({
         <button className="mp-button mp-button-ghost" type="button" disabled={isBusy} onClick={onSkip}>Skip setup</button>
       </header>
       <h1 ref={heading} tabIndex={-1} id="onboarding-title" className={styles.title}>
-        {isPrivacy ? "Your library, your choice." : "Keep your first thought."}
+        {isPrivacy ? "Your thoughts. Your terms." : "Catch a thought before it slips away."}
       </h1>
       {isPrivacy ? (
         <dl className={styles.privacy}>
-          <div><dt>Saved to your account</dt><dd>Your thoughts are stored in the cloud, not only on this device. This is not end-to-end encrypted storage.</dd></div>
-          <div><dt>AI is optional</dt><dd>AI access starts off. Only thoughts you enable are sent for AI processing. Saving a thought does not require AI.</dd></div>
-          <div><dt>You stay in control</dt><dd>Your Privacy &amp; data controls include export, deletion, and recovery of recently deleted thoughts.</dd></div>
+          <div><dt>A library that goes with you</dt><dd>Your thoughts are saved to your account in the cloud, ready whenever you sign in. Storage is not end-to-end encrypted; the service can read your saved thoughts.</dd></div>
+          <div><dt>AI by invitation, not by default</dt><dd>AI starts off. Only thoughts you enable are sent to an external AI provider for processing and use with Ask Omini. You can change that choice for each thought.</dd></div>
+          <div><dt>Keep control beyond the first save</dt><dd>Export your archive, change AI participation, or delete your account in Privacy &amp; data. Deleted thoughts stay recoverable until their recovery window ends.</dd></div>
         </dl>
       ) : (
-        <p className={styles.intro}>A note, a passage, or something from today. It does not need to be finished.</p>
+        <p className={styles.intro}>An idea for later, a moment from today, a passage that stays with you. Start with a few words; you can edit your thought, add tags, or group it into a collection whenever you&apos;re ready.</p>
       )}
       {errorMessage ? <p className={styles.error} role="alert">{errorMessage}</p> : null}
       <footer className={styles.actions}>

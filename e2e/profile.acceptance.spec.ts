@@ -46,9 +46,9 @@ test.describe("private profile workspace", () => {
     await page.getByLabel("Response length").selectOption("concise");
     await page.getByRole("button", { name: "Save AI preferences", exact: true }).click();
     await expect(page.getByText("AI preferences saved.", { exact: true })).toBeVisible();
-    await expect(page.getByLabel("Use my profile with Ask my mind")).not.toBeChecked();
+    await expect(page.getByLabel("Use my profile with Ask Omini")).not.toBeChecked();
     await page.getByRole("button", { name: /Return to my mind/ }).click();
-    await expect(page.getByText("Hello, Alexandra.")).toBeVisible();
+    await expect(page.getByRole("complementary").getByText("Alexandra", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Profile", exact: true }).click();
     await expect(page.getByLabel("Personal goals", { exact: true })).toHaveValue("Read more\nWrite a book");
     await expect(page.getByLabel("Writing style")).toHaveValue("formal");
@@ -65,7 +65,7 @@ test.describe("private profile workspace", () => {
       await new Promise(resolve => setTimeout(resolve, 300));
       return route.fallback();
     });
-    const toggle = page.getByLabel("Use my profile with Ask my mind");
+    const toggle = page.getByLabel("Use my profile with Ask Omini");
     await toggle.click();
     await expect(toggle).toBeDisabled();
     await expect(page.getByText("Profile context enabled.", { exact: true })).toBeVisible();
@@ -90,7 +90,7 @@ test.describe("private profile workspace", () => {
     await expect(page.getByText("Profile saved.", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Save AI preferences", exact: true }).click();
     await expect(page.getByText("AI preferences saved.", { exact: true })).toBeVisible();
-    await page.getByLabel("Use my profile with Ask my mind").click();
+    await page.getByLabel("Use my profile with Ask Omini").click();
     await expect(page.getByText("Profile context enabled.", { exact: true })).toBeVisible();
     expect(sessionRequests).toBe(0);
   });
@@ -178,7 +178,7 @@ test("Profile requests a fresh JWT rather than using an opaque near-expiry sessi
     return route.fulfill({ json: data, headers: { "x-total-count": "0" } });
   });
   await page.goto("/");
-  await expect(page.getByText("Hello, Alex.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("complementary").getByText("Alex", { exact: true })).toBeVisible();
   // Let the shell's initial requests settle before isolating Profile loading.
   await expect(page.getByRole("heading", { name: "A thought is all it takes.", exact: true })).toBeVisible();
   const before = tokenRequests;

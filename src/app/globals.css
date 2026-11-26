@@ -53,7 +53,6 @@ a {
 html, body { overflow-x: clip; }
 body { background: var(--mp-bg); color: var(--mp-text); font-family: var(--font-ui); line-height: 1.6; }
 h1,h2,h3,.font-display { font-family: var(--font-writing); font-weight: 400; letter-spacing: 0; overflow-wrap: anywhere; min-width: 0; }
-* { letter-spacing: 0 !important; }
 svg.lucide { stroke-width: 1.5; flex-shrink: 0; }
 ::selection { background: var(--mp-lumen-soft); color: var(--mp-text); }
 * { scrollbar-color: var(--mp-surface-3) transparent; scrollbar-width: thin; }

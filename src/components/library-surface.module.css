@@ -1,0 +1,17 @@
+.surface {
+  --canvas: var(--mp-bg);
+  --panel: var(--mp-bg-raised);
+  --edge: var(--mp-line);
+  --muted: var(--mp-text-3);
+}
+
+:global([data-theme="dark"]) .surface, .surface[data-theme="dark"] {
+  --canvas: #0b0c0e;
+  --panel: #101115;
+  --edge: #282930;
+  --muted: #9999a5;
+  --mp-text: #eeeae3;
+  --mp-text-2: #b5b3bd;
+  --mp-lumen-text: #f4b14f;
+  --mp-surface-2: #1b1c22;
+}

@@ -1,5 +1,8 @@
 import { MindPalaceShell } from "@/components/mind-palace-shell";
 
-export default function Home() {
-  return <MindPalaceShell />;
+export default async function Home({ searchParams }: {
+  searchParams: Promise<{ account?: string }>;
+}) {
+  const params = await searchParams;
+  return <MindPalaceShell accountDeleted={params.account === "deleted"} />;
 }

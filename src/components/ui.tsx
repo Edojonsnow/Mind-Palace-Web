@@ -16,9 +16,12 @@ function subscribeTheme(listener: () => void) {
   window.addEventListener("mp-theme", listener);
   return () => { window.removeEventListener("storage", listener); window.removeEventListener("mp-theme", listener); };
 }
-function readTheme() { try { return localStorage.getItem("mind-palace-theme") || "system"; } catch { return "system"; } }
-export function ThemeToggle() {
-  const choice = useSyncExternalStore(subscribeTheme, readTheme, () => "system");
+function readTheme() { try { return localStorage.getItem("mind-palace-theme"); } catch { return null; } }
+export function useSavedTheme() {
+  return useSyncExternalStore(subscribeTheme, readTheme, () => null);
+}
+export function ThemeToggle({ defaultChoice = "system" }: { defaultChoice?: "dark" | "system" }) {
+  const choice = useSavedTheme() || defaultChoice;
   const Icon = choice === "dark" ? Moon : choice === "light" ? Sun : Monitor;
   return <Button variant="icon" aria-label={`Theme: ${choice}. Change theme`} title={`Theme: ${choice}. Change theme`} onClick={() => {
     const next = choice === "system" ? "dark" : choice === "dark" ? "light" : "system";

@@ -172,7 +172,7 @@ export function ProfileWorkspace({ fallbackName, fallbackEmail, sessionToken, se
         </ValidatedForm>
         <section className={styles.section} aria-labelledby="personalization-title">
           <h2 id="personalization-title">AI personalization</h2>
-          <label className={styles.consent}><span>Use my profile with Ask my mind</span><input type="checkbox" checked={preferences?.use_profile_context ?? false} disabled={isSavingPreferences} onChange={event => void savePreferences({ use_profile_context: event.target.checked }, true)} /></label>
+          <label className={styles.consent}><span>Use my profile with Ask Omini</span><input type="checkbox" checked={preferences?.use_profile_context ?? false} disabled={isSavingPreferences} onChange={event => void savePreferences({ use_profile_context: event.target.checked }, true)} /></label>
           <p className={styles.disclosure}>When enabled, your preferred name, goals, topics, and response preferences may be sent to OpenAI with your question. Your email and avatar are not sent. Thought permissions stay unchanged.</p>
           <ValidatedForm onSubmit={event => { event.preventDefault(); void savePreferences({ writing_style: writingStyle, response_detail: detail, personal_goals: preferenceLines(goals), interests: preferenceLines(interests) }); }}>
             <div className={styles.fields}>
@@ -188,7 +188,7 @@ export function ProfileWorkspace({ fallbackName, fallbackEmail, sessionToken, se
           <div className={styles.sectionHeading}>
             <div>
               <h2 id="ai-usage-title">AI usage</h2>
-              <p className={styles.sectionIntro}>Your shared daily allowance for Ask My Mind, meaning search, and organization.</p>
+              <p className={styles.sectionIntro}>Your shared daily allowance for Ask Omini, meaning search, and organization.</p>
             </div>
             {usage ? <p className={styles.resetTime}>Resets {formatResetTime(usage.resets_at)}</p> : null}
           </div>
@@ -209,7 +209,7 @@ export function ProfileWorkspace({ fallbackName, fallbackEmail, sessionToken, se
                 <span style={{ width: `${Math.min(100, (usage.units_used / usage.daily_limit) * 100)}%` }} />
               </div>
               <dl className={styles.usageBreakdown}>
-                <div><dt>Ask My Mind</dt><dd>{usage.ask_count}</dd></div>
+                <div><dt>Ask Omini</dt><dd>{usage.ask_count}</dd></div>
                 <div><dt>Meaning searches</dt><dd>{usage.search_count}</dd></div>
                 <div><dt>Organization</dt><dd>{usage.organization_count}</dd></div>
               </dl>

@@ -149,7 +149,7 @@ export function ThoughtEditForm({
           checked={useWithAsk}
           onChange={(event) => onUseWithAskChange(event.target.checked)}
         />
-        Use with Ask My Mind
+        Use with Ask Omini
       </label>
       <div className="flex flex-wrap items-center gap-2">
         <button

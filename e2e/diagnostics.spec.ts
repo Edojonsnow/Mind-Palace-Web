@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { forwardBackendRequest } from "../src/lib/backend-proxy";
 import { ApiError, getProfile } from "../src/lib/api";
+import { expireNeonAuthCookies } from "../src/lib/auth-cookies";
 
 const reference = "00000000-0000-4000-8000-000000000001";
 const originalFetch = globalThis.fetch;
@@ -9,6 +10,26 @@ const originalError = console.error;
 test.afterEach(() => {
   globalThis.fetch = originalFetch;
   console.error = originalError;
+});
+
+test("account deletion expires secure auth cookies and cache, but preserves preferences", () => {
+  const writes: unknown[][] = [];
+  expireNeonAuthCookies({
+    getAll: () => [
+      { name: "__Secure-neon-auth.session_token" },
+      { name: "__Secure-neon-auth.local.session_data" },
+      { name: "theme" },
+    ],
+    set: (...args) => { writes.push(args); },
+  });
+  expect(writes).toEqual([
+    ["__Secure-neon-auth.session_token", "", {
+      path: "/", secure: true, httpOnly: true, sameSite: "lax", maxAge: 0,
+    }],
+    ["__Secure-neon-auth.local.session_data", "", {
+      path: "/", secure: true, httpOnly: true, sameSite: "lax", maxAge: 0,
+    }],
+  ]);
 });
 
 test("proxy preserves the request reference and removes stale compression headers", async () => {

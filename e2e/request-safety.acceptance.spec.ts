@@ -61,7 +61,7 @@ test.describe("request retries", () => {
       } });
     });
     await page.goto("/");
-    await page.getByRole("button", { name: "Ask my mind", exact: true }).click();
+    await page.getByRole("button", { name: "Ask Omini", exact: true }).click();
     const question = page.locator("#ask-question");
     await question.fill("A question to retry");
     await page.getByRole("button", { name: /^Ask\s/ }).click();
@@ -86,7 +86,7 @@ test.describe("request retries", () => {
         } });
     });
     await page.goto("/");
-    await page.getByRole("button", { name: "Ask my mind", exact: true }).click();
+    await page.getByRole("button", { name: "Ask Omini", exact: true }).click();
     const question = page.locator("#ask-question");
     await question.fill("A limited question");
     await page.getByRole("button", { name: /^Ask\s/ }).click();

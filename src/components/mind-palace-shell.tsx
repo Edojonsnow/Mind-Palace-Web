@@ -1,7 +1,7 @@
 "use client";
 
 import { LockKeyhole, LogOut, UserRound } from "lucide-react";
-import { ThemeToggle, ValidatedForm, Skeleton } from "./ui";
+import { ThemeToggle, useSavedTheme, ValidatedForm, Skeleton } from "./ui";
 import {
   FormEvent,
   useCallback,
@@ -17,6 +17,7 @@ import {
   AskSource,
   askMyMind,
   AccountDeletionRequest,
+  AccountDeletionOptions,
   Book,
   Collection,
   cancelAccountDeletion,
@@ -29,6 +30,8 @@ import {
   downloadExport,
   ExportRequest,
   getAccountDeletionRequest,
+  getAccountDeletionOptions,
+  permanentlyDeleteAccount,
   getExportRequest,
   getThought,
   listDeletedThoughts,
@@ -72,6 +75,7 @@ import { MindMapHome } from "@/components/mind-map-home";
 import homeStyles from "@/components/mind-map-home.module.css";
 import { AskMyMindWorkspace } from "@/components/ask-my-mind-workspace";
 import { ThoughtCaptureModal } from "@/components/thought-capture-modal";
+import librarySurface from "./library-surface.module.css";
 import { TrustControlsPanel } from "@/components/trust-controls-panel";
 import Link from "next/link";
 import { BooksWorkspace } from "@/components/books-workspace";
@@ -90,8 +94,15 @@ function subscribeToHydration(): () => void {
   return () => {};
 }
 
-export function MindPalaceShell() {
+export function MindPalaceShell({ accountDeleted = false }: { accountDeleted?: boolean }) {
+  const savedTheme = useSavedTheme();
   const session = authClient.useSession();
+  useEffect(() => {
+    if (!accountDeleted) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("account");
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  }, [accountDeleted]);
   const hasMounted = useSyncExternalStore(
     subscribeToHydration,
     () => true,
@@ -99,12 +110,14 @@ export function MindPalaceShell() {
   );
   const [authMode, setAuthMode] = useState<
     "sign-in" | "sign-up" | "confirm" | "forgot-password" | "reset-password"
-  >("sign-in");
+  >(accountDeleted ? "sign-up" : "sign-in");
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [authName, setAuthName] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
-  const [authMessage, setAuthMessage] = useState("");
+  const [authMessage, setAuthMessage] = useState(accountDeleted
+    ? "Your account has been permanently deleted. You can sign up again with the same email."
+    : "");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isResendingCode, setIsResendingCode] = useState(false);
   const [thoughts, setThoughts] = useState<Thought[]>([]);
@@ -147,6 +160,9 @@ export function MindPalaceShell() {
   const [deletedThoughts, setDeletedThoughts] = useState<Thought[]>([]);
   const [exportRequest, setExportRequest] = useState<ExportRequest | null>(null);
   const [accountDeletion, setAccountDeletion] = useState<AccountDeletionRequest | null>(null);
+  const [deletionOptions, setDeletionOptions] = useState<AccountDeletionOptions | null>(null);
+  const [isDeletingPermanently, setIsDeletingPermanently] = useState(false);
+  const permanentDeletionInFlight = useRef(false);
   const [isTrustControlsOpen, setIsTrustControlsOpen] = useState(false);
   const [lifecycleState, setLifecycleState] = useState<LoadState>("idle");
   const [lifecycleMessage, setLifecycleMessage] = useState("");
@@ -431,12 +447,14 @@ export function MindPalaceShell() {
     setLifecycleState("loading");
     setLifecycleMessage("");
     try {
-      const [nextDeletedThoughts, nextAccountDeletion] = await Promise.all([
+      const [nextDeletedThoughts, nextAccountDeletion, nextDeletionOptions] = await Promise.all([
         listDeletedThoughts(token),
         getAccountDeletionRequest(token),
+        getAccountDeletionOptions(token).catch(() => null),
       ]);
       setDeletedThoughts(nextDeletedThoughts);
       setAccountDeletion(nextAccountDeletion);
+      setDeletionOptions(nextDeletionOptions);
       setLifecycleState("ready");
     } catch (error) {
       setLifecycleState("error");
@@ -633,6 +651,7 @@ export function MindPalaceShell() {
     setDeletedThoughts([]);
     setExportRequest(null);
     setAccountDeletion(null);
+    setDeletionOptions(null);
     setLifecycleState("idle");
     setLifecycleMessage("");
     setLoadState("idle");
@@ -739,7 +758,7 @@ export function MindPalaceShell() {
   }
 
   async function handleRequestAccountDeletion() {
-    if (isRequestingDeletion || accountDeletion?.status === "pending") {
+    if (isRequestingDeletion || isCancellingDeletion || permanentDeletionInFlight.current || accountDeletion?.status === "pending") {
       return;
     }
 
@@ -771,7 +790,7 @@ export function MindPalaceShell() {
 
   async function handleCancelAccountDeletion() {
     const token = await getApiToken();
-    if (!token || isCancellingDeletion) {
+    if (!token || isCancellingDeletion || isRequestingDeletion || permanentDeletionInFlight.current) {
       return;
     }
 
@@ -787,6 +806,26 @@ export function MindPalaceShell() {
       );
     } finally {
       setIsCancellingDeletion(false);
+    }
+  }
+
+  async function handlePermanentAccountDeletion(confirmation: "DELETE MY ACCOUNT") {
+    if (permanentDeletionInFlight.current || isRequestingDeletion || isCancellingDeletion) return;
+    permanentDeletionInFlight.current = true;
+    setIsDeletingPermanently(true);
+    try {
+      const token = await getApiToken();
+      if (!token) throw new Error("Sign out and sign in again before deleting your account.");
+      await permanentlyDeleteAccount(token, confirmation);
+      onboardingRequestSequence.current += 1;
+      actionKeys.clear();
+      // The proxy has cleared auth cookies. Reload to discard all private state.
+      window.location.replace("/?account=deleted");
+    } catch (error) {
+      permanentDeletionInFlight.current = false;
+      setIsDeletingPermanently(false);
+      void loadTrustControls();
+      throw error;
     }
   }
 
@@ -981,11 +1020,16 @@ export function MindPalaceShell() {
 
   function handleRecallSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    applyRecallFilters(recallDraftFilters);
+  }
+
+  function applyRecallFilters(filters: RecallFilters) {
     setThoughts([]);
     cancelEditingThought();
-    setRecallFilters(recallDraftFilters);
+    setRecallDraftFilters(filters);
+    setRecallFilters(filters);
     setRecallPage(1);
-    void refresh(1, recallDraftFilters);
+    void refresh(1, filters);
   }
 
   function openLibrary() {
@@ -1322,32 +1366,51 @@ export function MindPalaceShell() {
     <main className="min-h-screen bg-transparent text-[var(--mp-text)]">
       <div className="flex min-h-screen w-full flex-col">
         {isAuthenticated ? (
-          <section className={workspaceMode === "hub" ? homeStyles.shell : homeStyles.workspaceShell} data-onboarding={workspaceMode === "hub" && showOnboarding ? "true" : undefined}>
-            {workspaceMode === "hub" ? <div className={homeStyles.brand}><div className="mp-wordmark">mind palace</div><span>A place for what stays with you.</span></div> : null}
-            <div className={homeStyles.utilities}>
-              <ThemeToggle />
-              <button className="mp-button mp-button-secondary" type="button" aria-label="Profile" title="Profile" onClick={() => setWorkspaceMode("profile")}>
-                <UserRound size={16} aria-hidden="true" /><span className={homeStyles.utilityLabel}>Profile</span>
-              </button>
-              <button
-                className="mp-button mp-button-secondary"
-                type="button"
-                aria-label="Privacy & data"
-                title="Privacy & data"
-                onClick={() => setIsTrustControlsOpen(true)}
-              >
-                <LockKeyhole size={16} aria-hidden="true" /><span className={homeStyles.utilityLabel}>Privacy &amp; data</span>
-              </button>
-              <button
-                className="mp-button mp-button-ghost"
-                type="button"
-                aria-label="Sign out"
-                title="Sign out"
-                onClick={() => void handleSignOut()}
-              >
-                <LogOut size={18} className={homeStyles.signOutIcon} aria-hidden="true" /><span className={homeStyles.utilityLabel}>Sign out</span>
-              </button>
-            </div>
+          <section className={workspaceMode === "hub" ? `${homeStyles.shell} ${showOnboarding ? "" : librarySurface.surface}` : homeStyles.workspaceShell} data-onboarding={workspaceMode === "hub" && showOnboarding ? "true" : undefined}
+            data-library={workspaceMode === "hub" && !showOnboarding || undefined}
+            data-theme={workspaceMode === "hub" && !showOnboarding && !savedTheme ? "dark" : undefined}>
+            <header className={homeStyles.topBar}>
+              {workspaceMode === "hub" ? (
+                <div className={homeStyles.brand}>
+                  <div className="mp-wordmark">mind palace</div>
+                  <span>A place for what stays with you.</span>
+                </div>
+              ) : (
+                <button
+                  className={homeStyles.back}
+                  type="button"
+                  onClick={openLibrary}
+                >
+                  ← Return to my mind
+                </button>
+              )}
+              {workspaceMode === "hub" && !showOnboarding ? <div className={homeStyles.crumb}>Library <span aria-hidden="true">/</span> <strong>Recall</strong></div> : null}
+              <div className={homeStyles.utilities}>
+                {workspaceMode === "hub" && !showOnboarding ? <span className={homeStyles.privacyBadge}>Private library</span> : null}
+                <ThemeToggle defaultChoice={workspaceMode === "hub" && !showOnboarding ? "dark" : "system"} />
+                <button className={homeStyles.utilityButton} type="button" aria-label="Profile" title="Profile" onClick={() => setWorkspaceMode("profile")}>
+                  <UserRound size={15} aria-hidden="true" /><span className={homeStyles.utilityLabel}>Profile</span>
+                </button>
+                <button
+                  className={homeStyles.utilityButton}
+                  type="button"
+                  aria-label="Privacy & data"
+                  title="Privacy & data"
+                  onClick={() => setIsTrustControlsOpen(true)}
+                >
+                  <LockKeyhole size={15} className={homeStyles.utilityPrivacyIcon} aria-hidden="true" /><span className={homeStyles.utilityLabel}>Privacy &amp; data</span>
+                </button>
+                <button
+                  className={`${homeStyles.utilityButton} ${homeStyles.utilityGhost}`}
+                  type="button"
+                  aria-label="Sign out"
+                  title="Sign out"
+                  onClick={() => void handleSignOut()}
+                >
+                  <LogOut size={16} className={homeStyles.signOutIcon} aria-hidden="true" /><span className={homeStyles.utilityLabel}>Sign out</span>
+                </button>
+              </div>
+            </header>
 
             {message ? (
               <div className="mp-toast" role="status" aria-live="polite">
@@ -1355,16 +1418,6 @@ export function MindPalaceShell() {
                   {message}
                 </div>
               </div>
-            ) : null}
-
-            {workspaceMode !== "hub" ? (
-              <button
-                className={`${homeStyles.back} mp-button mp-button-ghost`}
-                type="button"
-                onClick={openLibrary}
-              >
-                ← Return to my mind
-              </button>
             ) : null}
 
             <div className={workspaceMode === "hub" ? homeStyles.content : "relative z-10 mx-auto w-full max-w-6xl py-4"}>
@@ -1393,12 +1446,15 @@ export function MindPalaceShell() {
                   hasFilters={hasRecallFilters}
                   onDraftFiltersChange={setRecallDraftFilters}
                   onSearchSubmit={handleRecallSubmit}
+                  onApplyFilters={applyRecallFilters}
+                  libraryTotal={libraryTotal}
+                  collectionCount={collectionsLoadState === "ready" ? collections.length : null}
                   onClearQuery={clearSearchQuery}
                   onResetFilters={handleRecallReset}
                   onPageChange={handleRecallPageChange}
                   showAskAction={showAskAction}
                   onSaveThought={() => { setSelectedCollectionIds([]); setIsCaptureOpen(true); }}
-                  onAskMind={() => setWorkspaceMode("ask")}
+                  onAskMind={(draft) => { if (draft) setQuestion(draft); setWorkspaceMode("ask"); }}
                   onReminisce={revealReminisce}
                   onBooks={openBooksWorkspace}
                   recentCollections={recentCollections}
@@ -1538,6 +1594,7 @@ export function MindPalaceShell() {
 
         {isCaptureOpen && isAuthenticated ? (
           <ThoughtCaptureModal
+            defaultDark={workspaceMode === "hub" && !showOnboarding && !savedTheme}
             body={body}
             title={title}
             thoughtType={thoughtType}
@@ -1579,6 +1636,7 @@ export function MindPalaceShell() {
             deletedThoughts={deletedThoughts}
             exportRequest={exportRequest}
             accountDeletion={accountDeletion}
+            deletionOptions={deletionOptions}
             lifecycleState={lifecycleState}
             lifecycleMessage={lifecycleMessage}
             restoringThoughtId={restoringThoughtId}
@@ -1586,6 +1644,7 @@ export function MindPalaceShell() {
             isDownloadingExport={isDownloadingExport}
             isRequestingDeletion={isRequestingDeletion}
             isCancellingDeletion={isCancellingDeletion}
+            isDeletingPermanently={isDeletingPermanently}
             onClose={() => setIsTrustControlsOpen(false)}
             onDefaultAskToggle={(value) => void handleDefaultAskToggle(value)}
             onRestoreThought={(thoughtId) => void handleRestoreThought(thoughtId)}
@@ -1593,6 +1652,8 @@ export function MindPalaceShell() {
             onDownloadExport={() => void handleDownloadExport()}
             onRequestDeletion={() => void handleRequestAccountDeletion()}
             onCancelDeletion={() => void handleCancelAccountDeletion()}
+            onPermanentDelete={handlePermanentAccountDeletion}
+            onSignOut={() => void handleSignOut()}
           />
         ) : null}
 
